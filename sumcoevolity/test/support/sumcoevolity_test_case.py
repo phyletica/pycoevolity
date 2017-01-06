@@ -76,7 +76,8 @@ class SumcoevolityTestCase(unittest.TestCase):
             self.assertEqual(e, stderr)
 
     def assertApproxEqual(self, x, y, percent_tol=1e-6):
-        eq = (((abs(x-y) / ((abs(x)+abs(y))/2))*100) < percent_tol)
+        eq = (((abs(x-y) / ((abs(x)+abs(y))/2.0))*100) < percent_tol)
         if not eq:
             _LOG.error('x ({0}) and y ({1}) are not equal'.format(x, y))
         self.assertTrue(eq)
+

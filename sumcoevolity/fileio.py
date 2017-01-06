@@ -2,6 +2,7 @@
 
 import os
 import sys
+import io
 import gzip
 
 def is_gzipped(file_path):
@@ -64,7 +65,7 @@ class ReadFile(object):
     ...         'test-data', 'config.yml')
     >>> if os.path.exists(test_path):
     ...     with ReadFile(test_path) as f:
-    ...         l = f.next().strip()
+    ...         l = next(f).strip()
     ...     l == "---"
     ... else:
     ...     True
@@ -77,7 +78,7 @@ class ReadFile(object):
     ...         'test-data', 'trees', 'crocs-1.trees.gz')
     >>> if os.path.exists(test_path):
     ...     with ReadFile(test_path) as f:
-    ...         l = f.next().strip()
+    ...         l = next(f).strip()
     ...     l == "#NEXUS"
     ... else:
     ...     True

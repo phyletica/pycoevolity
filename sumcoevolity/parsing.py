@@ -20,7 +20,7 @@ def line_count(stream):
 
 def parse_header(file_stream, sep = '\t', strict = True, seek = True):
     try:
-        header_line = file_stream.next()
+        header_line = next(file_stream)
     except StopIteration:
         if strict:
             raise Exception('did not find header in {0}'.format(file_stream.name))
@@ -48,7 +48,7 @@ def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
     for sheet_idx, ss in enumerate(spreadsheets):
         with ReadFile(ss) as file_stream:
             if head_line:
-                h = file_stream.next().strip().split(sep)
+                h = next(file_stream).strip().split(sep)
                 if header != h:
                     raise Exception('headers do not match')
             for row_idx, row in enumerate(file_stream):
@@ -63,8 +63,8 @@ def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
 
 def dict_line_iter(d, sep = '\t', header = None):
     if not header:
-        header = sorted(d.iterkeys())
-    if sorted(header) != sorted(d.iterkeys()):
+        header = sorted(d.keys())
+    if sorted(header) != sorted(d.keys()):
         raise ValueError('header does not match dict keys')
     yield '{0}\n'.format(sep.join(header))
     for i in range(len(d[header[0]])):
@@ -72,11 +72,11 @@ def dict_line_iter(d, sep = '\t', header = None):
 
 def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
     ss_iter = spreadsheet_iter(spreadsheets, sep = sep, header = header)
-    row_dict = ss_iter.next()
-    d = dict(zip(row_dict.iterkeys(),
-            [[row_dict[k]] for k in row_dict.iterkeys()]))
+    row_dict = next(ss_iter)
+    d = dict(zip(row_dict.keys(),
+            [[row_dict[k]] for k in row_dict.keys()]))
     for row_dict in ss_iter:
-        for k in row_dict.iterkeys():
+        for k in row_dict.keys():
             d[k].append(row_dict[k])
     return d
 

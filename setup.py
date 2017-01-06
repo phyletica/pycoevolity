@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 from sumcoevolity import __version__
 
@@ -8,7 +8,8 @@ setup(name='sumcoevolity',
       author="Jamie Oaks",
       author_email="joaks1@gmail.com",
       license="GPL",
-      packages=find_packages(),
+      packages=['sumcoevolity'],
+      include_package_data=True,
       zip_safe=False,
       test_suite="sumcoevolity.test.get_unittest_suite",
       # test_suite="sumcoevolity.test",

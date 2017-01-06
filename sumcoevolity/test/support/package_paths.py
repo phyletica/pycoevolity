@@ -18,3 +18,5 @@ def output_path(filename=""):
 def script_path(filename=""):
     return os.path.join(SCRIPTS_DIR, filename)
 
+def test_path(filename=""):
+    return os.path.join(TEST_DIR, filename)

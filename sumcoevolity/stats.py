@@ -30,9 +30,9 @@ def get_counts(elements):
 
 def get_freqs(elements):
     counts = get_counts(elements)
-    total = float(sum(counts.itervalues()))
+    total = float(sum(counts.values()))
     freqs = {}
-    for k, v in counts.iteritems():
+    for k, v in counts.items():
         freqs[k] = v / total
     return freqs
 
@@ -46,9 +46,9 @@ def median(samples):
         raise ValueError('empty samples')
     mdn = None
     if n % 2 == 0:
-        mdn = (s[((n / 2) - 1)] + s[(n / 2)]) / 2
+        mdn = (s[((n // 2) - 1)] + s[(n // 2)]) / 2.0
     else:
-        mdn = s[((n - 1) / 2)]
+        mdn = s[((n - 1) // 2)]
     return mdn
 
 def spans_zero(samples):
@@ -120,7 +120,7 @@ def get_bin_width(samples, algorithm = 'freedman-diaconis'):
         return 2 * (float(iqr) / (n ** (float(1)/3)))
     elif a in ['s', 'sturges']:
         k = math.ceil(math.log(n, 2) + 1)
-        return (max(samples) - min(samples)) / k
+        return float(max(samples) - min(samples)) / k
     elif a in ['d', 'doane']:
         if samples < 3:
             return get_bin_width(samples, 'freedman-diaconis')
@@ -128,10 +128,10 @@ def get_bin_width(samples, algorithm = 'freedman-diaconis'):
         ss = SampleSummarizer(samples)
         k = 1 + math.log(n, 2) + math.log((1 + (math.fabs(
                 ss.skewness) / sigma)), 2)
-        return (max(samples) - min(samples)) / k
+        return float(max(samples) - min(samples)) / k
     elif a in ['r', 'rice']:
         k = math.ceil(2 * (n ** (float(1)/3)))
-        return (max(samples) - min(samples)) / k
+        return float(max(samples) - min(samples)) / k
     raise ValueError('unsupported `a` argument: {0!r}'.format(a))
 
 def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
@@ -273,7 +273,7 @@ def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
                 raise ValueError('unsupported `zero_value` argument: '
                         '{0!r}'.format(zero_value))
         counts[index] = counts.get(index, 0) + 1
-    count_tups = sorted(counts.iteritems(), key = operator.itemgetter(1),
+    count_tups = sorted(counts.items(), key = operator.itemgetter(1),
             reverse = True)
     max_count = count_tups[0][1]
     if discrete:
@@ -406,7 +406,7 @@ def stirling2(n, k):
         return 1
     s = stirling2_row()
     for i in range(n + 1):
-        r = s.next()
+        r = next(s)
     return r[k]
 
 def stirling1(n, k):
@@ -420,7 +420,7 @@ def stirling1(n, k):
         return 1
     s = stirling1_row()
     for i in range(n + 1):
-        r = s.next()
+        r = next(s)
     return r[k]
 
          

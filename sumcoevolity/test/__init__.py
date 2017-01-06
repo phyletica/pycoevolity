@@ -74,12 +74,8 @@ class TestLevel:
         return True
 
 def get_test_file_names():
-    if TestLevel.get_current_level() < TestLevel.NORMAL:
-        test_file_paths = glob.glob(os.path.join(package_paths.TEST_DIR,
-                "test_end_user*.py"))
-    else:
-        test_file_paths = glob.glob(os.path.join(package_paths.TEST_DIR,
-                "test_*.py"))
+    test_file_paths = glob.glob(os.path.join(package_paths.TEST_DIR,
+            "test_*.py"))
     tests = []
     for path in test_file_paths:
         test_file_name = os.path.basename(path).split(".")[0]

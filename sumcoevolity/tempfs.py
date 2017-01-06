@@ -124,7 +124,7 @@ class TempFileSystem(object):
         self.dirs.remove(full_path)
         try:
             os.rmdir(full_path)
-        except OSError, e:
+        except OSError as e:
             _LOG.warning('Could not remove temp directory {0}. Here are the '
                     'contents:\n{1}'.format(full_path,
                             '\n'.join(os.listdir(full_path))))
