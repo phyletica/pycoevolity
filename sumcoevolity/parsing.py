@@ -36,9 +36,9 @@ def parse_header(file_stream, sep = '\t', strict = True, seek = True):
         file_stream.seek(0)
     return header
 
-def parse_header_from_path(path, sep = '\t', strict = True, seek = True):
+def parse_header_from_path(path, sep = '\t', strict = True):
     with ReadFile(path) as stream:
-        return parse_header(stream, sep = sep, strict = strict, seek = seek)
+        return parse_header(stream, sep = sep, strict = strict, seek = False)
 
 def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
     head_line = False

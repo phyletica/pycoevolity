@@ -29,3 +29,6 @@ SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
 # NOTE: Imports to populate the namespace can break the scripts' control of the
 # logging level, because imported modules will initiate their loggers before
 # the CLI scripts can update LoggingControl.
+
+import sumcoevolity.stats
+import sumcoevolity.parsing

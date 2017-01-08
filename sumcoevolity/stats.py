@@ -22,6 +22,7 @@ def freq_less_than(values, zero_threshold = 0.01):
     return count / float(total)
 
 def get_counts(elements):
+    elements = list(elements)
     keys = sorted(set(elements))
     counts = dict(zip(keys, [0 for i in range(len(keys))]))
     for el in elements:
@@ -348,6 +349,7 @@ def get_summary(samples, bin_width = 'auto'):
         'hpdi_95': tuple of 95% highest posterior density interval
         'qi_95': tuple of 2.5% to 97.5% quantile interval
     """
+    samples = list(samples)
     ss = SampleSummarizer()
     ss.update_samples(samples)
     return {'n': ss.n,
