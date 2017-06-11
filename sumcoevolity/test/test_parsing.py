@@ -12,6 +12,7 @@ import logging
 
 from sumcoevolity import parsing
 from sumcoevolity.test.support.sumcoevolity_test_case import SumcoevolityTestCase
+from sumcoevolity.test.support import package_paths
 
 _LOG = logging.getLogger(__name__)
 
@@ -166,6 +167,45 @@ class DictLineIterTestCase(unittest.TestCase):
         for row in parsing.dict_line_iter(d, sep = sep):
             r.write(row)
         self.assertEqual(s.getvalue(), r.getvalue())
+
+class EcoevolityStdOutTestCase(SumcoevolityTestCase):
+    def setUp(self):
+        self.set_up()
+        self.restart_std_out_path = package_paths.data_path(
+                'ecoevolity-std-out.txt')
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_parsing_restart_std_out(self):
+        t = parsing.EcoevolityStdOut(self.restart_std_out_path)
+        self.assertEqual(t.number_of_comparisons, 3)
+        self.assertEqual(t.run_time, 4812)
+
+        self.assertEqual(t.numbers_of_sites, (500000, 400000, 300000))
+        self.assertEqual(t.get_number_of_sites(0), 500000)
+        self.assertEqual(t.get_number_of_sites(1), 400000)
+        self.assertEqual(t.get_number_of_sites(2), 300000)
+        self.assertEqual(t.get_min_number_of_sites(), 300000)
+        self.assertEqual(t.get_max_number_of_sites(), 500000)
+        self.assertEqual(t.get_mean_number_of_sites(), 400000)
+
+        self.assertEqual(t.numbers_of_variable_sites, (13154, 20005, 29310))
+        self.assertEqual(t.get_number_of_variable_sites(0), 13154)
+        self.assertEqual(t.get_number_of_variable_sites(1), 20005)
+        self.assertEqual(t.get_number_of_variable_sites(2), 29310)
+        self.assertEqual(t.get_min_number_of_variable_sites(), 13154)
+        self.assertEqual(t.get_max_number_of_variable_sites(), 29310)
+        self.assertApproxEqual(t.get_mean_number_of_variable_sites(), 20823.0)
+
+        self.assertEqual(t.numbers_of_patterns, (61, 61, 61))
+        self.assertEqual(t.get_number_of_patterns(0), 61)
+        self.assertEqual(t.get_number_of_patterns(1), 61)
+        self.assertEqual(t.get_number_of_patterns(2), 61)
+        self.assertEqual(t.get_min_number_of_patterns(), 61)
+        self.assertEqual(t.get_max_number_of_patterns(), 61)
+        self.assertApproxEqual(t.get_mean_number_of_patterns(), 61.0)
+
 
 if __name__ == '__main__':
     unittest.main()

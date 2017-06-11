@@ -1,0 +1,830 @@
+======================================================================
+                              Ecoevolity
+                  Estimating evolutionary coevality
+      Version 0.1.0 (master 3c0cf80: 2017-06-10T12:22:44-05:00)
+======================================================================
+
+Seed: 306149634
+Using data in order to sample from the posterior distribution...
+Config path: simcoevolity-sim-0000-config.yml
+Parsing config file...
+
+----------------------------------------------------------------------
+---
+event_model_prior:
+    uniform:
+        parameters:
+            split_weight:
+                value: 1
+                estimate: false
+event_time_prior:
+    gamma_distribution:
+        shape: 1
+        scale: 0.01
+        offset: 0
+mcmc_settings:
+    chain_length: 100000
+    sample_frequency: 50
+comparisons:
+- comparison:
+    path: simcoevolity-sim-0000-comp01-2species-10genomes-500000chars.nex
+    ploidy: 2
+    genotypes_are_diploid: false
+    markers_are_dominant: false
+    population_name_delimiter: '-'
+    population_name_is_prefix: true
+    constant_sites_removed: false
+    equal_population_sizes: false
+    parameters:
+        population_size:
+            value: 0.002
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 5
+                    scale: 0.0004
+                    offset: 0
+        root_relative_population_size:
+            value: 1
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 2
+                    scale: 0.5
+                    offset: 0
+        mutation_rate:
+            value: 1
+            estimate: false
+        freq_1:
+            value: 0.5
+            estimate: false
+    operators:
+        TimeSizeRateMixer:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.5
+        EventTimeScaler:
+            weight: 0
+            scale: 0.5
+        RootPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        LeafPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        MutationRateScaler:
+            weight: 0
+            scale: 0.3
+        FreqMover:
+            weight: 0
+            window: 0.1
+        TimeRootSizeMixer:
+            weight: 3
+            scale: 0.05
+- comparison:
+    path: simcoevolity-sim-0000-comp02-2species-10genomes-500000chars.nex
+    ploidy: 2
+    genotypes_are_diploid: false
+    markers_are_dominant: false
+    population_name_delimiter: '-'
+    population_name_is_prefix: true
+    constant_sites_removed: false
+    equal_population_sizes: false
+    parameters:
+        population_size:
+            value: 0.002
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 5
+                    scale: 0.0004
+                    offset: 0
+        root_relative_population_size:
+            value: 1
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 2
+                    scale: 0.5
+                    offset: 0
+        mutation_rate:
+            value: 1
+            estimate: false
+        freq_1:
+            value: 0.5
+            estimate: false
+    operators:
+        TimeSizeRateMixer:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.5
+        EventTimeScaler:
+            weight: 0
+            scale: 0.5
+        RootPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        LeafPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        MutationRateScaler:
+            weight: 0
+            scale: 0.3
+        FreqMover:
+            weight: 0
+            window: 0.1
+        TimeRootSizeMixer:
+            weight: 3
+            scale: 0.05
+- comparison:
+    path: simcoevolity-sim-0000-comp03-2species-10genomes-500000chars.nex
+    ploidy: 2
+    genotypes_are_diploid: false
+    markers_are_dominant: false
+    population_name_delimiter: '-'
+    population_name_is_prefix: true
+    constant_sites_removed: false
+    equal_population_sizes: false
+    parameters:
+        population_size:
+            value: 0.002
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 5
+                    scale: 0.0004
+                    offset: 0
+        root_relative_population_size:
+            value: 1
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 2
+                    scale: 0.5
+                    offset: 0
+        mutation_rate:
+            value: 1
+            estimate: false
+        freq_1:
+            value: 0.5
+            estimate: false
+    operators:
+        TimeSizeRateMixer:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.5
+        EventTimeScaler:
+            weight: 0
+            scale: 0.5
+        RootPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        LeafPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        MutationRateScaler:
+            weight: 0
+            scale: 0.3
+        FreqMover:
+            weight: 0
+            window: 0.1
+        TimeRootSizeMixer:
+            weight: 3
+            scale: 0.05
+operator_settings:
+    auto_optimize: true
+    auto_optimize_delay: 1000
+    operators:
+        ModelOperator:
+            weight: 3
+            number_of_auxiliary_categories: 4
+        ConcentrationScaler:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateMixer:
+            weight: 3
+            scale: 0.02
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.02
+        EventTimeScaler:
+            weight: 1
+            scale: 0.02
+----------------------------------------------------------------------
+
+Configuring model...
+storing implied block: TAXA
+storing read block: DATA
+storing implied block: TAXA
+storing read block: DATA
+storing implied block: TAXA
+storing read block: DATA
+
+----------------------------------------------------------------------
+Summary of data from 3 comparisons:
+    Summary of data from 'simcoevolity-sim-0000-comp01-2species-10genomes-500000chars.nex':
+        Genotypes: haploid
+        Markers are dominant? false
+        Number of populations: 2
+        Number of sites: 500000
+        Number of variable sites: 13154
+        Number of patterns: 61
+        Patterns folded? true
+        Population label (max # of alleles sampled):
+            c1sp1 (10)
+            c1sp2 (10)
+    Summary of data from 'simcoevolity-sim-0000-comp02-2species-10genomes-500000chars.nex':
+        Genotypes: haploid
+        Markers are dominant? false
+        Number of populations: 2
+        Number of sites: 500000
+        Number of variable sites: 20005
+        Number of patterns: 61
+        Patterns folded? true
+        Population label (max # of alleles sampled):
+            c2sp1 (10)
+            c2sp2 (10)
+    Summary of data from 'simcoevolity-sim-0000-comp03-2species-10genomes-500000chars.nex':
+        Genotypes: haploid
+        Markers are dominant? false
+        Number of populations: 2
+        Number of sites: 500000
+        Number of variable sites: 29310
+        Number of patterns: 61
+        Patterns folded? true
+        Population label (max # of alleles sampled):
+            c3sp1 (10)
+            c3sp2 (10)
+----------------------------------------------------------------------
+
+Number of threads: 1
+Firing up MCMC...
+State log path: simcoevolity-sim-0000-config-state-run-1.log
+Operator log path: simcoevolity-sim-0000-config-operator-run-1.log
+generation	ln_likelihood	ln_prior	number_of_events	split_weight
+0	-1.71021e+06	44.6317	3	1
+500	-1.69287e+06	41.4092	2	1
+1000	-1.69263e+06	41.6786	2	1
+1500	-1.69298e+06	41.22	2	1
+2000	-1.69207e+06	45.4934	3	1
+2500	-1.69202e+06	41.6085	2	1
+3000	-1.69204e+06	41.2616	2	1
+3500	-1.69224e+06	41.3052	2	1
+4000	-1.69206e+06	45.8383	3	1
+4500	-1.69214e+06	41.446	2	1
+5000	-1.69203e+06	41.2966	2	1
+5500	-1.69202e+06	45.7443	3	1
+6000	-1.69353e+06	41.4801	2	1
+6500	-1.69229e+06	41.371	2	1
+7000	-1.692e+06	45.7748	3	1
+7500	-1.69243e+06	41.7677	2	1
+8000	-1.69288e+06	41.3425	2	1
+8500	-1.69253e+06	45.8254	3	1
+9000	-1.69298e+06	41.5269	2	1
+9500	-1.69322e+06	45.5348	3	1
+10000	-1.692e+06	41.374	2	1
+10500	-1.6921e+06	45.8456	3	1
+11000	-1.69588e+06	41.6093	2	1
+11500	-1.69201e+06	41.4327	2	1
+12000	-1.69203e+06	45.732	3	1
+12500	-1.6921e+06	45.7589	3	1
+13000	-1.69211e+06	45.7019	3	1
+13500	-1.69276e+06	41.2844	2	1
+14000	-1.69287e+06	41.493	2	1
+14500	-1.69201e+06	41.2163	2	1
+15000	-1.69202e+06	41.447	2	1
+15500	-1.69213e+06	40.9551	2	1
+16000	-1.69213e+06	40.9766	2	1
+16500	-1.69208e+06	45.687	3	1
+17000	-1.69201e+06	41.4051	2	1
+17500	-1.6925e+06	41.5813	2	1
+18000	-1.69212e+06	45.5955	3	1
+18500	-1.69397e+06	41.7012	2	1
+19000	-1.69222e+06	41.2772	2	1
+19500	-1.69224e+06	45.679	3	1
+20000	-1.69291e+06	41.4713	2	1
+20500	-1.69214e+06	40.8295	2	1
+21000	-1.692e+06	45.7985	3	1
+21500	-1.69298e+06	45.5623	3	1
+22000	-1.69562e+06	41.1829	2	1
+22500	-1.69204e+06	45.5264	3	1
+23000	-1.69329e+06	41.361	2	1
+23500	-1.69414e+06	41.3349	2	1
+24000	-1.69265e+06	40.604	2	1
+24500	-1.69394e+06	41.1795	2	1
+25000	-1.69431e+06	45.5906	3	1
+25500	-1.69201e+06	41.2082	2	1
+26000	-1.69208e+06	41.4538	2	1
+26500	-1.69265e+06	40.9705	2	1
+27000	-1.69237e+06	41.413	2	1
+27500	-1.69277e+06	41.4333	2	1
+28000	-1.69203e+06	45.8169	3	1
+28500	-1.69305e+06	45.736	3	1
+29000	-1.69417e+06	41.698	2	1
+29500	-1.6922e+06	41.2301	2	1
+30000	-1.69257e+06	41.5248	2	1
+30500	-1.69227e+06	45.7576	3	1
+31000	-1.69234e+06	41.1281	2	1
+31500	-1.69303e+06	45.5867	3	1
+32000	-1.69203e+06	41.5217	2	1
+32500	-1.69823e+06	41.3447	2	1
+33000	-1.69253e+06	45.5688	3	1
+33500	-1.69205e+06	41.4277	2	1
+34000	-1.69202e+06	41.2769	2	1
+34500	-1.69214e+06	45.8255	3	1
+======================================================================
+                              Ecoevolity
+                  Estimating evolutionary coevality
+      Version 0.1.0 (master 3c0cf80: 2017-06-10T12:22:44-05:00)
+======================================================================
+
+Seed: 306149634
+Using data in order to sample from the posterior distribution...
+Config path: simcoevolity-sim-0000-config.yml
+Parsing config file...
+
+----------------------------------------------------------------------
+---
+event_model_prior:
+    uniform:
+        parameters:
+            split_weight:
+                value: 1
+                estimate: false
+event_time_prior:
+    gamma_distribution:
+        shape: 1
+        scale: 0.01
+        offset: 0
+mcmc_settings:
+    chain_length: 100000
+    sample_frequency: 50
+comparisons:
+- comparison:
+    path: simcoevolity-sim-0000-comp01-2species-10genomes-500000chars.nex
+    ploidy: 2
+    genotypes_are_diploid: false
+    markers_are_dominant: false
+    population_name_delimiter: '-'
+    population_name_is_prefix: true
+    constant_sites_removed: false
+    equal_population_sizes: false
+    parameters:
+        population_size:
+            value: 0.002
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 5
+                    scale: 0.0004
+                    offset: 0
+        root_relative_population_size:
+            value: 1
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 2
+                    scale: 0.5
+                    offset: 0
+        mutation_rate:
+            value: 1
+            estimate: false
+        freq_1:
+            value: 0.5
+            estimate: false
+    operators:
+        TimeSizeRateMixer:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.5
+        EventTimeScaler:
+            weight: 0
+            scale: 0.5
+        RootPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        LeafPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        MutationRateScaler:
+            weight: 0
+            scale: 0.3
+        FreqMover:
+            weight: 0
+            window: 0.1
+        TimeRootSizeMixer:
+            weight: 3
+            scale: 0.05
+- comparison:
+    path: simcoevolity-sim-0000-comp02-2species-10genomes-500000chars.nex
+    ploidy: 2
+    genotypes_are_diploid: false
+    markers_are_dominant: false
+    population_name_delimiter: '-'
+    population_name_is_prefix: true
+    constant_sites_removed: false
+    equal_population_sizes: false
+    parameters:
+        population_size:
+            value: 0.002
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 5
+                    scale: 0.0004
+                    offset: 0
+        root_relative_population_size:
+            value: 1
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 2
+                    scale: 0.5
+                    offset: 0
+        mutation_rate:
+            value: 1
+            estimate: false
+        freq_1:
+            value: 0.5
+            estimate: false
+    operators:
+        TimeSizeRateMixer:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.5
+        EventTimeScaler:
+            weight: 0
+            scale: 0.5
+        RootPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        LeafPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        MutationRateScaler:
+            weight: 0
+            scale: 0.3
+        FreqMover:
+            weight: 0
+            window: 0.1
+        TimeRootSizeMixer:
+            weight: 3
+            scale: 0.05
+- comparison:
+    path: simcoevolity-sim-0000-comp03-2species-10genomes-500000chars.nex
+    ploidy: 2
+    genotypes_are_diploid: false
+    markers_are_dominant: false
+    population_name_delimiter: '-'
+    population_name_is_prefix: true
+    constant_sites_removed: false
+    equal_population_sizes: false
+    parameters:
+        population_size:
+            value: 0.002
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 5
+                    scale: 0.0004
+                    offset: 0
+        root_relative_population_size:
+            value: 1
+            estimate: true
+            prior:
+                gamma_distribution:
+                    shape: 2
+                    scale: 0.5
+                    offset: 0
+        mutation_rate:
+            value: 1
+            estimate: false
+        freq_1:
+            value: 0.5
+            estimate: false
+    operators:
+        TimeSizeRateMixer:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.5
+        EventTimeScaler:
+            weight: 0
+            scale: 0.5
+        RootPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        LeafPopulationSizeScaler:
+            weight: 1
+            scale: 0.05
+        MutationRateScaler:
+            weight: 0
+            scale: 0.3
+        FreqMover:
+            weight: 0
+            window: 0.1
+        TimeRootSizeMixer:
+            weight: 3
+            scale: 0.05
+operator_settings:
+    auto_optimize: true
+    auto_optimize_delay: 1000
+    operators:
+        ModelOperator:
+            weight: 3
+            number_of_auxiliary_categories: 4
+        ConcentrationScaler:
+            weight: 0
+            scale: 0.5
+        TimeSizeRateMixer:
+            weight: 3
+            scale: 0.02
+        TimeSizeRateScaler:
+            weight: 0
+            scale: 0.02
+        EventTimeScaler:
+            weight: 1
+            scale: 0.02
+----------------------------------------------------------------------
+
+Configuring model...
+storing implied block: TAXA
+storing read block: DATA
+storing implied block: TAXA
+storing read block: DATA
+storing implied block: TAXA
+storing read block: DATA
+
+----------------------------------------------------------------------
+Summary of data from 3 comparisons:
+    Summary of data from 'simcoevolity-sim-0000-comp01-2species-10genomes-500000chars.nex':
+        Genotypes: haploid
+        Markers are dominant? false
+        Number of populations: 2
+        Number of sites: 500000
+        Number of variable sites: 13154
+        Number of patterns: 61
+        Patterns folded? true
+        Population label (max # of alleles sampled):
+            c1sp1 (10)
+            c1sp2 (10)
+    Summary of data from 'simcoevolity-sim-0000-comp02-2species-10genomes-500000chars.nex':
+        Genotypes: haploid
+        Markers are dominant? false
+        Number of populations: 2
+        Number of sites: 400000
+        Number of variable sites: 20005
+        Number of patterns: 61
+        Patterns folded? true
+        Population label (max # of alleles sampled):
+            c2sp1 (10)
+            c2sp2 (10)
+    Summary of data from 'simcoevolity-sim-0000-comp03-2species-10genomes-500000chars.nex':
+        Genotypes: haploid
+        Markers are dominant? false
+        Number of populations: 2
+        Number of sites: 300000
+        Number of variable sites: 29310
+        Number of patterns: 61
+        Patterns folded? true
+        Population label (max # of alleles sampled):
+            c3sp1 (10)
+            c3sp2 (10)
+----------------------------------------------------------------------
+
+Number of threads: 1
+Firing up MCMC...
+State log path: simcoevolity-sim-0000-config-state-run-1.log
+Operator log path: simcoevolity-sim-0000-config-operator-run-1.log
+generation	ln_likelihood	ln_prior	number_of_events	split_weight
+0	-1.71021e+06	44.6317	3	1
+500	-1.69287e+06	41.4092	2	1
+1000	-1.69263e+06	41.6786	2	1
+1500	-1.69298e+06	41.22	2	1
+2000	-1.69207e+06	45.4934	3	1
+2500	-1.69202e+06	41.6085	2	1
+3000	-1.69204e+06	41.2616	2	1
+3500	-1.69224e+06	41.3052	2	1
+4000	-1.69206e+06	45.8383	3	1
+4500	-1.69214e+06	41.446	2	1
+5000	-1.69203e+06	41.2966	2	1
+5500	-1.69202e+06	45.7443	3	1
+6000	-1.69353e+06	41.4801	2	1
+6500	-1.69229e+06	41.371	2	1
+7000	-1.692e+06	45.7748	3	1
+7500	-1.69243e+06	41.7677	2	1
+8000	-1.69288e+06	41.3425	2	1
+8500	-1.69253e+06	45.8254	3	1
+9000	-1.69298e+06	41.5269	2	1
+9500	-1.69322e+06	45.5348	3	1
+10000	-1.692e+06	41.374	2	1
+10500	-1.6921e+06	45.8456	3	1
+11000	-1.69588e+06	41.6093	2	1
+11500	-1.69201e+06	41.4327	2	1
+12000	-1.69203e+06	45.732	3	1
+12500	-1.6921e+06	45.7589	3	1
+13000	-1.69211e+06	45.7019	3	1
+13500	-1.69276e+06	41.2844	2	1
+14000	-1.69287e+06	41.493	2	1
+14500	-1.69201e+06	41.2163	2	1
+15000	-1.69202e+06	41.447	2	1
+15500	-1.69213e+06	40.9551	2	1
+16000	-1.69213e+06	40.9766	2	1
+16500	-1.69208e+06	45.687	3	1
+17000	-1.69201e+06	41.4051	2	1
+17500	-1.6925e+06	41.5813	2	1
+18000	-1.69212e+06	45.5955	3	1
+18500	-1.69397e+06	41.7012	2	1
+19000	-1.69222e+06	41.2772	2	1
+19500	-1.69224e+06	45.679	3	1
+20000	-1.69291e+06	41.4713	2	1
+20500	-1.69214e+06	40.8295	2	1
+21000	-1.692e+06	45.7985	3	1
+21500	-1.69298e+06	45.5623	3	1
+22000	-1.69562e+06	41.1829	2	1
+22500	-1.69204e+06	45.5264	3	1
+23000	-1.69329e+06	41.361	2	1
+23500	-1.69414e+06	41.3349	2	1
+24000	-1.69265e+06	40.604	2	1
+24500	-1.69394e+06	41.1795	2	1
+25000	-1.69431e+06	45.5906	3	1
+25500	-1.69201e+06	41.2082	2	1
+26000	-1.69208e+06	41.4538	2	1
+26500	-1.69265e+06	40.9705	2	1
+27000	-1.69237e+06	41.413	2	1
+27500	-1.69277e+06	41.4333	2	1
+28000	-1.69203e+06	45.8169	3	1
+28500	-1.69305e+06	45.736	3	1
+29000	-1.69417e+06	41.698	2	1
+29500	-1.6922e+06	41.2301	2	1
+30000	-1.69257e+06	41.5248	2	1
+30500	-1.69227e+06	45.7576	3	1
+31000	-1.69234e+06	41.1281	2	1
+31500	-1.69303e+06	45.5867	3	1
+32000	-1.69203e+06	41.5217	2	1
+32500	-1.69823e+06	41.3447	2	1
+33000	-1.69253e+06	45.5688	3	1
+33500	-1.69205e+06	41.4277	2	1
+34000	-1.69202e+06	41.2769	2	1
+34500	-1.69214e+06	45.8255	3	1
+35000	-1.69201e+06	41.4778	2	1
+35500	-1.69253e+06	40.8243	2	1
+36000	-1.69318e+06	41.5581	2	1
+36500	-1.69745e+06	41.6285	2	1
+37000	-1.69221e+06	41.6813	2	1
+37500	-1.69264e+06	45.45	3	1
+38000	-1.6962e+06	41.3764	2	1
+38500	-1.6924e+06	45.8313	3	1
+39000	-1.69363e+06	41.4611	2	1
+39500	-1.69201e+06	41.3805	2	1
+40000	-1.69205e+06	45.5898	3	1
+40500	-1.69215e+06	45.699	3	1
+41000	-1.69201e+06	41.5461	2	1
+41500	-1.692e+06	45.7742	3	1
+42000	-1.69343e+06	41.1158	2	1
+42500	-1.69299e+06	45.5919	3	1
+43000	-1.69225e+06	41.409	2	1
+43500	-1.69222e+06	41.6058	2	1
+44000	-1.69201e+06	45.7667	3	1
+44500	-1.692e+06	41.3438	2	1
+45000	-1.69202e+06	41.4664	2	1
+45500	-1.69385e+06	45.3179	3	1
+46000	-1.69354e+06	41.4375	2	1
+46500	-1.69226e+06	45.7923	3	1
+47000	-1.69348e+06	45.5454	3	1
+47500	-1.692e+06	45.7786	3	1
+48000	-1.69398e+06	41.1898	2	1
+48500	-1.69202e+06	41.462	2	1
+49000	-1.69201e+06	45.845	3	1
+49500	-1.6946e+06	37.0723	1	1
+50000	-1.6961e+06	41.4584	2	1
+50500	-1.69278e+06	45.5361	3	1
+51000	-1.69239e+06	45.6979	3	1
+51500	-1.69206e+06	45.6782	3	1
+52000	-1.69202e+06	45.8317	3	1
+52500	-1.69235e+06	45.3864	3	1
+53000	-1.69326e+06	40.8336	2	1
+53500	-1.69728e+06	41.6647	2	1
+54000	-1.6924e+06	41.3163	2	1
+54500	-1.6922e+06	41.5312	2	1
+55000	-1.6924e+06	41.3322	2	1
+55500	-1.69203e+06	41.4722	2	1
+56000	-1.69361e+06	41.3442	2	1
+56500	-1.69202e+06	41.3779	2	1
+57000	-1.69216e+06	40.9389	2	1
+57500	-1.69206e+06	41.6816	2	1
+58000	-1.69226e+06	41.2742	2	1
+58500	-1.69231e+06	45.796	3	1
+59000	-1.69249e+06	45.4255	3	1
+59500	-1.69201e+06	41.4607	2	1
+60000	-1.69201e+06	45.6965	3	1
+60500	-1.69328e+06	41.1122	2	1
+61000	-1.69215e+06	41.44	2	1
+61500	-1.69204e+06	41.3145	2	1
+62000	-1.69767e+06	37.0445	1	1
+62500	-1.69414e+06	41.4163	2	1
+63000	-1.69202e+06	41.3566	2	1
+63500	-1.69262e+06	45.5695	3	1
+64000	-1.69706e+06	40.8811	2	1
+64500	-1.69239e+06	45.6855	3	1
+65000	-1.69207e+06	41.3702	2	1
+65500	-1.69202e+06	41.3444	2	1
+66000	-1.69219e+06	41.3112	2	1
+66500	-1.69203e+06	41.3451	2	1
+67000	-1.69554e+06	41.4484	2	1
+67500	-1.69294e+06	41.4563	2	1
+68000	-1.69201e+06	45.9446	3	1
+68500	-1.69413e+06	41.1176	2	1
+69000	-1.69209e+06	45.769	3	1
+69500	-1.69218e+06	45.7426	3	1
+70000	-1.69236e+06	45.6515	3	1
+70500	-1.69624e+06	41.5058	2	1
+71000	-1.69284e+06	41.3632	2	1
+71500	-1.69531e+06	45.4053	3	1
+72000	-1.69224e+06	41.2124	2	1
+72500	-1.692e+06	45.7632	3	1
+73000	-1.69205e+06	45.7159	3	1
+73500	-1.69616e+06	41.3113	2	1
+74000	-1.69307e+06	41.4288	2	1
+74500	-1.69219e+06	41.5532	2	1
+75000	-1.69278e+06	39.985	2	1
+75500	-1.69201e+06	41.4454	2	1
+76000	-1.69217e+06	45.8808	3	1
+76500	-1.69245e+06	45.9159	3	1
+77000	-1.69398e+06	41.3641	2	1
+77500	-1.69244e+06	41.4269	2	1
+78000	-1.69299e+06	41.1023	2	1
+78500	-1.69202e+06	41.4093	2	1
+79000	-1.69209e+06	41.3167	2	1
+79500	-1.69259e+06	41.2382	2	1
+80000	-1.692e+06	45.6789	3	1
+80500	-1.6928e+06	41.3042	2	1
+81000	-1.69377e+06	40.725	2	1
+81500	-1.69201e+06	41.4264	2	1
+82000	-1.69327e+06	41.2148	2	1
+82500	-1.69205e+06	41.0678	2	1
+83000	-1.694e+06	41.2131	2	1
+83500	-1.69317e+06	45.6708	3	1
+84000	-1.69418e+06	45.6836	3	1
+84500	-1.69201e+06	41.4366	2	1
+85000	-1.69202e+06	41.3518	2	1
+85500	-1.69312e+06	41.4548	2	1
+86000	-1.69222e+06	45.686	3	1
+86500	-1.69203e+06	41.2145	2	1
+87000	-1.69218e+06	41.4515	2	1
+87500	-1.69358e+06	45.6711	3	1
+88000	-1.69236e+06	45.6265	3	1
+88500	-1.69207e+06	41.2563	2	1
+89000	-1.69218e+06	41.4392	2	1
+89500	-1.69202e+06	45.7388	3	1
+90000	-1.69399e+06	41.3623	2	1
+90500	-1.69205e+06	41.5834	2	1
+91000	-1.69259e+06	40.5865	2	1
+91500	-1.69205e+06	41.4797	2	1
+92000	-1.69285e+06	41.3785	2	1
+92500	-1.6934e+06	45.692	3	1
+93000	-1.69201e+06	45.7377	3	1
+93500	-1.69217e+06	41.5571	2	1
+94000	-1.69204e+06	41.348	2	1
+94500	-1.6922e+06	41.2411	2	1
+95000	-1.69292e+06	45.5264	3	1
+95500	-1.69375e+06	41.4867	2	1
+96000	-1.69229e+06	41.1781	2	1
+96500	-1.69201e+06	41.4148	2	1
+97000	-1.69224e+06	41.2738	2	1
+97500	-1.69203e+06	41.5029	2	1
+98000	-1.69504e+06	41.0417	2	1
+98500	-1.69282e+06	45.548	3	1
+99000	-1.69206e+06	41.525	2	1
+99500	-1.69668e+06	41.4154	2	1
+100000	-1.69313e+06	41.5272	2	1
+
+Operator stats:
+name	number_accepted	number_rejected	weight	weight_prob	tuning_parameter
+ReversibleJumpSampler	3501	37860	3	0.136364	none	
+EventTimeScaler	42506	53592	0	0	0.305963	
+TimeSizeRateMixer	13804	18046	3	0.136364	0.0372954	
+EventTimeScaler	60856	76012	1	0.0454545	0.0356897	
+RootPopulationSizeScaler0	16622	15158	1	0.0454545	0.091178	
+LeafPopulationSizeScaler0	13625	18112	1	0.0454545	0.0743276	
+TimeRootSizeMixer0	6600	6950	3	0.136364	0.0800899	
+RootPopulationSizeScaler1	13427	18381	1	0.0454545	0.070891	
+LeafPopulationSizeScaler1	14815	17021	1	0.0454545	0.0534828	
+TimeRootSizeMixer1	6002	7517	3	0.136364	0.0371904	
+RootPopulationSizeScaler2	13999	17860	1	0.0454545	0.048253	
+LeafPopulationSizeScaler2	13357	18623	1	0.0454545	0.0311749	
+TimeRootSizeMixer2	5739	7877	3	0.136364	0.0297762	
+
+Runtime: 4812 seconds.
+

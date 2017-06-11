@@ -80,3 +80,158 @@ def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
             d[k].append(row_dict[k])
     return d
 
+
+class EcoevolityStdOut(object):
+    splash_pattern = re.compile(
+            r'^\s*estimating\s+evolutionary\s+coevality\s*$',
+            re.IGNORECASE)
+    patterns = {
+# Summary of data from 3 comparisons:
+            "number_of_comparisons" :
+                re.compile(
+                    r'^\s*summary\s+of\s+data\s+from\s+(?P<number_of_comparisons>\d+)\s+comparisons:\s*$',
+                    re.IGNORECASE),
+            "number_of_sites" :
+                re.compile(
+                    r'^\s*number\s+of\s+sites:\s+(?P<number_of_sites>\d+)\s*$',
+                    re.IGNORECASE),
+            "number_of_variable_sites" :
+                re.compile(
+                    r'^\s*number\s+of\s+variable\s+sites:\s+(?P<number_of_variable_sites>\d+)\s*$',
+                    re.IGNORECASE),
+            "number_of_patterns" :
+                re.compile(
+                    r'^\s*number\s+of\s+patterns:\s+(?P<number_of_patterns>\d+)\s*$',
+                    re.IGNORECASE),
+            "run_time" :
+                re.compile(
+                    r'^\s*runtime:\s+(?P<run_time>\d+)\s+seconds\.\s*$',
+                    re.IGNORECASE),
+    }
+
+    def __init__(self, path):
+        self._number_of_comparisons = None
+        self._numbers_of_sites = tuple()
+        self._numbers_of_variable_sites = tuple()
+        self._numbers_of_patterns = tuple()
+        self._run_time = None
+        self._parse_std_out(path)
+
+    def _get_empty_attribute_dict(self):
+        return {
+                "number_of_comparisons": None,
+                "number_of_sites": [],
+                "number_of_variable_sites": [],
+                "number_of_patterns": [],
+                "run_time": None,
+                }
+
+    def _parse_std_out(self, path):
+        attributes = self._get_empty_attribute_dict()
+        with ReadFile(path) as stream:
+            for l in stream:
+                line = l.strip()
+                if self.splash_pattern.match(line):
+                    attributes = self._get_empty_attribute_dict()
+                for k, pattern in self.patterns.items():
+                    m = pattern.match(line)
+                    if m:
+                        try:
+                            attributes[k].append(int(m.group(k)))
+                        except AttributeError:
+                            attributes[k] = int(m.group(k))
+        if attributes["number_of_comparisons"] is None:
+            raise Exception(
+                    "Unable to parse number of comparisons from {0!r}".format(
+                            path))
+        self._number_of_comparisons = attributes["number_of_comparisons"]
+        if len(attributes["number_of_sites"]) != self._number_of_comparisons:
+            raise Exception(
+                    "Parsed {0} comparisons, but found number of sites for {1} "
+                    "comparisons in {2!r}".format(
+                            self._number_of_comparisons,
+                            len(attributes["number_of_sites"]),
+                            path))
+        if len(attributes["number_of_variable_sites"]) != self._number_of_comparisons:
+            raise Exception(
+                    "Parsed {0} comparisons, but found number of variable "
+                    "sites for {1} comparisons in {2!r}".format(
+                            self._number_of_comparisons,
+                            len(attributes["number_of_variable_sites"]),
+                            path))
+        if len(attributes["number_of_patterns"]) != self._number_of_comparisons:
+            raise Exception(
+                    "Parsed {0} comparisons, but found number of patterns for "
+                    "{1} comparisons in {2!r}".format(
+                            self._number_of_comparisons,
+                            len(attributes["number_of_patterns"]),
+                            path))
+        if attributes["run_time"] is None:
+            raise Exception(
+                    "Unable to parse run time from {0!r}".format(
+                            path))
+        self._run_time = attributes["run_time"]
+        self._numbers_of_sites = tuple(attributes["number_of_sites"])
+        self._numbers_of_variable_sites = tuple(attributes["number_of_variable_sites"])
+        self._numbers_of_patterns = tuple(attributes["number_of_patterns"])
+
+    def _get_number_of_comparisons(self):
+        return self._number_of_comparisons
+
+    number_of_comparisons = property(_get_number_of_comparisons)
+
+    def _get_run_time(self):
+        return self._run_time
+
+    run_time = property(_get_run_time)
+
+    def _get_numbers_of_sites(self):
+        return self._numbers_of_sites
+
+    numbers_of_sites = property(_get_numbers_of_sites)
+
+    def _get_numbers_of_variable_sites(self):
+        return self._numbers_of_variable_sites
+
+    numbers_of_variable_sites = property(_get_numbers_of_variable_sites)
+
+    def _get_numbers_of_patterns(self):
+        return self._numbers_of_patterns
+
+    numbers_of_patterns = property(_get_numbers_of_patterns)
+
+    def get_number_of_sites(self, comparison_index):
+        return self._numbers_of_sites[comparison_index]
+
+    def get_min_number_of_sites(self):
+        return min(self._numbers_of_sites)
+
+    def get_max_number_of_sites(self):
+        return max(self._numbers_of_sites)
+
+    def get_mean_number_of_sites(self):
+        return sum(self._numbers_of_sites) / float(len(self._numbers_of_sites))
+    
+    def get_number_of_variable_sites(self, comparison_index):
+        return self._numbers_of_variable_sites[comparison_index]
+
+    def get_min_number_of_variable_sites(self):
+        return min(self._numbers_of_variable_sites)
+
+    def get_max_number_of_variable_sites(self):
+        return max(self._numbers_of_variable_sites)
+
+    def get_mean_number_of_variable_sites(self):
+        return sum(self._numbers_of_variable_sites) / float(len(self._numbers_of_variable_sites))
+    
+    def get_number_of_patterns(self, comparison_index):
+        return self._numbers_of_patterns[comparison_index]
+
+    def get_min_number_of_patterns(self):
+        return min(self._numbers_of_patterns)
+
+    def get_max_number_of_patterns(self):
+        return max(self._numbers_of_patterns)
+
+    def get_mean_number_of_patterns(self):
+        return sum(self._numbers_of_patterns) / float(len(self._numbers_of_patterns))
