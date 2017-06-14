@@ -329,6 +329,16 @@ def quantile(samples, p):
     d1 = s[int(c)] * (k - f)
     return d0 + d1
 
+def rank(samples, v):
+    if not samples:
+        raise ValueError('empty samples')
+    s = sorted(samples)
+    n = len(s)
+    for i, value in enumerate(s):
+        if v < value:
+            return i / float(n)
+    return 1.0
+
 def quantile_95(samples):
     """
     Return tuple of interval of 2.5% and 97.5% quantiles.

@@ -214,6 +214,31 @@ class GetSummaryTestCase(unittest.TestCase):
         self.assertAlmostEqual(d['qi_95'][1], 1.96, places=1)
         self.assertAlmostEqual(d['hpdi_95'][0], -1.96, places=1)
         self.assertAlmostEqual(d['hpdi_95'][1], 1.96, places=1)
+
+class RankTestCase(unittest.TestCase):
+
+    def test_simple(self):
+        values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        self.assertAlmostEqual(stats.rank(values, 0.01), 0.0)
+        self.assertAlmostEqual(stats.rank(values, 0.1), 0.1)
+        self.assertAlmostEqual(stats.rank(values, 0.45), 0.4)
+        self.assertAlmostEqual(stats.rank(values, 0.89), 0.8)
+        self.assertAlmostEqual(stats.rank(values, 0.95), 0.9)
+        self.assertAlmostEqual(stats.rank(values, 1.1), 1.0)
+
+    def test_monte_carlo(self):
+        values = [GLOBAL_RNG.random() for i in range(100000)]
+        self.assertAlmostEqual(stats.rank(values, 0.0), 0.0)
+        self.assertAlmostEqual(stats.rank(values, 0.1), 0.1, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.2), 0.2, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.3), 0.3, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.4), 0.4, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.5), 0.5, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.6), 0.6, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.7), 0.7, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.8), 0.8, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 0.9), 0.9, places = 2)
+        self.assertAlmostEqual(stats.rank(values, 1.0), 1.0)
         
 class GetCountsTestCase(unittest.TestCase):
 
