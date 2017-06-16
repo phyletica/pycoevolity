@@ -330,6 +330,18 @@ def quantile(samples, p):
     return d0 + d1
 
 def rank(samples, v):
+    """
+    Return the rank of value `v` (from 0.0 to 1.0) relative to a collection of
+    samples.
+
+    If the value is less than all the samples, the rank is 0.0. If the value is
+    greater than all the samples the rank is 1.0. If the value is greater than
+    or equal to 1 sample out of 10, the rank is 0.1.
+
+    The samples do not have to be sorted (they are sorted internally before the
+    rank is determined).
+    """
+
     if not samples:
         raise ValueError('empty samples')
     s = sorted(samples)
