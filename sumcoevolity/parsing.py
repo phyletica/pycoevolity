@@ -40,7 +40,7 @@ def parse_header_from_path(path, sep = '\t', strict = True):
     with ReadFile(path) as stream:
         return parse_header(stream, sep = sep, strict = strict, seek = False)
 
-def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
+def spreadsheet_iter(spreadsheets, sep = '\t', header = None, offset = 0):
     head_line = False
     if not header:
         head_line = True
@@ -52,6 +52,8 @@ def spreadsheet_iter(spreadsheets, sep = '\t', header = None):
                 if header != h:
                     raise Exception('headers do not match')
             for row_idx, row in enumerate(file_stream):
+                if row_idx < offset:
+                    continue
                 if row.strip() == '':
                     continue
                 r = [el.strip() for el in row.strip().split(sep)]
@@ -70,8 +72,11 @@ def dict_line_iter(d, sep = '\t', header = None):
     for i in range(len(d[header[0]])):
         yield '{0}\n'.format(sep.join([str(d[h][i]) for h in header]))
 
-def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None):
-    ss_iter = spreadsheet_iter(spreadsheets, sep = sep, header = header)
+def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None, offset = 0):
+    ss_iter = spreadsheet_iter(spreadsheets,
+            sep = sep,
+            header = header,
+            offset = offset)
     row_dict = next(ss_iter)
     d = dict(zip(row_dict.keys(),
             [[row_dict[k]] for k in row_dict.keys()]))
