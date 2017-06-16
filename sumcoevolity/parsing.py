@@ -91,7 +91,6 @@ class EcoevolityStdOut(object):
             r'^\s*estimating\s+evolutionary\s+coevality\s*$',
             re.IGNORECASE)
     patterns = {
-# Summary of data from 3 comparisons:
             "number_of_comparisons" :
                 re.compile(
                     r'^\s*summary\s+of\s+data\s+from\s+(?P<number_of_comparisons>\d+)\s+comparisons:\s*$',
