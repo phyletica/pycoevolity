@@ -17,7 +17,7 @@ class PosteriorModelSummary(object):
         models = tuple(model_samples)
         assert(len(nevents) == len(models))
         self.number_of_samples = len(nevents)
-        self.number_of_event_probabilities = stats.get_freqs(nevents)
+        self.number_of_events_probabilities = stats.get_freqs(nevents)
         self.model_probabilities = stats.get_freqs(models)
 
     def get_models(self):
@@ -25,10 +25,36 @@ class PosteriorModelSummary(object):
                       reverse = True,
                       key = lambda x: x[1])
 
-    def get_number_of_events(self):
-        return sorted(self.number_of_event_probabilities.items(),
+    def get_numbers_of_events(self):
+        return sorted(self.number_of_events_probabilities.items(),
                       reverse = True,
                       key = lambda x: x[1])
+
+    def get_map_models(self):
+        max_p = max(self.model_probabilities.values())
+        map_models = []
+        for m, p in self.get_models():
+            if p < max_p:
+                assert(len(map_models) > 0)
+                return tuple(map_models)
+            map_models.append(m)
+        return tuple(map_models)
+
+    def get_map_numbers_of_events(self):
+        max_p = max(self.number_of_events_probabilities.values())
+        map_numbers_of_events = []
+        for m, p in self.get_numbers_of_events():
+            if p < max_p:
+                assert(len(map_numbers_of_events) > 0)
+                return tuple(map_numbers_of_events)
+            map_numbers_of_events.append(m)
+        return tuple(map_numbers_of_events)
+
+    def get_model_probability(self, model_tuple):
+        return self.model_probabilities.get(model_tuple, 0.0)
+
+    def get_number_of_events_probability(self, number_of_events):
+        return self.number_of_events_probabilities.get(number_of_events, 0.0)
 
     def model_in_credibility_set(self, model_tuple, credibility_cut_off = 0.95):
         total_prob = 0.0
@@ -43,7 +69,7 @@ class PosteriorModelSummary(object):
     def number_of_events_in_credibility_set(self, number_of_events,
             credibility_cut_off = 0.95):
         total_prob = 0.0
-        for n, p in self.get_number_of_events():
+        for n, p in self.get_numbers_of_events():
             if n == number_of_events:
                 return True
             total_prob += p
@@ -62,7 +88,7 @@ class PosteriorModelSummary(object):
 
     def get_number_of_events_credibility_level(self, number_of_events):
         total_prob = 0.0
-        for n, p in self.get_number_of_events():
+        for n, p in self.get_numbers_of_events():
             if n == number_of_events:
                 return total_prob
             total_prob += p
@@ -110,8 +136,8 @@ class PosteriorSummary(object):
     def get_models(self):
         return self.model_summary.get_models()
 
-    def get_number_of_events(self):
-        return self.model_summary.get_number_of_events()
+    def get_numbers_of_events(self):
+        return self.model_summary.get_numbers_of_events()
 
     def model_in_credibility_set(self, model_tuple, credibility_cut_off = 0.95):
         return self.model_summary.model_in_credibility_set(
@@ -129,6 +155,19 @@ class PosteriorSummary(object):
 
     def get_number_of_events_credibility_level(self, number_of_events):
         return self.model_summary.get_number_of_events_credibility_level(number_of_events)
+
+    def get_model_probability(self, model_tuple):
+        return self.model_summary.get_model_probability(model_tuple)
+
+    def get_number_of_events_probability(self, number_of_events):
+        return self.model_summary.get_number_of_events_probability(
+                number_of_events)
+
+    def get_map_models(self):
+        return self.model_summary.get_map_models()
+
+    def get_map_numbers_of_events(self):
+        return self.model_summary.get_map_numbers_of_events()
 
 
 class PosteriorSample(object):
@@ -172,8 +211,8 @@ class PosteriorSample(object):
     def get_models(self):
         return self.model_summary.get_models()
 
-    def get_number_of_events(self):
-        return self.model_summary.get_number_of_events()
+    def get_numbers_of_events(self):
+        return self.model_summary.get_numbers_of_events()
 
     def model_in_credibility_set(self, model_tuple, credibility_cut_off = 0.95):
         return self.model_summary.model_in_credibility_set(
@@ -191,6 +230,19 @@ class PosteriorSample(object):
 
     def get_number_of_events_credibility_level(self, number_of_events):
         return self.model_summary.get_number_of_events_credibility_level(number_of_events)
+
+    def get_model_probability(self, model_tuple):
+        return self.model_summary.get_model_probability(model_tuple)
+
+    def get_number_of_events_probability(self, number_of_events):
+        return self.model_summary.get_number_of_events_probability(
+                number_of_events)
+
+    def get_map_models(self):
+        return self.model_summary.get_map_models()
+
+    def get_map_numbers_of_events(self):
+        return self.model_summary.get_map_numbers_of_events()
 
     def get_rank(self, parameter_key, value):
         return stats.rank(self.parameter_samples[parameter_key], value)

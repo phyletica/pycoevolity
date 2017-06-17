@@ -36,11 +36,21 @@ class PosteriorSummaryTestCase(unittest.TestCase):
         self.assertAlmostEqual(ps.parameter_summaries["root_height_c1sp1"]["variance"], 1.8561946270985903e-07)
         self.assertEqual(ps.parameter_summaries["root_height_c1sp1"]["n"], 20)
 
-        nevents = ps.get_number_of_events()
+        nevents = ps.get_numbers_of_events()
         self.assertEqual(nevents, [(2, 1.0)])
 
         models = ps.get_models()
         self.assertEqual(models, [((0,0,1), 1.0)])
+
+        self.assertEqual(ps.get_map_models(), ((0, 0, 1),))
+        self.assertEqual(ps.get_map_numbers_of_events(), (2,))
+
+        self.assertEqual(ps.get_model_probability((0, 0, 1)), 1.0)
+        self.assertEqual(ps.get_model_probability((0, 1, 1)), 0.0)
+
+        self.assertEqual(ps.get_number_of_events_probability(1), 0.0)
+        self.assertEqual(ps.get_number_of_events_probability(2), 1.0)
+        self.assertEqual(ps.get_number_of_events_probability(3), 0.0)
 
         self.assertTrue(ps.number_of_events_in_credibility_set(2, 0.95))
         self.assertFalse(ps.number_of_events_in_credibility_set(1, 0.95))
@@ -99,7 +109,7 @@ class PosteriorSampleTestCase(unittest.TestCase):
         self.assertEqual(ps.get_rank("root_height_c1sp1", 0.01), 1.0)
         self.assertAlmostEqual(ps.get_rank("root_height_c1sp1", 0.008), 12.0/20.0)
 
-        nevents = ps.get_number_of_events()
+        nevents = ps.get_numbers_of_events()
         self.assertEqual(nevents, [(2, 1.0)])
 
         models = ps.get_models()
@@ -118,8 +128,17 @@ class PosteriorSampleTestCase(unittest.TestCase):
 
         self.assertEqual(ps.get_model_credibility_level((0, 0, 1)), 0.0)
         self.assertEqual(ps.get_model_credibility_level((0, 1, 1)), 1.0)
+
+        self.assertEqual(ps.get_model_probability((0, 0, 1)), 1.0)
+        self.assertEqual(ps.get_model_probability((0, 1, 1)), 0.0)
+
+        self.assertEqual(ps.get_number_of_events_probability(1), 0.0)
+        self.assertEqual(ps.get_number_of_events_probability(2), 1.0)
+        self.assertEqual(ps.get_number_of_events_probability(3), 0.0)
+
+        self.assertEqual(ps.get_map_models(), ((0, 0, 1),))
+        self.assertEqual(ps.get_map_numbers_of_events(), (2,))
         
 
 if __name__ == '__main__':
     unittest.main()
-
