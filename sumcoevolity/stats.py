@@ -10,6 +10,47 @@ import logging
 
 _LOG = logging.getLogger(__name__)
 
+
+def monte_carlo_standard_error(samples):
+    """
+    Calculate Monte Carlo standard error.
+
+    Adapted from 'mcse' function of the 'mcmcse' R package (Gnu GPL version 2).
+    See:
+
+    Flegal, J. M. and Jones, G. L. (2010) Batch means and spectral variance
+    estimators in Markov chain Monte Carlo. The Annals of Statistics,
+    38:1034--1070.
+    """
+    s = tuple(samples)
+    n = len(samples)
+    b = int(math.floor(math.sqrt(n)))
+    a = int(math.floor(float(n) / b))
+    y = []
+    for k in range(1, a + 1):
+        z = s[((k - 1) * b):(k * b)]
+        y.append(sum(z) / float(len(z)))
+    mu_hat = sum(s) / float(len(s))
+    sq_diffs = [(v - mu_hat)**2 for v in y]
+    var_hat = b * sum(sq_diffs) / (a - 1)
+    se = math.sqrt(var_hat / n)
+    return mu_hat, se
+
+def effective_sample_size(samples):
+    """
+    Estimate effective sample size of MCMC sample.
+
+    Adapted from 'ess' function of the 'mcmcse' R package (Gnu GPL version 2).
+    See:
+
+    Gong, Lei, and James M. Flegal. A practical sequential stopping rule for
+    high-dimensional MCMC and its application to spatial-temporal Bayesian
+    models. arXiv:1403.5536v1 [stat.CO].
+    """
+    ss = SampleSummarizer(samples)
+    sigma = monte_carlo_standard_error(samples)[1]
+    return ((ss.n * ss.variance) / ((sigma**2) * ss.n))
+
 def freq_less_than(values, zero_threshold = 0.01):
     count = 0
     total = 0
