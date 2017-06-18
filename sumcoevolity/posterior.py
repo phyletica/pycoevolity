@@ -187,7 +187,7 @@ class PosteriorSample(object):
         n = len(d[self.header[0]])
         for k, v in d.items():
             if (k.startswith('generation') or 
-                k.startswith('ln_likelihood') or
+                # k.startswith('ln_likelihood') or
                 k.startswith('ln_prior') or
                 k.startswith('root_height_index')):
                 continue
