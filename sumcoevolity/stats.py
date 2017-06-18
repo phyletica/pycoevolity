@@ -49,6 +49,8 @@ def effective_sample_size(samples):
     """
     ss = SampleSummarizer(samples)
     sigma = monte_carlo_standard_error(samples)[1]
+    if ((ss.n == 0) or (sigma == 0.0)):
+        return 0.0
     return ((ss.n * ss.variance) / ((sigma**2) * ss.n))
 
 def freq_less_than(values, zero_threshold = 0.01):
