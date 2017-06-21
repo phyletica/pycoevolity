@@ -15,6 +15,40 @@ _LOG = logging.getLogger(__name__)
 GLOBAL_RNG = random.Random()
 
 
+class MeanAbsoluteErrorTestCase(unittest.TestCase):
+
+    def test_simple(self):
+        true_estimate_tuples = (
+                (1.0, 1.1),
+                (1.0, 0.9),
+                (-1.0, -1.1),
+                (-1.0, -0.9),
+                (100.0, 110.0),
+                (100.0, 90.0),
+                (-100.0, -110.0),
+                (-100.0, -90.0))
+        self.assertAlmostEqual(
+                stats.mean_absolute_error(true_estimate_tuples),
+                5.05)
+
+
+class MeanAbsoluteProportionalErrorTestCase(unittest.TestCase):
+
+    def test_simple(self):
+        true_estimate_tuples = (
+                (1.0, 1.1),
+                (1.0, 0.9),
+                (-1.0, -1.1),
+                (-1.0, -0.9),
+                (100.0, 110.0),
+                (100.0, 90.0),
+                (-100.0, -110.0),
+                (-100.0, -90.0))
+        self.assertAlmostEqual(
+                stats.mean_absolute_proportional_error(true_estimate_tuples),
+                0.1)
+
+
 class MonteCarloStandardErrorTestCase(unittest.TestCase):
 
     def test_uniform_draws(self):

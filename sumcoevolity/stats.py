@@ -11,6 +11,26 @@ import logging
 _LOG = logging.getLogger(__name__)
 
 
+def mean_absolute_error(true_estimate_tuples):
+    total = 0.0
+    count = 0
+    for true_val, estimate in true_estimate_tuples:
+        t = float(true_val)
+        e = float(estimate)
+        total += math.fabs(t - e)
+        count  += 1
+    return total / float(count)
+
+def mean_absolute_proportional_error(true_estimate_tuples):
+    total = 0.0
+    count = 0
+    for true_val, estimate in true_estimate_tuples:
+        t = float(true_val)
+        e = float(estimate)
+        total += math.fabs((t - e) / t)
+        count  += 1
+    return total / float(count)
+
 def monte_carlo_standard_error(samples):
     """
     Calculate Monte Carlo standard error.
