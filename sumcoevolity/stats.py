@@ -11,6 +11,28 @@ import logging
 _LOG = logging.getLogger(__name__)
 
 
+def get_proportion_of_values_within_intervals(
+        values,
+        lowers,
+        uppers,
+        include_end_points = True):
+    n = len(values)
+    assert(n == len(lowers))
+    assert(n == len(uppers))
+    count = 0
+    for i in range(n):
+        v = values[i]
+        l = lowers[i]
+        u = uppers[i]
+        assert(l <= u)
+        if include_end_points:
+            if ((v >= l) and (v <= u)):
+                count += 1
+        else:
+            if ((v > l) and (v < u)):
+                count += 1
+    return count / float(n)
+    
 def mean_absolute_error(true_estimate_tuples):
     total = 0.0
     count = 0

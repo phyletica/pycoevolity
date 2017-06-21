@@ -15,6 +15,46 @@ _LOG = logging.getLogger(__name__)
 GLOBAL_RNG = random.Random()
 
 
+class GetProportionOfValuesWithinIntervals(unittest.TestCase):
+    def test_none(self):
+        v = [0.1, 0.3, 0.2, 0.5, 0.12]
+        l = [x + 1.0 for x in v]
+        u = [x + 2.0 for x in v]
+        self.assertEqual(
+                stats.get_proportion_of_values_within_intervals(v, l, u),
+                0.0)
+
+    def test_all(self):
+        v = [0.1, 0.3, 0.2, 0.5, 0.12]
+        l = [x - 1.0 for x in v]
+        u = [x + 1.0 for x in v]
+        self.assertEqual(
+                stats.get_proportion_of_values_within_intervals(v, l, u),
+                1.0)
+
+    def test_lower_end_points(self):
+        v = [0.1, 0.3, 0.2, 0.5, 0.12]
+        l = [x for x in v]
+        u = [x + 1.0 for x in v]
+        self.assertEqual(
+                stats.get_proportion_of_values_within_intervals(v, l, u, True),
+                1.0)
+        self.assertEqual(
+                stats.get_proportion_of_values_within_intervals(v, l, u, False),
+                0.0)
+
+    def test_upper_end_points(self):
+        v = [0.1, 0.3, 0.2, 0.5, 0.12]
+        l = [x - 1.0 for x in v]
+        u = [x for x in v]
+        self.assertEqual(
+                stats.get_proportion_of_values_within_intervals(v, l, u, True),
+                1.0)
+        self.assertEqual(
+                stats.get_proportion_of_values_within_intervals(v, l, u, False),
+                0.0)
+
+
 class MeanAbsoluteErrorTestCase(unittest.TestCase):
 
     def test_simple(self):
