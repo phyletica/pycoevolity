@@ -131,8 +131,11 @@ class EffectiveSampleSizeTestCase(unittest.TestCase):
                 0.24135469373818985]
         # expected results calculated with R package mcmcse: Monte Carlo
         # Standard Errors for MCMC Version 1.2-1 created on 2016-03-24.
-        ess = stats.effective_sample_size(x)
+        ess = stats.effective_sample_size(x, False)
         self.assertAlmostEqual(ess, 154.581627605617)
+
+        ess = stats.effective_sample_size(x, True)
+        self.assertAlmostEqual(ess, 100.0)
 
 
 class SampleSummarizerTestCase(SumcoevolityTestCase):

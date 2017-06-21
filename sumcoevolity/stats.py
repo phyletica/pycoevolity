@@ -56,7 +56,7 @@ def monte_carlo_standard_error(samples):
     se = math.sqrt(var_hat / n)
     return mu_hat, se
 
-def effective_sample_size(samples):
+def effective_sample_size(samples, limit_to_number_of_samples = True):
     """
     Estimate effective sample size of MCMC sample.
 
@@ -71,7 +71,11 @@ def effective_sample_size(samples):
     sigma = monte_carlo_standard_error(samples)[1]
     if ((ss.n == 0) or (sigma == 0.0)):
         return 0.0
-    return ((ss.n * ss.variance) / ((sigma**2) * ss.n))
+    n = float(ss.n)
+    ess = ((n * ss.variance) / ((sigma**2) * n))
+    if ((ess > n) and (limit_to_number_of_samples)):
+        return n
+    return ess
 
 def freq_less_than(values, zero_threshold = 0.01):
     count = 0
