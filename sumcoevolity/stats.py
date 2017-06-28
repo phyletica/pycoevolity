@@ -11,6 +11,34 @@ import logging
 _LOG = logging.getLogger(__name__)
 
 
+def potential_scale_reduction_factor(chains):
+    """
+    Calculate the potential scale reduction factor.
+
+    Returns the square root of Equation 1.1 in:
+
+    Brooks, Stephen P. and Andrew Gelman. 1998. General Methods for Monitoring
+    Convergence of Iterative Simulations. Journal of Computational and
+    Graphical Statistics, Volume7, Number 4, Pages 434-455.
+    """
+    nchains = len(chains)
+    assert(nchains > 1)
+    nsamples = len(chains[0])
+    sample_summaries = []
+    for c in chains:
+        ss = SampleSummarizer(c)
+        assert(ss.n == nsamples)
+        sample_summaries.append(ss)
+    assert(len(sample_summaries) == nchains)
+    summary_of_variances = SampleSummarizer(ss.variance for ss in sample_summaries)
+    summary_of_means = SampleSummarizer(ss.mean for ss in sample_summaries)
+    within_chain_var = summary_of_variances.mean
+    between_chain_var = summary_of_means.variance
+    pooled_var_term1 = (1.0 - (1.0 / float(nsamples))) * within_chain_var
+    pooled_var = pooled_var_term1 + between_chain_var
+    pooled_posterior_var = pooled_var + (between_chain_var / nchains)
+    return math.sqrt(pooled_posterior_var / within_chain_var)
+
 def get_proportion_of_values_within_intervals(
         values,
         lowers,

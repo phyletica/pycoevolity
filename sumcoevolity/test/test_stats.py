@@ -15,6 +15,26 @@ _LOG = logging.getLogger(__name__)
 GLOBAL_RNG = random.Random()
 
 
+class PotentialScaleReductionFactorTestCase(unittest.TestCase):
+    def test_simple(self):
+        chains = [[1.1, 1.3, 1.2, 1.6, 1.5],
+                  [1.2, 1.7, 1.5, 1.9, 1.6]]
+        psrf = stats.potential_scale_reduction_factor(chains)
+        # expectation calculated with commit aa83c8cc8584ba2d
+        # of pymc.diagnostics.gelman_rubin
+        # <https://github.com/pymc-devs/pymc/blob/master/pymc/diagnostics.py>
+        e_pymc = 1.2591483413222384
+        self.assertAlmostEqual(psrf, e_pymc)
+
+        chains = [[1.1, 1.3, 1.2, 1.6, 1.5],
+                  [1.1, 1.3, 1.2, 1.6, 1.5]]
+        psrf = stats.potential_scale_reduction_factor(chains)
+        # expectation calculated with commit aa83c8cc8584ba2d
+        # of pymc.diagnostics.gelman_rubin
+        # <https://github.com/pymc-devs/pymc/blob/master/pymc/diagnostics.py>
+        e_pymc = 0.89442719099991586
+        self.assertAlmostEqual(psrf, e_pymc)
+
 class GetProportionOfValuesWithinIntervals(unittest.TestCase):
     def test_none(self):
         v = [0.1, 0.3, 0.2, 0.5, 0.12]
