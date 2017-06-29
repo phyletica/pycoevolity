@@ -37,6 +37,8 @@ def potential_scale_reduction_factor(chains):
     pooled_var_term1 = (1.0 - (1.0 / float(nsamples))) * within_chain_var
     pooled_var = pooled_var_term1 + between_chain_var
     pooled_posterior_var = pooled_var + (between_chain_var / nchains)
+    if within_chain_var == 0.0:
+        return float("inf")
     return math.sqrt(pooled_posterior_var / within_chain_var)
 
 def get_proportion_of_values_within_intervals(
