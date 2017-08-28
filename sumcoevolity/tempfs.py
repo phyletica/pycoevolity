@@ -15,13 +15,16 @@ class TempFileSystem(object):
     A temporary file system that protects against deleting any directories
     or files that are not created by an instance of this class.
     """
-    def __init__(self, parent, prefix='sumcoevolity-temp-'):
+    def __init__(self, parent = None, prefix='sumcoevolity-temp-'):
         """
         Create TempFileSystem instance.
 
-        `parent` must be an existing directory and will be were the base
-        directory of the temp file system will be created.
+        `parent` must be an existing directory and will be where the base
+        directory of the temp file system will be created. If not provided,
+        tempfile.gettempdir() is used.
         """
+        if not parent:
+            parent = tempfile.gettempdir()
         if not os.path.exists(parent):
             raise TempFSError('{0!r} does not exist; cannot create '
                     'directory for temp files\n'.format(dest_dir))

@@ -6,6 +6,7 @@ import logging
 import re
 
 from sumcoevolity.fileio import ReadFile 
+from sumcoevolity import tempfs
 
 _LOG = logging.getLogger(__name__)
 
@@ -239,3 +240,138 @@ class EcoevolityStdOut(object):
 
     def get_mean_number_of_patterns(self):
         return sum(self._numbers_of_patterns) / float(len(self._numbers_of_patterns))
+
+
+class PyradLoci(object):
+
+    def __init__(self, path):
+        self._labels = set()
+        self._numbers_of_sites = []
+        self._tempfs = tempfs.TempFileSystem()
+        self._tmp_locus_paths = []
+        self._path = path
+        self._parse_loci_file()
+
+    def __del__(self):
+        self._tempfs.purge()
+
+    def _parse_loci_file(self):
+        with ReadFile(self._path) as stream:
+            seqs = []
+            for i, line in enumerate(stream):
+                if line.startswith("//"):
+                    self._numbers_of_sites.append(len(seqs[0][1]))
+                    tmp_path = self._tempfs.get_file_path()
+                    self._tmp_locus_paths.append(tmp_path)
+                    with open(tmp_path, "w") as out:
+                        for label, seq in seqs:
+                            out.write("{0}\t{1}\n".format(label, seq))
+                    seqs = []
+                    continue
+                try:
+                    label, seq = line.strip().split()
+                except ValueError as e:
+                    sys.stderr.write("ERROR: Problem parsing line {0} of {1}:\n{2}".format(
+                            i + 1, self._path, line))
+                    raise
+                self._labels.add(label)
+                seq = seq.replace("N", "?")
+                seqs.append((label, seq))
+        if seqs:
+            self._numbers_of_sites.append(len(seqs[0][1]))
+            for label, seq in seqs:
+                tmp_path = self._tempfs.get_file_path()
+                self._tmp_locus_paths.append(tmp_path)
+                with open(tmp_path) as out:
+                    out.write("{0}\t{1}\n".format(label, seq))
+        assert len(self._numbers_of_sites) == len(self._tmp_locus_paths)
+
+    def _get_path(self):
+        return self._path
+
+    path = property(_get_path)
+
+    def _get_total_number_of_sites(self):
+        return sum(self._numbers_of_sites)
+
+    number_of_sites = property(_get_total_number_of_sites)
+
+    def _get_number_of_loci(self):
+        return len(self._numbers_of_sites)
+
+    number_of_loci = property(_get_number_of_loci)
+
+    def _get_number_of_taxa(self):
+        return len(self._labels)
+
+    number_of_taxa = property(_get_number_of_taxa)
+
+    def _get_labels(self):
+        return sorted(self._labels)
+
+    labels = property(_get_labels)
+
+    def get_nexus_taxa_block(self):
+        s = ("BEGIN TAXA;\n"
+             "    DIMENSIONS NTAX={ntax};\n"
+             "    TAXLABELS\n"
+             "        {labels}\n"
+             "    ;\n"
+             "END;".format(
+                 ntax = self.number_of_taxa,
+                 labels = "\n        ".join(self.labels)))
+        return s
+
+    def get_nexus_characters_block_preamble(self):
+        s = ("BEGIN CHARACTERS;\n"
+             "    DIMENSIONS NCHAR={nchar};\n"
+             "    FORMAT DATATYPE=DNA MISSING=? GAP=- INTERLEAVE=YES;\n"
+             "    MATRIX".format(
+                 nchar = self.number_of_sites))
+        return s
+
+    def _parse_tmp_locus_file(self, path):
+        seqs = {}
+        with ReadFile(path) as stream:
+            for line in stream:
+                label, seq = line.strip().split()
+                seqs[label] = seq
+        return seqs
+
+    def get_label_buffer_size(self):
+        mx = -1
+        for l in self._labels:
+            if len(l) > mx:
+                mx = len(l)
+        return mx + 4
+
+    def write_interleaved_sequences(self, stream = None, indent = ""):
+        if stream is None:
+            stream = sys.stdout
+        nsites = 0
+        label_buffer = self.get_label_buffer_size()
+        labels = self._get_labels()
+        for i, tmp_path in enumerate(self._tmp_locus_paths):
+            if i > 0:
+                stream.write("\n")
+            seqs = self._parse_tmp_locus_file(tmp_path)
+            seq_length = len(seqs.values()[0])
+            nsites += seq_length
+            for l in labels:
+                s = seqs.get(l, "?" * seq_length)
+                stream.write("{indent}{label:<{fill}}{sequence}\n".format(
+                        indent = indent,
+                        label = l,
+                        fill = label_buffer,
+                        sequence = s))
+        assert nsites == self.number_of_sites
+
+    def write_nexus(self, stream = None):
+        if stream is None:
+            stream = sys.stdout
+        stream.write("#NEXUS\n\n")
+        stream.write("{0}\n\n".format(self.get_nexus_taxa_block()))
+        stream.write("{0}\n".format(
+                self.get_nexus_characters_block_preamble()))
+        self.write_interleaved_sequences(stream, indent = " " * 8)
+        stream.write("    ;\nEND;\n")
