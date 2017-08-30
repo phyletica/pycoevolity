@@ -243,29 +243,139 @@ class EcoevolityStdOut(object):
 
 
 class PyradLoci(object):
+    symbol_to_states = {
+            'A': ('A',),
+            'C': ('C',),
+            'G': ('G',),
+            'T': ('T',),
+            'R': ('A', 'G'),
+            'Y': ('C', 'T'),
+            'K': ('G', 'T'),
+            'M': ('A', 'C'),
+            'S': ('C', 'G'),
+            'W': ('A', 'T'),
+            'V': ('A', 'C', 'G'),
+            'H': ('A', 'C', 'T'),
+            'D': ('A', 'G', 'T'),
+            'B': ('C', 'G', 'T'),
+            'N': ('A', 'C', 'G', 'T'),
+            '?': tuple(),
+            '-': tuple(),
+            }
 
-    def __init__(self, path):
+    states_to_symbol = {
+            ('A',)               : 'A',
+            ('C',)               : 'C',
+            ('G',)               : 'G',
+            ('T',)               : 'T',
+            ('A', 'G')           : 'R',
+            ('C', 'T')           : 'Y',
+            ('G', 'T')           : 'K',
+            ('A', 'C')           : 'M',
+            ('C', 'G')           : 'S',
+            ('A', 'T')           : 'W',
+            ('A', 'C', 'G')      : 'V',
+            ('A', 'C', 'T')      : 'H',
+            ('A', 'G', 'T')      : 'D',
+            ('C', 'G', 'T')      : 'B',
+            ('A', 'C', 'G', 'T') : 'N',
+            }
+
+    def __init__(self, path, remove_triallelic_sites = False):
         self._labels = set()
         self._numbers_of_sites = []
         self._tempfs = tempfs.TempFileSystem()
         self._tmp_locus_paths = []
+        self._remove_triallelic_sites = remove_triallelic_sites
+        self._number_of_triallelic_sites = 0
         self._path = path
         self._parse_loci_file()
 
     def __del__(self):
         self._tempfs.purge()
 
+    def _process_locus(self, sequences):
+        nsites = len(sequences[0][1])
+        residues = [set() for i in range(nsites)]
+        for site_idx in range(nsites):
+            for seq_idx in range(len(sequences)):
+                symbol = sequences[seq_idx][1][site_idx]
+                r = self.symbol_to_states[symbol]
+                if len(r) > 2:
+                    raise Exception(
+                            "Polymorphic site with more than two states: {0}".format(
+                                    symbol))
+                residues[site_idx].update(r)
+        triallelic_site_indices = []
+        for i, r in enumerate(residues):
+            if len(r) > 2:
+                triallelic_site_indices.append(i)
+        self._number_of_triallelic_sites += len(triallelic_site_indices)
+        if self._remove_triallelic_sites:
+            for site_idx in sorted(triallelic_site_indices, reverse = True):
+                for seq_idx in range(len(sequences)):
+                    sequences[seq_idx][1].pop(site_idx)
+
+        ######################################################################
+        # Ecoevolity has option to automatically re-code triallelic sites, so
+        # not doing it here.
+        #
+        # else:
+        #     for site_idx in triallelic_site_indices:
+        #         seq_idx = 0
+        #         state0 = None
+        #         state1 = None
+        #         while state0 is None:
+        #             states = self.symbol_to_states[sequences[seq_idx][1][site_idx]]
+        #             if len(states) > 0:
+        #                 state0 = states[0]
+        #             if len(states) > 1:
+        #                 state1 = states[1]
+        #             seq_idx += 1
+        #         while state1 is None:
+        #             for s in self.symbol_to_states[sequences[seq_idx][1][site_idx]]:
+        #                 if s != state0:
+        #                     state1 = s
+        #                     break
+        #             seq_idx +=1
+        #         possible_states = (state0, state1)
+        #         for seq_idx in range(len(sequences)):
+        #             replace_symbol = False
+        #             states = list(self.symbol_to_states[sequences[seq_idx][1][site_idx]])
+        #             if not states:
+        #                 continue
+        #             for state_idx in range(len(states)):
+        #                 if not states[state_idx] in possible_states:
+        #                     states[state_idx] = state1
+        #                     replace_symbol = True
+        #             if replace_symbol:
+        #                 new_symbol = self.states_to_symbol[tuple(sorted(set(states)))]
+        #                 sequences[seq_idx][1][site_idx] = new_symbol
+        ######################################################################
+
+        recorded_length = len(sequences[0][1])
+        self._numbers_of_sites.append(recorded_length)
+        tmp_path = self._tempfs.get_file_path()
+        self._tmp_locus_paths.append(tmp_path)
+        expected_length = nsites
+        if self._remove_triallelic_sites:
+            expected_length -= len(triallelic_site_indices) 
+        with open(tmp_path, "w") as out:
+            for label, seq in sequences:
+                assert len(seq) == expected_length, (
+                        "Seq length of {0}; expecting {1}".format(
+                                len(seq),
+                                expected_length))
+                assert recorded_length == expected_length
+                self._labels.add(label)
+                out.write("{0}\t{1}\n".format(label, "".join(seq)))
+
     def _parse_loci_file(self):
         with ReadFile(self._path) as stream:
             seqs = []
             for i, line in enumerate(stream):
                 if line.startswith("//"):
-                    self._numbers_of_sites.append(len(seqs[0][1]))
-                    tmp_path = self._tempfs.get_file_path()
-                    self._tmp_locus_paths.append(tmp_path)
-                    with open(tmp_path, "w") as out:
-                        for label, seq in seqs:
-                            out.write("{0}\t{1}\n".format(label, seq))
+                    self._process_locus(seqs)
                     seqs = []
                     continue
                 try:
@@ -274,16 +384,10 @@ class PyradLoci(object):
                     sys.stderr.write("ERROR: Problem parsing line {0} of {1}:\n{2}".format(
                             i + 1, self._path, line))
                     raise
-                self._labels.add(label)
                 seq = seq.replace("N", "?")
-                seqs.append((label, seq))
+                seqs.append([label, [c for c in seq]])
         if seqs:
-            self._numbers_of_sites.append(len(seqs[0][1]))
-            for label, seq in seqs:
-                tmp_path = self._tempfs.get_file_path()
-                self._tmp_locus_paths.append(tmp_path)
-                with open(tmp_path) as out:
-                    out.write("{0}\t{1}\n".format(label, seq))
+            self._process_locus(seqs)
         assert len(self._numbers_of_sites) == len(self._tmp_locus_paths)
 
     def _get_path(self):
@@ -310,6 +414,18 @@ class PyradLoci(object):
         return sorted(self._labels)
 
     labels = property(_get_labels)
+
+    def _get_number_of_triallelic_sites_found(self):
+        return self._number_of_triallelic_sites
+
+    number_of_triallelic_sites_found = property(_get_number_of_triallelic_sites_found)
+
+    def _get_number_of_triallelic_sites_removed(self):
+        if self._remove_triallelic_sites:
+            return self._number_of_triallelic_sites
+        return 0
+
+    number_of_triallelic_sites_removed = property(_get_number_of_triallelic_sites_removed)
 
     def get_nexus_taxa_block(self):
         s = ("BEGIN TAXA;\n"
@@ -355,7 +471,7 @@ class PyradLoci(object):
             if i > 0:
                 stream.write("\n")
             seqs = self._parse_tmp_locus_file(tmp_path)
-            seq_length = len(seqs.values()[0])
+            seq_length = len(list(seqs.values())[0])
             nsites += seq_length
             for l in labels:
                 s = seqs.get(l, "?" * seq_length)
