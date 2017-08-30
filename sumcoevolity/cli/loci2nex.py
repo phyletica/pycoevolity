@@ -30,12 +30,14 @@ def main(argv = sys.argv):
 
     data = sumcoevolity.parsing.PyradLoci(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites)
-    sys.stderr.write("Number of taxa:  {0}\n".format(data.number_of_taxa))
-    sys.stderr.write("Number of loci:  {0}\n".format(data.number_of_loci))
-    sys.stderr.write("Number of sites: {0}\n".format(data.number_of_sites))
-    sys.stderr.write("Number of triallelic sites found:   {0}\n".format(
+    sys.stderr.write("{0}\n\n".format(sumcoevolity.get_description()))
+    sys.stderr.write("Command: {0}\n".format(" ".join(argv)))
+    sys.stderr.write("\tNumber of taxa:  {0}\n".format(data.number_of_taxa))
+    sys.stderr.write("\tNumber of loci:  {0}\n".format(data.number_of_loci))
+    sys.stderr.write("\tNumber of sites: {0}\n".format(data.number_of_sites))
+    sys.stderr.write("\tNumber of triallelic sites found:   {0}\n".format(
             data.number_of_triallelic_sites_found))
-    sys.stderr.write("Number of triallelic sites removed: {0}\n".format(
+    sys.stderr.write("\tNumber of triallelic sites removed: {0}\n".format(
             data.number_of_triallelic_sites_removed))
             
     data.write_nexus()
