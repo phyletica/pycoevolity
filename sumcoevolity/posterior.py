@@ -176,11 +176,32 @@ class PosteriorSample(object):
         self.parameter_samples = {}
         self.model_summary = None
         self.height_index_keys = None
+        self.height_keys = None
+        self.comparison_labels = None
+        self.number_of_comparisons = None
         self.header = None
         self.burnin = burnin
         self.number_of_samples = 0
         self._parse_posterior_paths()
     
+    def get_heights_2d(self, label_map = None,
+            include_model_indices = False):
+        labels = []
+        heights = []
+        map_model = self.get_map_models()[0]
+        for i, ht_key in enumerate(self.height_keys):
+            label = self.comparison_labels[i]
+            assert ht_key.endswith(label)
+            hts = list(self.parameter_samples[ht_key])
+            if label_map:
+                label = label_map[label]
+            if include_model_indices:
+                label = "{0} {1}".format(label, map_model[i])
+            labs = [label] * len(hts)
+            labels.extend(labs)
+            heights.extend(hts)
+        return labels, heights
+
     def _parse_posterior_paths(self):
         self.header = tuple(parsing.parse_header_from_path(self.paths[0]))
         d = parsing.get_dict_from_spreadsheets(self.paths, offset = self.burnin)
@@ -197,7 +218,25 @@ class PosteriorSample(object):
                 self.parameter_samples[k] = tuple(float(x) for x in v)
             assert(len(self.parameter_samples[k]) == n)
         self.number_of_samples = n
-        self.height_index_keys = tuple(h for h in self.header if h.startswith('root_height_index'))
+        ht_index_keys = []
+        ht_keys = []
+        labels = []
+        ht_prefix = "root_height_"
+        ht_index_prefix = "root_height_index_"
+        for h in self.header:
+            if h.startswith(ht_prefix):
+                if h.startswith(ht_index_prefix):
+                    ht_index_keys.append(h)
+                else:
+                    ht_keys.append(h)
+                    labels.append(h[len(ht_prefix):])
+        assert len(ht_keys) == len(ht_index_keys)
+        assert len(ht_keys) == len(labels)
+        self.number_of_comparisons = len(ht_keys)
+        self.height_index_keys = tuple(ht_index_keys)
+        self.height_keys = tuple(ht_keys)
+        self.comparison_labels = tuple(labels)
+
         models = []
         for i in range(n):
             models.append(tuple(int(d[h][i]) for h in self.height_index_keys))
