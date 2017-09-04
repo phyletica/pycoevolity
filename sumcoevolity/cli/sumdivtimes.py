@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-CLI program for summarizing divergence times from ecoevolity state log files.
+CLI program for summarizing event times from ecoevolity state log files.
 """
 
 import os
@@ -50,6 +50,11 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
+    parser.add_argument('-z', '--include-zero',
+            action = 'store_true',
+            help = ('By default, ggplot2 auto-magically determines the limits '
+                    'of the time axis, which often excludes zero (present). '
+                    'This option ensures that the time axis starts from zero.'))
     parser.add_argument('--include-map-model',
             action = 'store_true',
             help = ('Include event indices associated with the maximum a '
@@ -64,10 +69,10 @@ def main(argv = sys.argv):
     if not prefix:
         prefix = os.path.join(os.curdir, "")
 
-    r_path = prefix + "sumcoevolity-plot-div-times.R"
-    pdf_path = prefix + "sumcoevolity-div-times.pdf"
-    png_path = prefix + "sumcoevolity-div-times.png"
-    svg_path = prefix + "sumcoevolity-div-times.svg"
+    r_path = prefix + "sumcoevolity-plot-times.R"
+    pdf_path = prefix + "sumcoevolity-times.pdf"
+    png_path = prefix + "sumcoevolity-times.png"
+    svg_path = prefix + "sumcoevolity-times.svg"
     output_dir = os.path.dirname(r_path)
     if not output_dir:
         output_dir = os.curdir
@@ -99,24 +104,27 @@ def main(argv = sys.argv):
     plot_units = "in"
     plot_scale = 8
     plot_base_size = 14
+    scale_x_continuous_args = ["expand = c(0.05, 0)"]
+    if args.include_zero:
+        scale_x_continuous_args.append("limits = c(0, NA)")
 
     rscript = """#! /usr/bin/env Rscript
 
 library(ggplot2)
 library(ggjoy)
 
-divergence_time = c({heights})
+time = c({heights})
 comparison = c(\"{labels}\")
 
-data <- data.frame(divergence_time = divergence_time, comparison = comparison) 
+data <- data.frame(time = time, comparison = comparison)
 
-ggplot(data, aes(x = divergence_time, y = comparison, height = ..density..)) +
+ggplot(data, aes(x = time, y = comparison, height = ..density..)) +
     geom_joy(stat = \"density\", scale = {plot_scale}, rel_min_height = 0.001) +
     theme_minimal(base_size = {plot_base_size}) +
     theme(axis.text.y = element_text(vjust = 0)) +
-    scale_x_continuous(expand = c(0.05, 0)) +
+    scale_x_continuous({scale_x_continuous_args}) +
     scale_y_discrete(expand = c(0.01, 0)) +
-    labs(x = \"Divergence time\") +
+    labs(x = \"Time\") +
     labs(y = \"Comparison\")
 
 ggsave(\"{pdf_path}\", width = {plot_width}, height = {plot_height}, units = \"{plot_units}\")
@@ -145,6 +153,7 @@ r <- tryCatch(
             labels = "\", \"".join(labels),
             plot_scale = plot_scale,
             plot_base_size= plot_base_size,
+            scale_x_continuous_args = ", ".join(scale_x_continuous_args),
             plot_width = plot_width,
             plot_height = plot_height,
             plot_units = plot_units,
