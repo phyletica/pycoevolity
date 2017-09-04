@@ -164,7 +164,8 @@ r <- tryCatch(
             cwd = output_dir,
             stdout = sout,
             stderr = serr,
-            shell = False)
+            shell = False,
+            universal_newlines = True)
     stdout, stderr = process.communicate()
     exit_code = process.wait()
     if exit_code != 0:

@@ -47,7 +47,8 @@ def _get_git_data(repo_path):
                 cwd = repo_path,
                 stdin = subprocess.PIPE,
                 stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE)
+                stderr = subprocess.PIPE,
+                universal_newlines = True)
         stdout, stderr = p.communicate()
         exit_code = p.wait()
         commit = stdout.strip()[0:7]
@@ -58,7 +59,8 @@ def _get_git_data(repo_path):
                 cwd = repo_path,
                 stdin = subprocess.PIPE,
                 stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE)
+                stderr = subprocess.PIPE,
+                universal_newlines = True)
         stdout, stderr = p.communicate()
         exit_code = p.wait()
         branch = stdout.strip()
@@ -69,7 +71,8 @@ def _get_git_data(repo_path):
                 cwd = repo_path,
                 stdin = subprocess.PIPE,
                 stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE)
+                stderr = subprocess.PIPE,
+                universal_newlines = True)
         stdout, stderr = p.communicate()
         exit_code = p.wait()
         t = stdout.strip().replace("'", "").replace('"', '')
