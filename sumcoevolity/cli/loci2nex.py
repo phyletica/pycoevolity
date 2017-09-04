@@ -11,6 +11,7 @@ import argparse
 import sumcoevolity
 
 def main(argv = sys.argv):
+    sumcoevolity.write_splash(sys.stderr)
     parser = argparse.ArgumentParser()
 
     parser.add_argument('loci_path',
@@ -30,7 +31,6 @@ def main(argv = sys.argv):
 
     data = sumcoevolity.parsing.PyradLoci(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites)
-    sys.stderr.write("{0}\n\n".format(sumcoevolity.get_description()))
     sys.stderr.write("Command: {0}\n".format(" ".join(argv)))
     sys.stderr.write("\tNumber of taxa:  {0}\n".format(data.number_of_taxa))
     sys.stderr.write("\tNumber of loci:  {0}\n".format(data.number_of_loci))
