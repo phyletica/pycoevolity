@@ -126,16 +126,16 @@ r <- tryCatch(
         ggsave(\"{svg_path}\", width = {plot_width}, height = {plot_height}, units = \"{plot_units}\")
     }},
     error = function(cond) {{
-        message(\"An error occurred while trying to save plot as SVG.\") 
-        message(\"The plot has been saved in PDF and PNG format.\") 
-        message(\"If you want the SVG file, you may need to install additional R packages.\") 
+        message(\"An error occurred while trying to save plot as SVG.\")
+        message(\"The plot has been saved in PDF and PNG format.\")
+        message(\"If you want the SVG file, you may need to install additional R packages.\")
         message(\"Here's the original error message for details:\")
         message(cond)
     }},
     warning = function(cond) {{
-        message(\"A warning occurred while trying to save the plot in SVG format.\") 
-        message(\"The plot has been saved in PDF and PNG format.\") 
-        message(\"If you want the SVG file, you may need to install additional R packages.\") 
+        message(\"A warning occurred while trying to save the plot in SVG format.\")
+        message(\"The plot has been saved in PDF and PNG format.\")
+        message(\"If you want the SVG file, you may need to install additional R packages.\")
         message(\"Here's the original warning message for details:\")
         message(cond)
     }},
