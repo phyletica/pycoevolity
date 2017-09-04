@@ -177,30 +177,13 @@ class PosteriorSample(object):
         self.model_summary = None
         self.height_index_keys = None
         self.height_keys = None
-        self.comparison_labels = None
+        self.height_labels = None
+        self.tip_labels = None
         self.number_of_comparisons = None
         self.header = None
         self.burnin = burnin
         self.number_of_samples = 0
         self._parse_posterior_paths()
-    
-    def get_heights_2d(self, label_map = None,
-            include_model_indices = False):
-        labels = []
-        heights = []
-        map_model = self.get_map_models()[0]
-        for i, ht_key in enumerate(self.height_keys):
-            label = self.comparison_labels[i]
-            assert ht_key.endswith(label)
-            hts = list(self.parameter_samples[ht_key])
-            if label_map:
-                label = label_map[label]
-            if include_model_indices:
-                label = "{0} {1}".format(label, map_model[i])
-            labs = [label] * len(hts)
-            labels.extend(labs)
-            heights.extend(hts)
-        return labels, heights
 
     def _parse_posterior_paths(self):
         self.header = tuple(parsing.parse_header_from_path(self.paths[0]))
@@ -218,6 +201,23 @@ class PosteriorSample(object):
                 self.parameter_samples[k] = tuple(float(x) for x in v)
             assert(len(self.parameter_samples[k]) == n)
         self.number_of_samples = n
+
+        self._parse_height_keys_and_labels()
+        self.number_of_comparisons = len(self.height_keys)
+        self._parse_tip_labels()
+        assert len(self.tip_labels) == self.number_of_comparisons
+
+        models = []
+        for i in range(n):
+            models.append(tuple(int(d[h][i]) for h in self.height_index_keys))
+        assert len(models) == self.number_of_samples
+        self.parameter_samples['model'] = tuple(models)
+        self.model_summary = PosteriorModelSummary(
+                self.parameter_samples['number_of_events'],
+                self.parameter_samples['model'])
+        assert(self.model_summary.number_of_samples == self.number_of_samples)
+
+    def _parse_height_keys_and_labels(self):
         ht_index_keys = []
         ht_keys = []
         labels = []
@@ -232,20 +232,27 @@ class PosteriorSample(object):
                     labels.append(h[len(ht_prefix):])
         assert len(ht_keys) == len(ht_index_keys)
         assert len(ht_keys) == len(labels)
-        self.number_of_comparisons = len(ht_keys)
         self.height_index_keys = tuple(ht_index_keys)
         self.height_keys = tuple(ht_keys)
-        self.comparison_labels = tuple(labels)
+        self.height_labels = tuple(labels)
 
-        models = []
-        for i in range(n):
-            models.append(tuple(int(d[h][i]) for h in self.height_index_keys))
-        assert len(models) == self.number_of_samples
-        self.parameter_samples['model'] = tuple(models)
-        self.model_summary = PosteriorModelSummary(
-                self.parameter_samples['number_of_events'],
-                self.parameter_samples['model'])
-        assert(self.model_summary.number_of_samples == self.number_of_samples)
+    def _parse_tip_labels(self):
+        size_prefix = "pop_size_"
+        root_size_prefix = "pop_size_root_"
+        labels = []
+        current_labels = []
+        for h in self.header:
+            if h.startswith(size_prefix):
+                if h.startswith(root_size_prefix):
+                    assert ((len(current_labels) > 0) or (
+                            len(current_labels) < 3))
+                    assert h[len(root_size_prefix):] == current_labels[0]
+                    labels.append(tuple(current_labels))
+                    current_labels = []
+                else:
+                    current_labels.append(h[len(size_prefix):])
+        assert len(current_labels) == 0
+        self.tip_labels = labels
 
     def get_models(self):
         return self.model_summary.get_models()
@@ -285,3 +292,22 @@ class PosteriorSample(object):
 
     def get_rank(self, parameter_key, value):
         return stats.rank(self.parameter_samples[parameter_key], value)
+    
+    def get_heights_2d(self, label_map = {},
+            include_model_indices = False):
+        labels = []
+        heights = []
+        map_model = self.get_map_models()[0]
+        for i, ht_key in enumerate(self.height_keys):
+            tip_label = self.height_labels[i]
+            assert ht_key.endswith(tip_label)
+            assert tip_label == self.tip_labels[i][0]
+            pretty_labels = [label_map.get(l, l) for l in self.tip_labels[i]]
+            label = " | ".join(pretty_labels)
+            if include_model_indices:
+                label = "{0} {1}".format(label, map_model[i])
+            hts = list(self.parameter_samples[ht_key])
+            labs = [label] * len(hts)
+            labels.extend(labs)
+            heights.extend(hts)
+        return labels, heights
