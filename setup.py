@@ -21,6 +21,7 @@ setup(
         entry_points = {
             'console_scripts': [
                 'loci2nex = sumcoevolity.cli.loci2nex:main',
+                'sumdivtimes = sumcoevolity.cli.sumdivtimes:main',
             ],
         },
 )
