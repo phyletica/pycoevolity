@@ -59,6 +59,16 @@ def main(argv = sys.argv):
             action = 'store_true',
             help = ('Include event indices associated with the maximum a '
                     'posteriori (MAP) model in the comparison labels.'))
+    parser.add_argument('-x', '--x-label',
+            action = 'store',
+            type = str,
+            default = "Time",
+            help = ('Label for the X-axis. Default: \'Time\'.'))
+    parser.add_argument('-y', '--y-label',
+            action = 'store',
+            type = str,
+            default = "Comparison",
+            help = ('Label for the Y-axis. Default: \'Comparison\'.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -124,8 +134,8 @@ ggplot(data, aes(x = time, y = comparison, height = ..density..)) +
     theme(axis.text.y = element_text(vjust = 0)) +
     scale_x_continuous({scale_x_continuous_args}) +
     scale_y_discrete(expand = c(0.01, 0)) +
-    labs(x = \"Time\") +
-    labs(y = \"Comparison\")
+    labs(x = \"{x_label}\") +
+    labs(y = \"{y_label}\")
 
 ggsave(\"{pdf_path}\", width = {plot_width}, height = {plot_height}, units = \"{plot_units}\")
 ggsave(\"{png_path}\", width = {plot_width}, height = {plot_height}, units = \"{plot_units}\")
@@ -157,6 +167,8 @@ r <- tryCatch(
             plot_width = plot_width,
             plot_height = plot_height,
             plot_units = plot_units,
+            x_label = args.x_label,
+            y_label = args.y_label,
             pdf_path = os.path.basename(pdf_path),
             png_path = os.path.basename(png_path),
             svg_path = os.path.basename(svg_path))
