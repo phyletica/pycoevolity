@@ -281,7 +281,9 @@ class PyradLoci(object):
             ('A', 'C', 'G', 'T') : 'N',
             }
 
-    def __init__(self, path, remove_triallelic_sites = False):
+    def __init__(self, path,
+            remove_triallelic_sites = False,
+            sequence_ids_to_remove = []):
         self._labels = set()
         self._numbers_of_sites = []
         self._tempfs = tempfs.TempFileSystem()
@@ -289,6 +291,12 @@ class PyradLoci(object):
         self._remove_triallelic_sites = remove_triallelic_sites
         self._number_of_triallelic_sites = 0
         self._path = path
+        self._sequences_removed = {}
+        if sequence_ids_to_remove:
+            self._sequences_removed = dict(zip(
+                    sequence_ids_to_remove,
+                    (0 for i in range(len(sequence_ids_to_remove)))
+                    ))
         self._parse_loci_file()
 
     def __del__(self):
@@ -384,6 +392,9 @@ class PyradLoci(object):
                     sys.stderr.write("ERROR: Problem parsing line {0} of {1}:\n{2}".format(
                             i + 1, self._path, line))
                     raise
+                if label in self._sequences_removed:
+                    self._sequences_removed[label] += 1
+                    continue
                 seq = seq.replace("N", "?")
                 seqs.append([label, [c for c in seq]])
         if seqs:
@@ -426,6 +437,11 @@ class PyradLoci(object):
         return 0
 
     number_of_triallelic_sites_removed = property(_get_number_of_triallelic_sites_removed)
+
+    def _get_removed_sequence_counts(self):
+        return self._sequences_removed
+
+    removed_sequence_counts = property(_get_removed_sequence_counts)
 
     def get_nexus_taxa_block(self):
         s = ("BEGIN TAXA;\n"
