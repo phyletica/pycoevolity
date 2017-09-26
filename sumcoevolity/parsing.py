@@ -482,7 +482,8 @@ class PyradLoci(object):
                 mx = len(l)
         return mx + 4
 
-    def write_interleaved_sequences(self, stream = None, indent = ""):
+    def write_interleaved_sequences(self, stream = None, indent = "",
+            use_names_at_interleaves = True):
         if stream is None:
             stream = sys.stdout
         nsites = 0
@@ -496,11 +497,14 @@ class PyradLoci(object):
             nsites += seq_length
             for l in labels:
                 s = seqs.get(l, "?" * seq_length)
-                stream.write("{indent}{label:<{fill}}{sequence}\n".format(
-                        indent = indent,
-                        label = l,
-                        fill = label_buffer,
-                        sequence = s))
+                if (not use_names_at_interleaves) and (i > 0):
+                    stream.write("{sequence}\n".format(sequence = s))
+                else:
+                    stream.write("{indent}{label:<{fill}}{sequence}\n".format(
+                            indent = indent,
+                            label = l,
+                            fill = label_buffer,
+                            sequence = s))
         assert nsites == self.number_of_sites
 
     def write_nexus(self, stream = None):
@@ -517,4 +521,6 @@ class PyradLoci(object):
         if stream is None:
             stream = sys.stdout
         stream.write("{0}\n".format(self.get_phylip_header()))
-        self.write_interleaved_sequences(stream, indent = "")
+        self.write_interleaved_sequences(stream,
+                indent = "",
+                use_names_at_interleaves = False)
