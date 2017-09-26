@@ -20,7 +20,8 @@ setup(
         ],
         entry_points = {
             'console_scripts': [
-                'loci2nex = sumcoevolity.cli.loci2nex:main',
+                'loci2nex = sumcoevolity.cli.loci2alignment:main_nexus',
+                'loci2phy = sumcoevolity.cli.loci2alignment:main_phylip',
                 'sumdivtimes = sumcoevolity.cli.sumdivtimes:main',
             ],
         },

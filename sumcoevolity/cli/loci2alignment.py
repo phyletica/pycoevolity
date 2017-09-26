@@ -10,7 +10,7 @@ import argparse
 
 import sumcoevolity
 
-def main(argv = sys.argv):
+def main(argv = sys.argv, write_method = "write_nexus"):
     sumcoevolity.write_splash(sys.stderr)
     parser = argparse.ArgumentParser()
 
@@ -53,7 +53,13 @@ def main(argv = sys.argv):
         for n, c in seqs_removed.items():
             sys.stderr.write("\t\t{0}: {1}\n".format(n, c))
             
-    data.write_nexus()
+    getattr(data, write_method)()
+
+def main_nexus(argv = sys.argv):
+    main(argv = argv, write_method = "write_nexus")
+
+def main_phylip(argv = sys.argv):
+    main(argv = argv, write_method = "write_phylip")
 
 if __name__ == "__main__":
     main()

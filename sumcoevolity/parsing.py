@@ -454,6 +454,11 @@ class PyradLoci(object):
                  labels = "\n        ".join(self.labels)))
         return s
 
+    def get_phylip_header(self):
+        return "{ntax} {nchar}".format(
+                 ntax = self.number_of_taxa,
+                 nchar = self.number_of_sites)
+
     def get_nexus_characters_block_preamble(self):
         s = ("BEGIN CHARACTERS;\n"
              "    DIMENSIONS NCHAR={nchar};\n"
@@ -507,3 +512,9 @@ class PyradLoci(object):
                 self.get_nexus_characters_block_preamble()))
         self.write_interleaved_sequences(stream, indent = " " * 8)
         stream.write("    ;\nEND;\n")
+
+    def write_phylip(self, stream = None):
+        if stream is None:
+            stream = sys.stdout
+        stream.write("{0}\n".format(self.get_phylip_header()))
+        self.write_interleaved_sequences(stream, indent = "")
