@@ -292,6 +292,7 @@ class PyradLoci(object):
         self._number_of_triallelic_sites = 0
         self._path = path
         self._sequences_removed = {}
+        self._label_suffix = None
         if sequence_ids_to_remove:
             self._sequences_removed = dict(zip(
                     sequence_ids_to_remove,
@@ -401,6 +402,13 @@ class PyradLoci(object):
             self._process_locus(seqs)
         assert len(self._numbers_of_sites) == len(self._tmp_locus_paths)
 
+    def _get_label_suffix(self):
+        return self._label_suffix
+    def _set_label_suffix(self, s):
+        self._label_suffix = str(s)
+
+    label_suffix = property(_get_label_suffix, _set_label_suffix)
+
     def _get_path(self):
         return self._path
 
@@ -444,6 +452,16 @@ class PyradLoci(object):
     removed_sequence_counts = property(_get_removed_sequence_counts)
 
     def get_nexus_taxa_block(self):
+        if self._label_suffix:
+            s = ("BEGIN TAXA;\n"
+                 "    DIMENSIONS NTAX={ntax};\n"
+                 "    TAXLABELS\n"
+                 "        {labels}\n"
+                 "    ;\n"
+                 "END;".format(
+                     ntax = self.number_of_taxa,
+                     labels = "\n        ".join(l + self.suffix for l in self.labels)))
+            return s
         s = ("BEGIN TAXA;\n"
              "    DIMENSIONS NTAX={ntax};\n"
              "    TAXLABELS\n"
@@ -480,10 +498,15 @@ class PyradLoci(object):
         for l in self._labels:
             if len(l) > mx:
                 mx = len(l)
+        if self._label_suffix:
+            mx += len(self.label_suffix)
         return mx + 4
 
     def write_interleaved_sequences(self, stream = None, indent = "",
             use_names_at_interleaves = True):
+        suffix = ""
+        if self._label_suffix:
+            suffix = self.label_suffix
         if stream is None:
             stream = sys.stdout
         nsites = 0
@@ -502,7 +525,7 @@ class PyradLoci(object):
                 else:
                     stream.write("{indent}{label:<{fill}}{sequence}\n".format(
                             indent = indent,
-                            label = l,
+                            label = l + suffix,
                             fill = label_buffer,
                             sequence = s))
         assert nsites == self.number_of_sites
