@@ -293,6 +293,7 @@ class PyradLoci(object):
         self._path = path
         self._sequences_removed = {}
         self._label_suffix = None
+        self._label_prefix = None
         if sequence_ids_to_remove:
             self._sequences_removed = dict(zip(
                     sequence_ids_to_remove,
@@ -409,6 +410,13 @@ class PyradLoci(object):
 
     label_suffix = property(_get_label_suffix, _set_label_suffix)
 
+    def _get_label_prefix(self):
+        return self._label_prefix
+    def _set_label_prefix(self, s):
+        self._label_prefix = str(s)
+
+    label_prefix = property(_get_label_prefix, _set_label_prefix)
+
     def _get_path(self):
         return self._path
 
@@ -452,17 +460,23 @@ class PyradLoci(object):
     removed_sequence_counts = property(_get_removed_sequence_counts)
 
     def get_nexus_taxa_block(self):
-        if self._label_suffix:
-            s = ("BEGIN TAXA;\n"
+        if self._label_suffix or self._label_prefix:
+            p = ""
+            s = ""
+            if self._label_prefix:
+                p = self._label_prefix
+            if self._label_suffix:
+                s = self._label_suffix
+            b = ("BEGIN TAXA;\n"
                  "    DIMENSIONS NTAX={ntax};\n"
                  "    TAXLABELS\n"
                  "        {labels}\n"
                  "    ;\n"
                  "END;".format(
                      ntax = self.number_of_taxa,
-                     labels = "\n        ".join(l + self.suffix for l in self.labels)))
-            return s
-        s = ("BEGIN TAXA;\n"
+                     labels = "\n        ".join(p + l + s for l in self.labels)))
+            return b
+        b = ("BEGIN TAXA;\n"
              "    DIMENSIONS NTAX={ntax};\n"
              "    TAXLABELS\n"
              "        {labels}\n"
@@ -470,7 +484,7 @@ class PyradLoci(object):
              "END;".format(
                  ntax = self.number_of_taxa,
                  labels = "\n        ".join(self.labels)))
-        return s
+        return b
 
     def get_phylip_header(self):
         return "{ntax} {nchar}".format(
@@ -498,12 +512,17 @@ class PyradLoci(object):
         for l in self._labels:
             if len(l) > mx:
                 mx = len(l)
+        if self._label_prefix:
+            mx += len(self._label_prefix)
         if self._label_suffix:
-            mx += len(self.label_suffix)
+            mx += len(self._label_suffix)
         return mx + 4
 
     def write_interleaved_sequences(self, stream = None, indent = "",
             use_names_at_interleaves = True):
+        prefix = ""
+        if self._label_prefix:
+            prefix = self.label_prefix
         suffix = ""
         if self._label_suffix:
             suffix = self.label_suffix
@@ -525,7 +544,7 @@ class PyradLoci(object):
                 else:
                     stream.write("{indent}{label:<{fill}}{sequence}\n".format(
                             indent = indent,
-                            label = l + suffix,
+                            label = prefix + l + suffix,
                             fill = label_buffer,
                             sequence = s))
         assert nsites == self.number_of_sites
