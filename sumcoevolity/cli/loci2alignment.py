@@ -30,6 +30,18 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             help = ('By default, sites with more than two alleles are left in '
                     'the alignment, as is. When this option is specified, '
                     'these sites are removed.'))
+    parser.add_argument('-p', '--prefix',
+            type = str,
+            metavar = "SEQUENCE-LABEL-PREFIX",
+            help = ('A prefix to append to every sequence label. This can be '
+                    'useful for ensuring that all population labels are '
+                    'unique across pairs.'))
+    parser.add_argument('-s', '--suffix',
+            type = str,
+            metavar = "SEQUENCE-LABEL-SUFFIX",
+            help = ('A suffix to append to every sequence label. This can be '
+                    'useful for ensuring that all population labels are '
+                    'unique across pairs.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -39,6 +51,10 @@ def main(argv = sys.argv, write_method = "write_nexus"):
     data = sumcoevolity.parsing.PyradLoci(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites,
             sequence_ids_to_remove = args.sample_to_delete)
+    if args.prefix:
+        data.label_prefix = args.prefix
+    if args.suffix:
+        data.label_suffix = args.suffix
     seqs_removed = data.removed_sequence_counts
     sys.stderr.write("Command: {0}\n".format(" ".join(argv)))
     sys.stderr.write("\tNumber of taxa:  {0}\n".format(data.number_of_taxa))
