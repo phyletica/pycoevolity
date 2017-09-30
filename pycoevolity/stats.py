@@ -318,7 +318,7 @@ def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
         representing a most common bin, if there is a tie.
 
     Some examples:
-        >>> from sumcoevolity.stats import mode_list
+        >>> from pycoevolity.stats import mode_list
         >>> x = range(10) + [2]
         >>> mode_list(x)  # treat values as discrete by default
         [2]

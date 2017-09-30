@@ -11,20 +11,20 @@ import argparse
 import subprocess
 import logging
 
-import sumcoevolity
+import pycoevolity
 
 def main(argv = sys.argv):
-    sumcoevolity.write_splash(sys.stderr)
+    pycoevolity.write_splash(sys.stderr)
     parser = argparse.ArgumentParser()
 
     parser.add_argument('log_paths',
             metavar = 'IPYRAD-LOCI-FILE-PATH',
             nargs = '+',
-            type = sumcoevolity.argparse_utils.arg_is_file,
+            type = pycoevolity.argparse_utils.arg_is_file,
             help = ('Paths to ecoevolity state log files.'))
     parser.add_argument('-b', '--burnin',
             action = 'store',
-            type = sumcoevolity.argparse_utils.arg_is_nonnegative_int,
+            type = pycoevolity.argparse_utils.arg_is_nonnegative_int,
             default = 0,
             help = ('The number of samples to remove from the beginning of '
                     'each log file as burn in.'))
@@ -79,10 +79,10 @@ def main(argv = sys.argv):
     if not prefix:
         prefix = os.path.join(os.curdir, "")
 
-    r_path = prefix + "sumcoevolity-plot-times.R"
-    pdf_path = prefix + "sumcoevolity-times.pdf"
-    png_path = prefix + "sumcoevolity-times.png"
-    svg_path = prefix + "sumcoevolity-times.svg"
+    r_path = prefix + "pycoevolity-plot-times.R"
+    pdf_path = prefix + "pycoevolity-times.pdf"
+    png_path = prefix + "pycoevolity-times.png"
+    svg_path = prefix + "pycoevolity-times.svg"
     output_dir = os.path.dirname(r_path)
     if not output_dir:
         output_dir = os.curdir
@@ -100,7 +100,7 @@ def main(argv = sys.argv):
             label_map[label] = replacement
 
     sys.stderr.write("Parsing log files...\n")
-    posterior = sumcoevolity.posterior.PosteriorSample(paths = args.log_paths,
+    posterior = pycoevolity.posterior.PosteriorSample(paths = args.log_paths,
             burnin = args.burnin)
     sys.stderr.write("Parsed {0} samples from {1} files.\n".format(
             posterior.number_of_samples,

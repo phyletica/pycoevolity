@@ -1,28 +1,28 @@
 from setuptools import setup
 
-from sumcoevolity import __version__
+from pycoevolity import __version__
 
 setup(
-        name = "sumcoevolity",
+        name = "pycoevolity",
         version = __version__,
         description = "Package for summarizing output of ecoevolity",
         author = "Jamie Oaks",
         author_email = "joaks1@gmail.com",
         license = "GPL",
-        packages = ["sumcoevolity"],
+        packages = ["pycoevolity"],
         include_package_data = True,
         zip_safe = False,
-        test_suite = "sumcoevolity.test.get_unittest_suite",
-        # test_suite = "sumcoevolity.test",
+        test_suite = "pycoevolity.test.get_unittest_suite",
+        # test_suite = "pycoevolity.test",
         # test_loader = "unittest:TestLoader",
         install_requires = [
             # 'matplotlib'
         ],
         entry_points = {
             'console_scripts': [
-                'loci2nex = sumcoevolity.cli.loci2alignment:main_nexus',
-                'loci2phy = sumcoevolity.cli.loci2alignment:main_phylip',
-                'sumdivtimes = sumcoevolity.cli.sumdivtimes:main',
+                'loci2nex = pycoevolity.cli.loci2alignment:main_nexus',
+                'loci2phy = pycoevolity.cli.loci2alignment:main_phylip',
+                'sumdivtimes = pycoevolity.cli.sumdivtimes:main',
             ],
         },
 )

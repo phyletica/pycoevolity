@@ -5,8 +5,8 @@ import os
 import sys
 import logging
 
-from sumcoevolity import posterior
-from sumcoevolity.test.support import package_paths
+from pycoevolity import posterior
+from pycoevolity.test.support import package_paths
 
 _LOG = logging.getLogger(__name__)
 

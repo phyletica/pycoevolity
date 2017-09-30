@@ -8,15 +8,15 @@ import os
 import sys
 import argparse
 
-import sumcoevolity
+import pycoevolity
 
 def main(argv = sys.argv, write_method = "write_nexus"):
-    sumcoevolity.write_splash(sys.stderr)
+    pycoevolity.write_splash(sys.stderr)
     parser = argparse.ArgumentParser()
 
     parser.add_argument('loci_path',
             metavar = 'IPYRAD-LOCI-FILE-PATH',
-            type = sumcoevolity.argparse_utils.arg_is_file,
+            type = pycoevolity.argparse_utils.arg_is_file,
             help = ('Path to the ipyrad loci file.'))
     parser.add_argument('-d', '--sample-to-delete',
             action = 'append',
@@ -48,7 +48,7 @@ def main(argv = sys.argv, write_method = "write_nexus"):
     else:
         args = parser.parse_args(argv)
 
-    data = sumcoevolity.parsing.PyradLoci(args.loci_path,
+    data = pycoevolity.parsing.PyradLoci(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites,
             sequence_ids_to_remove = args.sample_to_delete)
     if args.prefix:

@@ -6,7 +6,7 @@ import glob
 import logging
 import unittest
 
-from sumcoevolity.test.support import package_paths
+from pycoevolity.test.support import package_paths
 
 _LOG = logging.getLogger(__name__)
 
@@ -54,13 +54,13 @@ class TestLevel:
     
     @classmethod
     def get_current_level(cls):
-        l = os.environ.get("SUMCOEVOLITY_TESTING_LEVEL")
+        l = os.environ.get("pycoevolITY_TESTING_LEVEL")
         if l is None:
             return cls.FAST
         try:
             return cls.name_to_int(l)
         except:
-            _LOG.warn('the value {0} for SUMCOEVOLITY_TESTING_LEVEL is not recognized.'
+            _LOG.warn('the value {0} for pycoevolITY_TESTING_LEVEL is not recognized.'
                       'Using NORMAL level'.format(l))
         return cls.FAST
     
@@ -79,7 +79,7 @@ def get_test_file_names():
     tests = []
     for path in test_file_paths:
         test_file_name = os.path.basename(path).split(".")[0]
-        test = ".".join(["sumcoevolity.test", test_file_name])
+        test = ".".join(["pycoevolity.test", test_file_name])
         tests.append(test)
     return tests
 

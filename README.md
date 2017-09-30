@@ -1,11 +1,11 @@
 Table of Contents
 =================
 
- -  [Sumcoevolity](#sumcoevolity)
+ -  [Pycoevolity](#pycoevolity)
  -  [Acknowledgments](#acknowledgments)
  -  [License](#license)
 
-Sumcoevolity
+Pycoevolity
 ============
 
 A package for summarizing the output of Ecoevolity.

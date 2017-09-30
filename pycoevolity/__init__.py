@@ -3,7 +3,7 @@
 import sys
 import os
 
-__project__ = "sumcoevolity"
+__project__ = "pycoevolity"
 __version__ = "0.1.0"
 __author__ = "Jamie Oaks"
 __copyright__ = "Copyright 2017 Jamie Oaks."
@@ -31,10 +31,10 @@ SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
 # logging level, because imported modules will initiate their loggers before
 # the CLI scripts can update LoggingControl.
 
-import sumcoevolity.stats
-import sumcoevolity.parsing
-import sumcoevolity.posterior
-import sumcoevolity.argparse_utils
+import pycoevolity.stats
+import pycoevolity.parsing
+import pycoevolity.posterior
+import pycoevolity.argparse_utils
 
 def _get_git_data(repo_path):
     try:

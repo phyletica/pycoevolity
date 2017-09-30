@@ -5,8 +5,8 @@ import os
 import math
 import logging
 
-from sumcoevolity import parsing
-from sumcoevolity import stats
+from pycoevolity import parsing
+from pycoevolity import stats
 
 _LOG = logging.getLogger(__name__)
 

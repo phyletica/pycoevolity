@@ -5,8 +5,8 @@ import os
 import logging
 import tempfile
 
-from sumcoevolity.stringutils import random_str
-from sumcoevolity.errors import TempFSError
+from pycoevolity.stringutils import random_str
+from pycoevolity.errors import TempFSError
 
 _LOG = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class TempFileSystem(object):
     A temporary file system that protects against deleting any directories
     or files that are not created by an instance of this class.
     """
-    def __init__(self, parent = None, prefix='sumcoevolity-temp-'):
+    def __init__(self, parent = None, prefix='pycoevolity-temp-'):
         """
         Create TempFileSystem instance.
 

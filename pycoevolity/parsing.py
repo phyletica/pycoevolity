@@ -5,8 +5,8 @@ import os
 import logging
 import re
 
-from sumcoevolity.fileio import ReadFile 
-from sumcoevolity import tempfs
+from pycoevolity.fileio import ReadFile
+from pycoevolity import tempfs
 
 _LOG = logging.getLogger(__name__)
 

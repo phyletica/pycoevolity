@@ -6,19 +6,19 @@ import subprocess
 import unittest
 import logging
 
-from sumcoevolity.stringutils import random_str
-from sumcoevolity.tempfs import TempFileSystem
-from sumcoevolity.test.support import package_paths
+from pycoevolity.stringutils import random_str
+from pycoevolity.tempfs import TempFileSystem
+from pycoevolity.test.support import package_paths
 
 _LOG = logging.getLogger(__name__)
 
-class SumcoevolityTestCase(unittest.TestCase):
+class PycoevolityTestCase(unittest.TestCase):
     
     def set_up(self):
         self.temp_fs = TempFileSystem(
                 parent = package_paths.test_path(),
-                prefix = 'SumcoevolityTestTemp-')
-        self.test_id = 'sumcoevolity-' + random_str()
+                prefix = 'PycoevolityTestTemp-')
+        self.test_id = 'pycoevolity-' + random_str()
 
     def tear_down(self):
         self.register_file_system()

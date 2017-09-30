@@ -2,7 +2,7 @@
 
 import os
 
-from sumcoevolity import SCRIPTS_DIR
+from pycoevolity import SCRIPTS_DIR
 
 LOCAL_DIR = os.path.abspath(os.path.dirname(__file__))
 TEST_DIR = os.path.dirname(LOCAL_DIR)

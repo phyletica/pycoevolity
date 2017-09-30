@@ -10,13 +10,13 @@ except ImportError:
     from io import StringIO
 import logging
 
-from sumcoevolity import parsing
-from sumcoevolity.test.support.sumcoevolity_test_case import SumcoevolityTestCase
-from sumcoevolity.test.support import package_paths
+from pycoevolity import parsing
+from pycoevolity.test.support.pycoevolity_test_case import PycoevolityTestCase
+from pycoevolity.test.support import package_paths
 
 _LOG = logging.getLogger(__name__)
 
-class GetDictFromSpreadsheetTestCase(SumcoevolityTestCase):
+class GetDictFromSpreadsheetTestCase(PycoevolityTestCase):
 
     def setUp(self):
         self.set_up()
@@ -168,7 +168,7 @@ class DictLineIterTestCase(unittest.TestCase):
             r.write(row)
         self.assertEqual(s.getvalue(), r.getvalue())
 
-class EcoevolityStdOutTestCase(SumcoevolityTestCase):
+class EcoevolityStdOutTestCase(PycoevolityTestCase):
     def setUp(self):
         self.set_up()
         self.restart_std_out_path = package_paths.data_path(

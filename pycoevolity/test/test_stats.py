@@ -7,9 +7,9 @@ import math
 import logging
 import random
 
-from sumcoevolity import stats
-from sumcoevolity.test import TestLevel
-from sumcoevolity.test.support.sumcoevolity_test_case import SumcoevolityTestCase
+from pycoevolity import stats
+from pycoevolity.test import TestLevel
+from pycoevolity.test.support.pycoevolity_test_case import PycoevolityTestCase
 
 _LOG = logging.getLogger(__name__)
 GLOBAL_RNG = random.Random()
@@ -198,7 +198,7 @@ class EffectiveSampleSizeTestCase(unittest.TestCase):
         self.assertAlmostEqual(ess, 100.0)
 
 
-class SampleSummarizerTestCase(SumcoevolityTestCase):
+class SampleSummarizerTestCase(PycoevolityTestCase):
 
     def setUp(self):
         self.set_up()

@@ -4,8 +4,8 @@ import unittest
 import os
 import logging
 
-from sumcoevolity import tempfs
-from sumcoevolity.test.support import package_paths
+from pycoevolity import tempfs
+from pycoevolity.test.support import package_paths
 
 _LOG = logging.getLogger(__name__)
 
