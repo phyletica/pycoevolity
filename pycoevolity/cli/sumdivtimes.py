@@ -121,7 +121,7 @@ def main(argv = sys.argv):
     rscript = """#! /usr/bin/env Rscript
 
 library(ggplot2)
-library(ggjoy)
+library(ggridges)
 
 time = c({heights})
 comparison = c(\"{labels}\")
@@ -129,7 +129,7 @@ comparison = c(\"{labels}\")
 data <- data.frame(time = time, comparison = comparison)
 
 ggplot(data, aes(x = time, y = comparison, height = ..density..)) +
-    geom_joy(stat = \"density\", scale = {plot_scale}, rel_min_height = 0.001) +
+    geom_density_ridges(stat = \"density\", scale = {plot_scale}, rel_min_height = 0.001) +
     theme_minimal(base_size = {plot_base_size}) +
     theme(axis.text.y = element_text(vjust = 0)) +
     scale_x_continuous({scale_x_continuous_args}) +
@@ -194,7 +194,7 @@ r <- tryCatch(
                 "The R plotting script exited with an error code.\n"
                 "However, the script is available at\n"
                 "{r_script_path!r}.\n"
-                "You may need to install the R packages ggplot2 and ggjoy and "
+                "You may need to install the R packages ggplot2 and ggridges and "
                 "re-run the R script.\n"
                 "Here is the stderr from R:\n{stderr}\n".format(
                     r_script_path = r_path,
