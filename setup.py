@@ -23,6 +23,7 @@ setup(
                 'loci2nex = pycoevolity.cli.loci2alignment:main_nexus',
                 'loci2phy = pycoevolity.cli.loci2alignment:main_phylip',
                 'sumdivtimes = pycoevolity.cli.sumdivtimes:main',
+                'sumconvergence = pycoevolity.cli.sumconvergence:main',
             ],
         },
 )

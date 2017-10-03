@@ -170,6 +170,72 @@ class PosteriorSummary(object):
         return self.model_summary.get_map_numbers_of_events()
 
 
+class ChainConvergenceSummary(object):
+    def __init__(self, paths, burnin_step_size = 100):
+        self.paths = list(paths)
+        self.posterior_samples = dict(zip(
+                self.paths,
+                (PosteriorSample(paths = [p], burnin = 0) for p in self.paths)))
+        self._vet_posterior_samples()
+        self.parameter_keys = []
+        self.burnin_step_size = burnin_step_size
+        self.chain_lengths = tuple(self.posterior_samples[p].number_of_samples for p in self.paths)
+        self.number_of_chains = len(self.paths)
+        self.equal_chain_lengths = bool(len(set(self.chain_lengths)) == 1)
+        for h in self.posterior_samples[self.paths[0]].header:
+            if h.startswith('number_of'):
+                continue
+            if h in self.posterior_samples[self.paths[0]].parameter_samples:
+                self.parameter_keys.append(h)
+
+    def _vet_posterior_samples(self):
+        for i in range(1, len(self.paths)):
+            assert (self.posterior_samples[self.paths[0]].header ==
+                    self.posterior_samples[self.paths[i]].header), (
+                    "Headers of log files {0} and {1} do not match".format(
+                            self.paths[0], self.paths[i]))
+
+    def write_summary(self, out = sys.stdout):
+        samples_remaining = [x - 1 for x in self.chain_lengths]
+        burnin = 0
+        out.write("parameter\tburnin\tpsrf\tess_concat\t{0}\n".format(
+                "\t".join("ess_" + str(i) for i in range(len(self.paths)))))
+        finished = False
+        while True:
+            for i in range(len(samples_remaining)):
+                if ((samples_remaining[i] < self.burnin_step_size) or
+                        (samples_remaining[i] < 10)):
+                   finished = True 
+                samples_remaining[i] -= self.burnin_step_size
+            if finished:
+                break
+            bi = burnin
+            if bi < 1:
+                bi = 1
+            for parameter in self.parameter_keys:
+                chains = []
+                samples = []
+                for path, ps in self.posterior_samples.items():
+                    chains.append(ps.parameter_samples[parameter][bi:])
+                    samples.extend(ps.parameter_samples[parameter][bi:])
+                ess_concat = stats.effective_sample_size(samples)
+                if ess_concat == 0.0:
+                    continue
+                prsf = "-"
+                if self.equal_chain_lengths and (self.number_of_chains > 1):
+                    psrf = stats.potential_scale_reduction_factor(chains)
+                ess = []
+                for c in chains:
+                    ess.append(stats.effective_sample_size(c))
+                out.write("{parameter}\t{burnin}\t{psrf}\t{ess_concat}\t{ess}\n".format(
+                        parameter = parameter,
+                        burnin = bi,
+                        psrf = psrf,
+                        ess_concat = ess_concat,
+                        ess = "\t".join(str(e) for e in ess)))
+            burnin += self.burnin_step_size
+        
+
 class PosteriorSample(object):
     def __init__(self, paths, burnin = 0):
         self.paths = list(paths)
