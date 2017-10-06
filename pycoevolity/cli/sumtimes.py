@@ -76,8 +76,8 @@ def main(argv = sys.argv):
         args = parser.parse_args(argv)
 
     prefix = args.prefix
-    if not prefix:
-        prefix = os.path.join(os.curdir, "")
+    if len(prefix.split(os.path.sep)) < 2:
+        prefix = os.path.join(os.curdir, prefix)
 
     r_path = prefix + "pycoevolity-plot-times.R"
     pdf_path = prefix + "pycoevolity-times.pdf"
