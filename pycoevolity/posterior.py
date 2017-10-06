@@ -377,3 +377,21 @@ class PosteriorSample(object):
             labels.extend(labs)
             heights.extend(hts)
         return labels, heights
+
+    def get_population_sizes_2d(self, label_map = {}):
+        labels = []
+        sizes = []
+        for tips in self.tip_labels:
+            for t in tips:
+                size_key = "pop_size_{0}".format(t)
+                szs = list(self.parameter_samples[size_key])
+                pretty_label = label_map.get(t, t)
+                labels.extend([pretty_label] * len(szs))
+                sizes.extend(szs)
+            root_size_key = "pop_size_root_{0}".format(tips[0])
+            root_sizes = list(self.parameter_samples[root_size_key])
+            root_label = "root-{0}".format(tips[0])
+            pretty_root_label = label_map.get(root_label, root_label)
+            labels.extend([pretty_root_label] * len(root_sizes))
+            sizes.extend(root_sizes)
+        return labels, sizes

@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-CLI program for summarizing event times from ecoevolity state log files.
+CLI program for summarizing population sizes from ecoevolity state log files.
 """
 
 import os
@@ -50,11 +50,6 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
-    parser.add_argument('-z', '--include-zero',
-            action = 'store_true',
-            help = ('By default, ggplot2 auto-magically determines the limits '
-                    'of the time axis, which often excludes zero (present). '
-                    'This option ensures that the time axis starts from zero.'))
     parser.add_argument('--include-map-model',
             action = 'store_true',
             help = ('Include event indices associated with the maximum a '
@@ -62,13 +57,13 @@ def main(argv = sys.argv):
     parser.add_argument('-x', '--x-label',
             action = 'store',
             type = str,
-            default = "Time",
-            help = ('Label for the X-axis. Default: \'Time\'.'))
+            default = "Size",
+            help = ('Label for the X-axis. Default: \'Size\'.'))
     parser.add_argument('-y', '--y-label',
             action = 'store',
             type = str,
-            default = "Comparison",
-            help = ('Label for the Y-axis. Default: \'Comparison\'.'))
+            default = "Population",
+            help = ('Label for the Y-axis. Default: \'Population\'.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -79,10 +74,10 @@ def main(argv = sys.argv):
     if not prefix:
         prefix = os.path.join(os.curdir, "")
 
-    r_path = prefix + "pycoevolity-plot-times.R"
-    pdf_path = prefix + "pycoevolity-times.pdf"
-    png_path = prefix + "pycoevolity-times.png"
-    svg_path = prefix + "pycoevolity-times.svg"
+    r_path = prefix + "pycoevolity-plot-sizes.R"
+    pdf_path = prefix + "pycoevolity-sizes.pdf"
+    png_path = prefix + "pycoevolity-sizes.png"
+    svg_path = prefix + "pycoevolity-sizes.svg"
     output_dir = os.path.dirname(r_path)
     if not output_dir:
         output_dir = os.curdir
@@ -105,35 +100,31 @@ def main(argv = sys.argv):
     sys.stderr.write("Parsed {0} samples from {1} files.\n".format(
             posterior.number_of_samples,
             len(posterior.paths)))
-    labels, heights = posterior.get_heights_2d(
-            label_map = label_map,
-            include_model_indices = args.include_map_model)
+    labels, sizes = posterior.get_population_sizes_2d(
+            label_map = label_map)
 
     plot_width = 7.0
     plot_height = plot_width / 1.618034
     plot_units = "in"
     plot_scale = 8
     plot_base_size = 14
-    scale_x_continuous_args = ["expand = c(0.05, 0)"]
-    if args.include_zero:
-        scale_x_continuous_args.append("limits = c(0, NA)")
 
     rscript = """#! /usr/bin/env Rscript
 
 library(ggplot2)
 library(ggridges)
 
-time = c({heights})
+size = c({sizes})
 comparison = c(\"{labels}\")
 
-data <- data.frame(time = time, comparison = comparison)
+data <- data.frame(size = size, comparison = comparison)
 data$comparison = factor(data$comparison, levels = rev(unique(as.character(data$comparison))))
 
-ggplot(data, aes(x = time, y = comparison, height = ..density..)) +
+ggplot(data, aes(x = size, y = comparison, height = ..density..)) +
     geom_density_ridges(stat = \"density\", scale = {plot_scale}, rel_min_height = 0.001) +
     theme_minimal(base_size = {plot_base_size}) +
     theme(axis.text.y = element_text(vjust = 0)) +
-    scale_x_continuous({scale_x_continuous_args}) +
+    scale_x_continuous(expand = c(0.05, 0)) +
     scale_y_discrete(expand = c(0.01, 0)) +
     labs(x = \"{x_label}\") +
     labs(y = \"{y_label}\")
@@ -160,11 +151,10 @@ r <- tryCatch(
     }},
     finally =  {{}})
 """.format(
-            heights = ", ".join(str(h) for h in heights),
+            sizes = ", ".join(str(s) for s in sizes),
             labels = "\", \"".join(labels),
             plot_scale = plot_scale,
             plot_base_size= plot_base_size,
-            scale_x_continuous_args = ", ".join(scale_x_continuous_args),
             plot_width = plot_width,
             plot_height = plot_height,
             plot_units = plot_units,
