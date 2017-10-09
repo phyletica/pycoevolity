@@ -35,7 +35,7 @@ def main(argv = sys.argv):
             paths = args.log_paths,
             burnin_step_size = args.burnin_step_size)
 
-    cs.write_summary(out = sys.stdout)
+    cs.write_summary(out = sys.stdout, err = sys.stderr)
 
 
 if __name__ == "__main__":

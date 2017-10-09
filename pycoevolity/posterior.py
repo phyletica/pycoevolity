@@ -187,6 +187,8 @@ class ChainConvergenceSummary(object):
                 continue
             if h in self.posterior_samples[self.paths[0]].parameter_samples:
                 self.parameter_keys.append(h)
+        self.burnin_values = []
+        self.ess_values = {}
 
     def _vet_posterior_samples(self):
         for i in range(1, len(self.paths)):
@@ -195,12 +197,13 @@ class ChainConvergenceSummary(object):
                     "Headers of log files {0} and {1} do not match".format(
                             self.paths[0], self.paths[i]))
 
-    def write_summary(self, out = sys.stdout):
+    def write_summary(self, out = sys.stdout, err = sys.stderr):
         samples_remaining = [x - 1 for x in self.chain_lengths]
         burnin = 0
         out.write("parameter\tburnin\tpsrf\tess_concat\t{0}\n".format(
                 "\t".join("ess_" + str(i) for i in range(len(self.paths)))))
         finished = False
+        ess_means = {}
         while True:
             for i in range(len(samples_remaining)):
                 if ((samples_remaining[i] < self.burnin_step_size) or
@@ -212,6 +215,7 @@ class ChainConvergenceSummary(object):
             bi = burnin
             if bi < 1:
                 bi = 1
+            self.burnin_values.append(bi)
             for parameter in self.parameter_keys:
                 chains = []
                 samples = []
@@ -233,7 +237,31 @@ class ChainConvergenceSummary(object):
                         psrf = psrf,
                         ess_concat = ess_concat,
                         ess = "\t".join(str(e) for e in ess)))
+                if not parameter in self.ess_values:
+                    self.ess_values[parameter] = [ess_concat]
+                    ess_means[parameter] = ess_concat
+                else:
+                    self.ess_values[parameter].append(ess_concat)
+                    ess_means[parameter] += ess_concat
             burnin += self.burnin_step_size
+        min_ess = float('inf')
+        min_ess_key = ""
+        for k in ess_means:
+            ess_means[k] /= len(self.burnin_values)
+            if ess_means[k] < min_ess:
+                min_ess = ess_means[k]
+                min_ess_key = k
+        max_ess = float('-inf')
+        max_ess_index = -1
+        for i, bi in enumerate(self.burnin_values):
+            if self.ess_values[min_ess_key][i] > max_ess:
+                max_ess = self.ess_values[min_ess_key][i]
+                max_ess_index = i
+        err.write("Continuous parameter with lowest mean ESS: {0}\n".format(
+                min_ess_key))
+        err.write("Burnin value that maximized ESS of {0}: {1} samples\n".format(
+                min_ess_key,
+                self.burnin_values[max_ess_index]))
         
 
 class PosteriorSample(object):
