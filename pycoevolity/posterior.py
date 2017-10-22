@@ -225,7 +225,7 @@ class ChainConvergenceSummary(object):
                 ess_concat = stats.effective_sample_size(samples)
                 if ess_concat == 0.0:
                     continue
-                prsf = "-"
+                psrf = "-"
                 if self.equal_chain_lengths and (self.number_of_chains > 1):
                     psrf = stats.potential_scale_reduction_factor(chains)
                 ess = []
