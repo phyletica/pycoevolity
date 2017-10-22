@@ -406,6 +406,39 @@ class PosteriorSample(object):
             heights.extend(hts)
         return labels, heights
 
+    def write_height_summary(self, out = sys.stdout):
+        out.write("comparison\tmean\tmedian\tci_95_lower\tci_95_upper\thpdi_95_lower\thpdi_95_upper\n")
+        for i, ht_key in enumerate(self.height_keys):
+            tip_label = self.height_labels[i]
+            assert ht_key.endswith(tip_label)
+            assert tip_label == self.tip_labels[i][0]
+            labels = self.tip_labels[i]
+            label = " | ".join(labels)
+            summary = stats.get_summary(self.parameter_samples[ht_key])
+            out.write("{comparison}\t{mean}\t{median}\t{ci_95_lower}\t{ci_95_upper}\t{hpdi_95_lower}\t{hpdi_95_upper}\n".format(
+                    comparison = label,
+                    mean = summary["mean"],
+                    median = summary["median"],
+                    ci_95_lower = summary["qi_95"][0],
+                    ci_95_upper = summary["qi_95"][1],
+                    hpdi_95_lower = summary["hpdi_95"][0],
+                    hpdi_95_upper = summary["hpdi_95"][1]))
+
+    def write_size_summary(self, out = sys.stdout):
+        out.write("population\tmean\tmedian\tci_95_lower\tci_95_upper\thpdi_95_lower\thpdi_95_upper\n")
+        for tips in self.tip_labels:
+            for t in tips:
+                size_key = "pop_size_{0}".format(t)
+                summary  = stats.get_summary(self.parameter_samples[size_key])
+                out.write("{population}\t{mean}\t{median}\t{ci_95_lower}\t{ci_95_upper}\t{hpdi_95_lower}\t{hpdi_95_upper}\n".format(
+                        population = t,
+                        mean = summary["mean"],
+                        median = summary["median"],
+                        ci_95_lower = summary["qi_95"][0],
+                        ci_95_upper = summary["qi_95"][1],
+                        hpdi_95_lower = summary["hpdi_95"][0],
+                        hpdi_95_upper = summary["hpdi_95"][1]))
+
     def get_population_sizes_2d(self, label_map = {}):
         labels = []
         sizes = []

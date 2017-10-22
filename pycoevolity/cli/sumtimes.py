@@ -69,6 +69,9 @@ def main(argv = sys.argv):
             type = str,
             default = "Comparison",
             help = ('Label for the Y-axis. Default: \'Comparison\'.'))
+    parser.add_argument('--no-plot',
+            action = 'store_true',
+            help = ('Skip plotting; only report summary table.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -105,6 +108,12 @@ def main(argv = sys.argv):
     sys.stderr.write("Parsed {0} samples from {1} files.\n".format(
             posterior.number_of_samples,
             len(posterior.paths)))
+    sys.stderr.write("Summary of times:\n")
+    posterior.write_height_summary(out = sys.stdout)
+
+    if args.no_plot:
+        sys.exit(0)
+
     labels, heights = posterior.get_heights_2d(
             label_map = label_map,
             include_model_indices = args.include_map_model)
