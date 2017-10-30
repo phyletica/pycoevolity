@@ -456,3 +456,82 @@ class PosteriorSample(object):
             labels.extend([pretty_root_label] * len(root_sizes))
             sizes.extend(root_sizes)
         return labels, sizes
+
+
+class SumcoevolityNeventsTable(object):
+    def __init__(self, sumcoevolity_nevents_table_path):
+        self.path = sumcoevolity_nevents_table_path
+        self.number_of_elements = None
+        self.posterior_probs = None
+        self.posterior_probs_annotations = None
+        self.prior_probs = None
+        self.prior_probs_annotations = None
+        self.bayes_factors = None
+        self.bayes_factors_annotations = None
+        self.no_prior = False
+        self._parse_sumcoevolity_table()
+
+    def _parse_sumcoevolity_table(self):
+        keys = ["number_of_events",
+                "post_prob",
+                "cumulative_post_prob",
+                "prior_prob",
+                "bf"]
+        data = parsing.get_dict_from_spreadsheets([self.path],
+                sep = "\t",
+                offset = 0)
+        assert sorted(keys) == sorted(data.keys()), (
+                "Unexpected header in sumcoevolity nevents file {0}".format(
+                        self.path))
+        self.number_of_elements = max(int(x) for x in data["number_of_events"])
+        for k in data:
+            assert len(data[k]) == self.number_of_elements, (
+                    "Unexpected number of rows in column {0} "
+                    "of nevents file {1}".format(
+                            k, self.path))
+        post_probs = [-1] * self.number_of_elements
+        post_probs_annotations = [-1] * self.number_of_elements
+        pr_probs = [-1] * self.number_of_elements
+        pr_probs_annotations = [-1] * self.number_of_elements
+        bfs = [-1] * self.number_of_elements
+        bfs_annotations = [-1] * self.number_of_elements
+        for row_idx in range(self.number_of_elements):
+            nevents_idx = int(data["number_of_events"][row_idx]) - 1
+            post_p, post_p_annotation = self._parse_entry(data["post_prob"][row_idx])
+            if post_p_annotation == "NA":
+                raise Exception("Unexpected 'NA' for post_prob in {0}".format(
+                        self.path))
+            prior_p, prior_p_annotation = self._parse_entry(data["prior_prob"][row_idx])
+            if prior_p_annotation == "NA":
+                self.no_prior = True
+            bf, bf_a = self._parse_entry(data["bf"][row_idx])
+            post_probs[nevents_idx] = post_p
+            post_probs_annotations[nevents_idx] = post_p_annotation
+            pr_probs[nevents_idx] = prior_p
+            pr_probs_annotations[nevents_idx] = prior_p_annotation
+            bfs[nevents_idx] = bf
+            bfs_annotations[nevents_idx] = bf_a
+        assert -1 not in post_probs
+        assert -1 not in pr_probs
+        assert -1 not in bfs
+        self.posterior_probs = tuple(post_probs)
+        self.posterior_probs_annotations = tuple(post_probs_annotations)
+        self.prior_probs = tuple(pr_probs)
+        self.prior_probs_annotations = tuple(pr_probs_annotations)
+        self.bayes_factors = tuple(bfs)
+        self.bayes_factors_annotations = tuple(bfs_annotations)
+
+    def _parse_entry(self, x):
+        annotation = None
+        value = None
+        if x == "NA":
+            return None, "NA"
+        if x.startswith(">"):
+            annotation = ">"
+            value = float(x.strip(">"))
+        elif x.startswith("<"):
+            annotation = "<"
+            value = float(x.strip("<"))
+        else:
+            value = float(x)
+        return value, annotation

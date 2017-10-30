@@ -23,6 +23,7 @@ setup(
                 'loci2nex = pycoevolity.cli.loci2alignment:main_nexus',
                 'loci2phy = pycoevolity.cli.loci2alignment:main_phylip',
                 'pyco-sumtimes = pycoevolity.cli.sumtimes:main',
+                'pyco-sumevents = pycoevolity.cli.sumevents:main',
                 'pyco-sumsizes = pycoevolity.cli.sumsizes:main',
                 'pyco-sumchains = pycoevolity.cli.sumchains:main',
             ],
