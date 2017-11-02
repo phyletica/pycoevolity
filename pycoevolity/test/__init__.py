@@ -54,13 +54,13 @@ class TestLevel:
     
     @classmethod
     def get_current_level(cls):
-        l = os.environ.get("pycoevolITY_TESTING_LEVEL")
+        l = os.environ.get("PYCOEVOLITY_TESTING_LEVEL")
         if l is None:
             return cls.FAST
         try:
             return cls.name_to_int(l)
         except:
-            _LOG.warn('the value {0} for pycoevolITY_TESTING_LEVEL is not recognized.'
+            _LOG.warn('the value {0} for PYCOEVOLITY_TESTING_LEVEL is not recognized.'
                       'Using NORMAL level'.format(l))
         return cls.FAST
     
