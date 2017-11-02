@@ -25,7 +25,6 @@ __license_short__ = "GNU General Public License Version 3"
 
 PACKAGE_DIR = os.path.abspath(__file__)
 BASE_DIR = os.path.dirname(PACKAGE_DIR)
-SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
 
 # NOTE: Imports to populate the namespace can break the scripts' control of the
 # logging level, because imported modules will initiate their loggers before
