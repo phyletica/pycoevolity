@@ -92,7 +92,7 @@ library(ggplot2)
 library(ggridges)
 
 plot_prior <- {plot_prior}
-nevents <- 1:{number_of_comparisons}
+nevents <- c(\"{nevents}\")
 posterior_probs <- c({posterior_probs})
 prior_probs <- c({prior_probs})
 bf_labels <- c(\"{bayes_factor_strings}\")
@@ -151,11 +151,12 @@ r <- tryCatch(
     finally =  {{}})
 """.format(
             plot_prior = plot_prior,
-            number_of_comparisons = nevents.number_of_elements,
+            nevents = "\", \"".join(str(i + 1) for i in range(nevents.number_of_elements)),
             posterior_probs = ", ".join(str(p) for p in nevents.posterior_probs),
             prior_probs = ", ".join(str(p) for p in prior_probs),
             bayes_factor_strings = "\", \"".join(bfs),
             max_prob = max_prob,
+            number_of_comparisons = nevents.number_of_elements,
             legend_arg = legend_arg,
             plot_base_size= plot_base_size,
             plot_width = plot_width,
