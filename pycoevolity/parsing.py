@@ -283,12 +283,14 @@ class PyradLoci(object):
 
     def __init__(self, path,
             remove_triallelic_sites = False,
+            convert_to_binary = False,
             sequence_ids_to_remove = []):
         self._labels = set()
         self._numbers_of_sites = []
         self._tempfs = tempfs.TempFileSystem()
         self._tmp_locus_paths = []
         self._remove_triallelic_sites = remove_triallelic_sites
+        self._convert_to_binary = convert_to_binary
         self._number_of_triallelic_sites = 0
         self._path = path
         self._sequences_removed = {}
@@ -362,6 +364,49 @@ class PyradLoci(object):
         #                 new_symbol = self.states_to_symbol[tuple(sorted(set(states)))]
         #                 sequences[seq_idx][1][site_idx] = new_symbol
         ######################################################################
+
+        if self.convert_to_binary:
+            for site_idx in range(nsites):
+                seq_idx = 0
+                state0 = None
+                state1 = None
+                while (seq_idx < len(sequences)) and (state0 is None):
+                    states = self.symbol_to_states[sequences[seq_idx][1][site_idx]]
+                    if not states:
+                        seq_idx += 1
+                        continue
+                    if len(states) > 0:
+                        state0 = states[0]
+                    if len(states) > 1:
+                        state1 = states[1]
+                    seq_idx += 1
+                while (seq_idx < len(sequences)) and (state1 is None):
+                    for s in self.symbol_to_states[sequences[seq_idx][1][site_idx]]:
+                        if s != state0:
+                            state1 = s
+                            break
+                    seq_idx += 1
+                if state0 is None:
+                    continue
+                possible_states = (state0, state1)
+                if state1 is None:
+                    possible_states = (state0,)
+                for seq_idx in range(len(sequences)):
+                    states = list(self.symbol_to_states[sequences[seq_idx][1][site_idx]])
+                    if not states:
+                        continue
+                    for state_idx in range(len(states)):
+                        if not states[state_idx] in possible_states:
+                            states[state_idx] = state1
+                    new_symbol = 0
+                    if (len(states) < 2):
+                        if states[0] == state1:
+                            new_symbol = 2
+                    else:
+                        for s in states:
+                            if s != state0:
+                                new_symbol += 1
+                    sequences[seq_idx][1][site_idx] = str(new_symbol)
 
         recorded_length = len(sequences[0][1])
         self._numbers_of_sites.append(recorded_length)
@@ -442,6 +487,10 @@ class PyradLoci(object):
 
     labels = property(_get_labels)
 
+    def _get_convert_to_binary(self):
+        return self._convert_to_binary
+    convert_to_binary = property(_get_convert_to_binary)
+
     def _get_number_of_triallelic_sites_found(self):
         return self._number_of_triallelic_sites
 
@@ -492,11 +541,18 @@ class PyradLoci(object):
                  nchar = self.number_of_sites)
 
     def get_nexus_characters_block_preamble(self):
-        s = ("BEGIN CHARACTERS;\n"
-             "    DIMENSIONS NCHAR={nchar};\n"
-             "    FORMAT DATATYPE=DNA MISSING=? GAP=- INTERLEAVE=YES;\n"
-             "    MATRIX".format(
-                 nchar = self.number_of_sites))
+        if self.convert_to_binary:
+            s = ("BEGIN CHARACTERS;\n"
+                 "    DIMENSIONS NCHAR={nchar};\n"
+                 "    FORMAT DATATYPE=STANDARD SYMBOLS=\"012\" MISSING=? GAP=- INTERLEAVE=YES;\n"
+                 "    MATRIX".format(
+                     nchar = self.number_of_sites))
+        else:
+            s = ("BEGIN CHARACTERS;\n"
+                 "    DIMENSIONS NCHAR={nchar};\n"
+                 "    FORMAT DATATYPE=DNA MISSING=? GAP=- INTERLEAVE=YES;\n"
+                 "    MATRIX".format(
+                     nchar = self.number_of_sites))
         return s
 
     def _parse_tmp_locus_file(self, path):

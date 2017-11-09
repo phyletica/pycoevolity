@@ -30,6 +30,13 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             help = ('By default, sites with more than two alleles are left in '
                     'the alignment, as is. When this option is specified, '
                     'these sites are removed.'))
+    parser.add_argument('-b', '--convert-to-binary',
+            action = 'store_true',
+            help = ('By default, DNA characters are maintained in the output '
+                    'alignment. When this option is specified, the characters '
+                    'are converted to binary states. Ecoevolity will accept '
+                    'DNA characters and convert to binary internally; this '
+                    'option is primarily for testing.'))
     parser.add_argument('-p', '--prefix',
             type = str,
             metavar = "SEQUENCE-LABEL-PREFIX",
@@ -50,6 +57,7 @@ def main(argv = sys.argv, write_method = "write_nexus"):
 
     data = pycoevolity.parsing.PyradLoci(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites,
+            convert_to_binary = args.convert_to_binary,
             sequence_ids_to_remove = args.sample_to_delete)
     if args.prefix:
         data.label_prefix = args.prefix
