@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from pycoevolity import __version__
 
@@ -9,7 +9,7 @@ setup(
         author = "Jamie Oaks",
         author_email = "joaks1@gmail.com",
         license = "GPL",
-        packages = ["pycoevolity"],
+        packages = find_packages(),
         include_package_data = True,
         zip_safe = False,
         test_suite = "pycoevolity.test.get_unittest_suite",

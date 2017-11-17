@@ -10,13 +10,11 @@ Pycoevolity
 
 A package for summarizing the output of Ecoevolity.
 
-This is a work in progess...
-
 Acknowledgments
 ================
 
 This software benefited from funding provided to Jamie Oaks from the National
-Science Foundation (DBI 1308885).
+Science Foundation (DBI 1308885 and DEB 1656004).
 
 License
 =======
