@@ -2,6 +2,8 @@ Table of Contents
 =================
 
  -  [Pycoevolity](#pycoevolity)
+ -  [Installation](#installation)
+ -  [Usage](#usage)
  -  [Acknowledgments](#acknowledgments)
  -  [License](#license)
 
@@ -9,6 +11,16 @@ Pycoevolity
 ============
 
 A package for summarizing the output of Ecoevolity.
+
+Installation
+============
+
+    pip install git+git://github.com/phyletica/pycoevolity.git
+
+Usage
+=====
+
+    loci2nex --help
 
 Acknowledgments
 ================
