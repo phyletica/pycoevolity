@@ -15,7 +15,7 @@ def main(argv = sys.argv):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('log_paths',
-            metavar = 'IPYRAD-LOCI-FILE-PATH',
+            metavar = 'ECOEVOLITY-STATE-LOG-PATH',
             nargs = '+',
             type = pycoevolity.argparse_utils.arg_is_file,
             help = ('Paths to ecoevolity state log files.'))

@@ -34,6 +34,16 @@ def main(argv = sys.argv):
             action = 'store_true',
             help = ('Overwrite any existing output files. By default, an error '
                     'is thrown if an output path exists.'))
+    parser.add_argument('-x', '--x-label',
+            action = 'store',
+            type = str,
+            default = "Number of events",
+            help = ('Label for the X-axis. Default: \'Number of events\'.'))
+    parser.add_argument('-y', '--y-label',
+            action = 'store',
+            type = str,
+            default = "Probability",
+            help = ('Label for the Y-axis. Default: \'Probability\'.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -114,8 +124,8 @@ if (plot_prior) {{
         theme({legend_arg}) +
         scale_colour_manual(values = bar_colors) +
         scale_fill_manual(values = bar_colors) +
-        labs(x = \"Number of events\") +
-        labs(y = \"Probability\") +
+        labs(x = \"{x_label}\") +
+        labs(y = \"{y_label}\") +
         annotate("text", x = nevents, y = max_prob + 0.05, label = bf_labels)
 }} else {{
     ggplot(data, aes(x = nevents, y = probability, fill = label)) +
@@ -124,8 +134,8 @@ if (plot_prior) {{
         theme({legend_arg}) +
         scale_colour_manual(values = bar_colors) +
         scale_fill_manual(values = bar_colors) +
-        labs(x = \"Number of events\") +
-        labs(y = \"Probability\")
+        labs(x = \"{x_label}\") +
+        labs(y = \"{y_label}\")
 }}
 
 ggsave(\"{pdf_path}\", width = {plot_width}, height = {plot_height}, units = \"{plot_units}\")
@@ -158,6 +168,8 @@ r <- tryCatch(
             max_prob = max_prob,
             number_of_comparisons = nevents.number_of_elements,
             legend_arg = legend_arg,
+            x_label = args.x_label,
+            y_label = args.y_label,
             plot_base_size= plot_base_size,
             plot_width = plot_width,
             plot_height = plot_height,
