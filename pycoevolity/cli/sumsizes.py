@@ -54,6 +54,13 @@ def main(argv = sys.argv):
             action = 'store_true',
             help = ('Include event indices associated with the maximum a '
                     'posteriori (MAP) model in the comparison labels.'))
+    parser.add_argument('--x-limits',
+            action = 'store',
+            nargs = 2,
+            type = float,
+            metavar = ("LOWER-LIMIT", "UPPER-LIMIT"),
+            help = ('Lower and upper limits for the X-axis. By default, '
+                    'ggplot2 determines the limits.'))
     parser.add_argument('-x', '--x-label',
             action = 'store',
             type = str,
@@ -117,6 +124,10 @@ def main(argv = sys.argv):
     plot_units = "in"
     plot_scale = 8
     plot_base_size = 14
+    scale_x_continuous_args = ["expand = c(0.05, 0)"]
+    if args.x_limits:
+        scale_x_continuous_args.append("limits = c({0}, {1})".format(
+                *sorted(args.x_limits)))
 
     rscript = """#! /usr/bin/env Rscript
 
@@ -133,7 +144,7 @@ ggplot(data, aes(x = size, y = comparison, height = ..density..)) +
     geom_density_ridges(stat = \"density\", scale = {plot_scale}, rel_min_height = 0.001) +
     theme_minimal(base_size = {plot_base_size}) +
     theme(axis.text.y = element_text(vjust = 0)) +
-    scale_x_continuous(expand = c(0.05, 0)) +
+    scale_x_continuous({scale_x_continuous_args}) +
     scale_y_discrete(expand = c(0.01, 0)) +
     labs(x = \"{x_label}\") +
     labs(y = \"{y_label}\")
@@ -164,6 +175,7 @@ r <- tryCatch(
             labels = "\", \"".join(labels),
             plot_scale = plot_scale,
             plot_base_size= plot_base_size,
+            scale_x_continuous_args = ", ".join(scale_x_continuous_args),
             plot_width = plot_width,
             plot_height = plot_height,
             plot_units = plot_units,
