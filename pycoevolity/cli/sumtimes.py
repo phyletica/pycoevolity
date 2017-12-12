@@ -50,15 +50,23 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
+    parser.add_argument('--include-map-model',
+            action = 'store_true',
+            help = ('Include event indices associated with the maximum a '
+                    'posteriori (MAP) model in the comparison labels.'))
     parser.add_argument('-z', '--include-zero',
             action = 'store_true',
             help = ('By default, ggplot2 auto-magically determines the limits '
                     'of the time axis, which often excludes zero (present). '
                     'This option ensures that the time axis starts from zero.'))
-    parser.add_argument('--include-map-model',
-            action = 'store_true',
-            help = ('Include event indices associated with the maximum a '
-                    'posteriori (MAP) model in the comparison labels.'))
+    parser.add_argument('--x-limits',
+            action = 'store',
+            nargs = 2,
+            type = float,
+            metavar = ("LOWER-LIMIT", "UPPER-LIMIT"),
+            help = ('Lower and upper limits for the X-axis. This overrides '
+                    'the \'include-zero\' argument. By default, ggplot2 '
+                    'determines the limits.'))
     parser.add_argument('-x', '--x-label',
             action = 'store',
             type = str,
@@ -124,7 +132,10 @@ def main(argv = sys.argv):
     plot_scale = 8
     plot_base_size = 14
     scale_x_continuous_args = ["expand = c(0.05, 0)"]
-    if args.include_zero:
+    if args.x_limits:
+        scale_x_continuous_args.append("limits = c({0}, {1})".format(
+                *sorted(args.x_limits)))
+    elif args.include_zero:
         scale_x_continuous_args.append("limits = c(0, NA)")
 
     rscript = """#! /usr/bin/env Rscript
