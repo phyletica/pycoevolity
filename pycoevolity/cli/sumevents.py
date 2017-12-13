@@ -81,7 +81,7 @@ def main(argv = sys.argv):
         max_prob = max(nevents.posterior_probs + nevents.prior_probs)
         plot_prior = "TRUE"
         prior_probs = nevents.prior_probs 
-        bfs = ["{:.2e}".format(x) for x in nevents.bayes_factors]
+        bfs = ["{:.3g}".format(x) for x in nevents.bayes_factors]
         for i, a in enumerate(nevents.bayes_factors_annotations):
             if a:
                 bfs[i] = a + bfs[i]
@@ -107,6 +107,17 @@ posterior_probs <- c({posterior_probs})
 prior_probs <- c({prior_probs})
 bf_labels <- c(\"{bayes_factor_strings}\")
 max_prob <- {max_prob}
+bf_position_bottom <- max_prob + (max_prob * 0.04)
+bf_position_top <- bf_position_bottom + 0.04
+bf_positions <- c()
+for (i in 1:length(nevents)) {{
+    if (i %% 2 == 0) {{
+        bf_positions = c(bf_positions, bf_position_bottom)
+    }} else {{
+        bf_positions = c(bf_positions, bf_position_top)
+    }}
+}}
+
 posterior_df <- data.frame(nevents = nevents, probability = posterior_probs, label = rep("posterior", {number_of_comparisons}))
 prior_df <- data.frame(nevents = nevents, probability = prior_probs, label = rep("prior", {number_of_comparisons}))
 if (plot_prior) {{
@@ -126,7 +137,7 @@ if (plot_prior) {{
         scale_fill_manual(values = bar_colors) +
         labs(x = \"{x_label}\") +
         labs(y = \"{y_label}\") +
-        annotate("text", x = nevents, y = max_prob + 0.05, label = bf_labels)
+        annotate("text", x = nevents, y = bf_positions, label = bf_labels)
 }} else {{
     ggplot(data, aes(x = nevents, y = probability, fill = label)) +
         geom_col(position = "dodge") +
