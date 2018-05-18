@@ -22,6 +22,7 @@ setup(
             'console_scripts': [
                 'loci2nex = pycoevolity.cli.loci2alignment:main_nexus',
                 'loci2phy = pycoevolity.cli.loci2alignment:main_phylip',
+                'loci2dppmsbayes = pycoevolity.cli.loci2dppmsbayes:main',
                 'pyco-sumtimes = pycoevolity.cli.sumtimes:main',
                 'pyco-sumevents = pycoevolity.cli.sumevents:main',
                 'pyco-sumsizes = pycoevolity.cli.sumsizes:main',
