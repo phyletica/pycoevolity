@@ -45,10 +45,11 @@ def main(argv = sys.argv):
     pycoevolity.write_splash(sys.stderr)
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('loci_path',
+    parser.add_argument('loci_paths',
             metavar = 'IPYRAD-LOCI-FILE-PATH',
+            nargs = '+',
             type = pycoevolity.argparse_utils.arg_is_file,
-            help = ('Path to the ipyrad loci file.'))
+            help = ('Paths to the ipyrad loci file.'))
     parser.add_argument('--output-dir',
             type = pycoevolity.argparse_utils.arg_is_dir,
             help = ('Path to a directory where you want all the output to go. '
@@ -99,79 +100,107 @@ def main(argv = sys.argv):
             help = ('By default, sites with more than two alleles are left in '
                     'the alignment, as is. When this option is specified, '
                     'these sites are removed.'))
-    parser.add_argument('-p', '--prefix',
-            type = str,
-            metavar = "SEQUENCE-LABEL-PREFIX",
-            help = ('A prefix to append to every sequence label. This can be '
-                    'useful for ensuring that all population labels are '
-                    'unique across pairs.'))
-    parser.add_argument('-s', '--suffix',
-            type = str,
-            metavar = "SEQUENCE-LABEL-SUFFIX",
-            help = ('A suffix to append to every sequence label. This can be '
-                    'useful for ensuring that all population labels are '
-                    'unique across pairs.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
     else:
         args = parser.parse_args(argv)
 
-    if not args.output_dir:
-        args.output_dir = os.path.join(os.getcwd(), "loci2dppmsbayes-output")
-        make_directory(args.output_dir)
-
     rng = random.Random()
     if not args.seed:
         args.seed = random.randint(1, 999999999)
     rng.seed(args.seed)
 
-    data = pycoevolity.parsing.PyradLoci(args.loci_path,
-            remove_triallelic_sites = args.remove_triallelic_sites,
-            sequence_ids_to_remove = args.sample_to_delete)
-    if args.prefix:
-        data.label_prefix = args.prefix
-    if args.suffix:
-        data.label_suffix = args.suffix
-    seqs_removed = data.removed_sequence_counts
-    sys.stderr.write("Command: {0}\n".format(" ".join(argv)))
-    sys.stderr.write("Stats on total data parsed:\n".format(" ".join(argv)))
-    sys.stderr.write("\tNumber of taxa:  {0}\n".format(data.number_of_taxa))
-    sys.stderr.write("\tNumber of loci:  {0}\n".format(data.number_of_loci))
-    sys.stderr.write("\tNumber of sites: {0}\n".format(data.number_of_sites))
-    sys.stderr.write("\tNumber of triallelic sites found:   {0}\n".format(
-            data.number_of_triallelic_sites_found))
-    sys.stderr.write("\tNumber of triallelic sites removed: {0}\n".format(
-            data.number_of_triallelic_sites_removed))
-    if seqs_removed:
-        sys.stderr.write("\tNumber of sequences removed:\n")
-        for n, c in seqs_removed.items():
-            sys.stderr.write("\t\t{0}: {1}\n".format(n, c))
+    sys.stderr.write("Command: {0}\n\n".format(" ".join(argv)))
 
+    path_suffix = ""
     if args.number_of_loci:
-        data.sample_loci(
-                rng = rng,
-                number_of_samples = args.number_of_loci,
-                with_replacement = args.with_replacement)
+        path_suffix = "-{0}-{1}".format(args.number_of_loci, args.seed)
 
-    config_path = os.path.join(args.output_dir, "dpp-msbayes.cfg")
+    if not args.output_dir:
+        args.output_dir = os.path.join(
+                os.getcwd(),
+                "loci2dppmsbayes-output{0}".format(path_suffix)
+                )
+        make_directory(args.output_dir)
+
+    config_path = os.path.join(
+            args.output_dir,
+            "dpp-msbayes{0}.cfg".format(path_suffix)
+            )
     if os.path.exists(config_path):
         raise Exception("The path {0!r} already exists. "
-                        "Please designate a different directory.".format(
-                                config_path))
+                        "Please designate a different "
+                        "directory.".format(config_path))
+
+    fasta_dir = os.path.join(args.output_dir, "fasta-alignments")
+    nexus_dir = os.path.join(args.output_dir, "nexus-alignments")
+    make_directory(fasta_dir)
+    make_directory(nexus_dir)
+    relative_fasta_dir = os.path.relpath(fasta_dir, start = args.output_dir)
+
+    pair_number_buffer = len(str(len(args.loci_paths)))
 
     with open(config_path, 'w') as out_stream:
         out_stream.write(get_dpp_msbayes_preamble())
         out_stream.write("\nBEGIN SAMPLE_TBL\n")
-        data.write_fasta_files(
-                directory = args.output_dir,
-                write_sample_table = True,
-                population_name_delimiter = args.population_name_delimiter,
-                population_name_is_prefix = args.population_name_is_prefix,
-                stream = out_stream)
+
+        for i, loci_path in enumerate(args.loci_paths):
+            sys.stderr.write("Parsing {0!r}...\n".format(loci_path))
+            data = pycoevolity.parsing.PyradLoci(loci_path,
+                    remove_triallelic_sites = args.remove_triallelic_sites,
+                    sequence_ids_to_remove = args.sample_to_delete)
+            pair_label = "{pair_num:0{buffer_size}d}".format(
+                    pair_num = i,
+                    buffer_size = pair_number_buffer)
+            if args.population_name_is_prefix:
+                data.label_prefix = pair_label
+            else:
+                data.label_suffix = pair_label
+            seqs_removed = data.removed_sequence_counts
+            sys.stderr.write("\tNumber of taxa:  {0}\n".format(data.number_of_taxa))
+            sys.stderr.write("\tNumber of loci:  {0}\n".format(data.number_of_loci))
+            sys.stderr.write("\tNumber of sites: {0}\n".format(data.number_of_sites))
+            sys.stderr.write("\tNumber of triallelic sites found:   {0}\n".format(
+                    data.number_of_triallelic_sites_found))
+            sys.stderr.write("\tNumber of triallelic sites removed: {0}\n".format(
+                    data.number_of_triallelic_sites_removed))
+            if seqs_removed:
+                sys.stderr.write("\tNumber of sequences removed:\n")
+                for n, c in seqs_removed.items():
+                    sys.stderr.write("\t\t{0}: {1}\n".format(n, c))
+
+            if args.number_of_loci:
+                data.sample_loci(
+                        rng = rng,
+                        number_of_samples = args.number_of_loci,
+                        with_replacement = args.with_replacement)
+
+            data.write_fasta_files(
+                    directory = fasta_dir,
+                    pair_label = pair_label,
+                    population_name_delimiter = args.population_name_delimiter,
+                    population_name_is_prefix = args.population_name_is_prefix,
+                    write_sample_table = True,
+                    sample_table_stream = out_stream,
+                    sample_table_directory = os.path.dirname(config_path))
+
+            nexus_prefix = os.path.splitext(os.path.basename(loci_path))[0]
+            if loci_path.endswith("gz"):
+                nexus_prefix = os.path.splitext(os.path.basename(nexus_prefix))[0]
+            nexus_path = os.path.join(
+                    nexus_dir,
+                    "{0}{1}.nex".format(
+                            nexus_prefix,
+                            path_suffix)
+                    )
+            if os.path.exists(nexus_path):
+                raise Exception("The path {0!r} already exists. "
+                                "Please designate a different "
+                                "directory.".format(nexus_path))
+            with open(nexus_path, 'w') as nexus_stream:
+                data.write_nexus(stream = nexus_stream)
         out_stream.write("\nEND SAMPLE_TBL\n")
-            
-    data.write_nexus(stream = sys.stdout)
 
 if __name__ == "__main__":
     main()

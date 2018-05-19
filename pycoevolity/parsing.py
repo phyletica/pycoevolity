@@ -655,19 +655,20 @@ class PyradLoci(object):
                             sequence = s))
         assert nsites == self.number_of_sites
 
-    def write_fasta_files(self, directory,
-            write_sample_table = False,
+    def write_fasta_files(self,
+            directory,
             pair_label = "0",
             population_name_delimiter = "-",
             population_name_is_prefix = True,
-            stream = None
-            ):
+            write_sample_table = False,
+            sample_table_stream = None,
+            sample_table_directory = None):
         if not self._population_to_labels:
             self.group_labels_by_population(
                     population_name_delimiter = population_name_delimiter,
                     population_name_is_prefix = population_name_is_prefix)
-        if stream is None:
-            stream = sys.stdout
+        if sample_table_stream is None:
+            sample_table_stream = sys.stdout
         if not os.path.isdir(directory):
             raise Exception("{0!r} is not a valid directory".format(directory))
         locus_number_buffer = len(str(self.number_of_loci))
@@ -685,11 +686,13 @@ class PyradLoci(object):
                     locus_num = i,
                     buffer_size = locus_number_buffer)
             path = os.path.join(directory,
-                    "locus-{0}.fasta".format(locus_number))
+                    "pair-{0}-locus-{1}.fasta".format(pair_label, locus_number))
+            path_for_table = path
+            if sample_table_directory:
+                path_for_table = os.path.relpath(path, start = sample_table_directory)
             if os.path.exists(path):
                 raise Exception("The path {0!r} already exists. "
-                        "Please designate a different directory.".format(
-                                path))
+                        "Please designate a different directory.".format(path))
             seqs = self._parse_tmp_locus_file(tmp_path)
             locus_length = None
             pop_sample_sizes = [0 for p in self._populations]
@@ -710,12 +713,12 @@ class PyradLoci(object):
                     raise Exception("Unexpected sequence labels in temp locus file")
             if write_sample_table:
                 sample_size_str = "\t".join(str(n) for n in pop_sample_sizes)
-                stream.write("pair-{pair_label}\tlocus-{locus_number}\t1.0\t1.0\t{sample_sizes}\t1.0\t{locus_length}\t0.25\t0.25\t0.25\t{path}\n".format(
+                sample_table_stream.write("pair-{pair_label}\tlocus-{locus_number}\t1.0\t1.0\t{sample_sizes}\t1.0\t{locus_length}\t0.25\t0.25\t0.25\t{path}\n".format(
                         pair_label = pair_label,
                         locus_number = locus_number,
                         sample_sizes = sample_size_str,
                         locus_length = locus_length,
-                        path = path))
+                        path = path_for_table))
 
     def write_nexus(self, stream = None):
         if stream is None:
