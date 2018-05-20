@@ -14,7 +14,7 @@ import pycoevolity
 
 def get_dpp_msbayes_preamble():
     return """concentrationShape = 10000.0
-concentrationScale = 0.000182147
+concentrationScale = 0.0001414216
 thetaShape = 5.0
 thetaScale = 0.0004
 ancestralThetaShape = 0
