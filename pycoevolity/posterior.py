@@ -259,9 +259,10 @@ class ChainConvergenceSummary(object):
                 max_ess_index = i
         err.write("Continuous parameter with lowest mean ESS: {0}\n".format(
                 min_ess_key))
-        err.write("Burnin value that maximized ESS of {0}: {1} samples\n".format(
+        err.write("Burnin value that maximized ESS of {0}: {1} samples (ESS = {2:.2f})\n".format(
                 min_ess_key,
-                self.burnin_values[max_ess_index]))
+                self.burnin_values[max_ess_index],
+                max_ess))
         
 
 class PosteriorSample(object):
