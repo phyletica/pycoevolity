@@ -286,6 +286,8 @@ class PyradLoci(object):
             convert_to_binary = False,
             sequence_ids_to_remove = []):
         self._labels = set()
+        self._population_to_labels = None
+        self._populations = None
         self._numbers_of_sites = []
         self._tempfs = tempfs.TempFileSystem()
         self._tmp_locus_paths = []
@@ -296,6 +298,7 @@ class PyradLoci(object):
         self._sequences_removed = {}
         self._label_suffix = None
         self._label_prefix = None
+        self._sample_indices = None
         if sequence_ids_to_remove:
             self._sequences_removed = dict(zip(
                     sequence_ids_to_remove,
@@ -305,6 +308,44 @@ class PyradLoci(object):
 
     def __del__(self):
         self._tempfs.purge()
+
+    def sample_loci(self,
+            rng,
+            number_of_samples,
+            with_replacement = True):
+        if not with_replacement:
+            # random library will raise ValueError if sample is larger than
+            # population
+            self._sample_indices = sorted(rng.sample(
+                    range(self.number_of_loci),
+                    number_of_samples))
+            return
+
+        indices = []
+        max_index = self.number_of_loci - 1
+        for i in range(number_of_samples):
+            indices.append(
+                    rng.randint(0, max_index))
+        self._sample_indices = sorted(indices)
+
+    def clear_loci_samples(self):
+        self._sample_indices = None
+
+    def group_labels_by_population(self,
+            population_name_delimiter = "-",
+            population_name_is_prefix = True):
+        self._population_to_labels = {}
+        for label in self._labels:
+            label_parts = label.split(population_name_delimiter)
+            if population_name_is_prefix:
+                pop = label_parts[0]
+            else:
+                pop = label_parts[-1]
+            if pop in self._population_to_labels:
+                self._population_to_labels[pop].add(label)
+            else:
+                self._population_to_labels[pop] = set([label])
+        self._populations = sorted(self._population_to_labels.keys())
 
     def _process_locus(self, sequences):
         nsites = len(sequences[0][1])
@@ -468,12 +509,18 @@ class PyradLoci(object):
     path = property(_get_path)
 
     def _get_total_number_of_sites(self):
-        return sum(self._numbers_of_sites)
+        if not self._sample_indices:
+            return sum(self._numbers_of_sites)
+        else:
+            return sum(ns for i, ns in enumerate(self._numbers_of_sites) if i in self._sample_indices)
 
     number_of_sites = property(_get_total_number_of_sites)
 
     def _get_number_of_loci(self):
-        return len(self._numbers_of_sites)
+        if not self._sample_indices:
+            return len(self._numbers_of_sites)
+        else:
+            return len(self._sample_indices)
 
     number_of_loci = property(_get_number_of_loci)
 
@@ -587,7 +634,10 @@ class PyradLoci(object):
         nsites = 0
         label_buffer = self.get_label_buffer_size()
         labels = self._get_labels()
-        for i, tmp_path in enumerate(self._tmp_locus_paths):
+        paths = self._tmp_locus_paths
+        if self._sample_indices:
+            paths = [p for i, p in enumerate(self._tmp_locus_paths) if i in self._sample_indices]
+        for i, tmp_path in enumerate(paths):
             if i > 0:
                 stream.write("\n")
             seqs = self._parse_tmp_locus_file(tmp_path)
@@ -604,6 +654,71 @@ class PyradLoci(object):
                             fill = label_buffer,
                             sequence = s))
         assert nsites == self.number_of_sites
+
+    def write_fasta_files(self,
+            directory,
+            pair_label = "0",
+            population_name_delimiter = "-",
+            population_name_is_prefix = True,
+            write_sample_table = False,
+            sample_table_stream = None,
+            sample_table_directory = None):
+        if not self._population_to_labels:
+            self.group_labels_by_population(
+                    population_name_delimiter = population_name_delimiter,
+                    population_name_is_prefix = population_name_is_prefix)
+        if sample_table_stream is None:
+            sample_table_stream = sys.stdout
+        if not os.path.isdir(directory):
+            raise Exception("{0!r} is not a valid directory".format(directory))
+        locus_number_buffer = len(str(self.number_of_loci))
+        prefix = ""
+        if self._label_prefix:
+            prefix = self.label_prefix
+        suffix = ""
+        if self._label_suffix:
+            suffix = self.label_suffix
+        paths = self._tmp_locus_paths
+        if self._sample_indices:
+            paths = [p for i, p in enumerate(self._tmp_locus_paths) if i in self._sample_indices]
+        for i, tmp_path in enumerate(paths):
+            locus_number = "{locus_num:0{buffer_size}d}".format(
+                    locus_num = i,
+                    buffer_size = locus_number_buffer)
+            path = os.path.join(directory,
+                    "pair-{0}-locus-{1}.fasta".format(pair_label, locus_number))
+            path_for_table = path
+            if sample_table_directory:
+                path_for_table = os.path.relpath(path, start = sample_table_directory)
+            if os.path.exists(path):
+                raise Exception("The path {0!r} already exists. "
+                        "Please designate a different directory.".format(path))
+            seqs = self._parse_tmp_locus_file(tmp_path)
+            locus_length = None
+            pop_sample_sizes = [0 for p in self._populations]
+            with open(path, "w") as out:
+                for pop_index, pop in enumerate(self._populations):
+                    for l in self._population_to_labels[pop]:
+                        if l in seqs:
+                            s = seqs.pop(l)
+                            if locus_length is None:
+                                locus_length = len(s)
+                            else:
+                                assert locus_length == len(s)
+                            out.write(">{label}\n{sequence}\n".format(
+                                    label = prefix + l + suffix,
+                                    sequence = s))
+                            pop_sample_sizes[pop_index] += 1
+                if len(seqs) > 0:
+                    raise Exception("Unexpected sequence labels in temp locus file")
+            if write_sample_table:
+                sample_size_str = "\t".join(str(n) for n in pop_sample_sizes)
+                sample_table_stream.write("pair-{pair_label}\tlocus-{locus_number}\t1.0\t1.0\t{sample_sizes}\t1.0\t{locus_length}\t0.25\t0.25\t0.25\t{path}\n".format(
+                        pair_label = pair_label,
+                        locus_number = locus_number,
+                        sample_sizes = sample_size_str,
+                        locus_length = locus_length,
+                        path = path_for_table))
 
     def write_nexus(self, stream = None):
         if stream is None:
