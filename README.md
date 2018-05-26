@@ -15,9 +15,29 @@ A package for summarizing the output of Ecoevolity.
 Installation
 ============
 
+Prerequisites
+-------------
 
-Using pip
----------
+For some of the plots that pycoevolity produces, it uses the
+[R](https://www.r-project.org/)
+packages
+[ggplot2](http://ggplot2.tidyverse.org/)
+and
+[ggridges](https://github.com/clauswilke/ggridges).
+So, if you want plotting by pycoevolity to be fully functional,
+and you don't already have
+[R](https://www.r-project.org/)
+installed, you'll need to install it.
+Once
+[R](https://www.r-project.org/)
+is in place, you can install the necessary packages from the
+[R](https://www.r-project.org/)
+prompt using:
+
+    install.packages(c("ggplot2", "ggridges"))
+
+Installing pycoevolity with pip
+-------------------------------
 
 If you have the Python package manager [pip](https://pypi.org/project/pip/)
 installed, you should be able to install pycoevolity using:
@@ -56,7 +76,7 @@ find and run the pycoevolity tools.
 Usage
 =====
 
-    loci2nex --help
+    pyco-sumtimes --help
 
 Acknowledgments
 ================
@@ -66,8 +86,6 @@ Science Foundation (grant numbers DBI 1308885 and DEB 1656004).
 
 License
 =======
-
-Copyright (C) 2017 Jamie R. Oaks
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
