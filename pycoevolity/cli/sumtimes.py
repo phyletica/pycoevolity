@@ -77,6 +77,14 @@ def main(argv = sys.argv):
             type = str,
             default = "Comparison",
             help = ('Label for the Y-axis. Default: \'Comparison\'.'))
+    parser.add_argument('--colors',
+            action = 'store',
+            type = str,
+            nargs = '*',
+            help = ('Colors to use for filling density plots. Number of colors '
+                    'provided must match the number of comparisons. Colors '
+                    'will be applied to comparisons according to their order '
+                    'in the config file.'))
     parser.add_argument('--no-plot',
             action = 'store_true',
             help = ('Skip plotting; only report summary table.'))
@@ -119,6 +127,21 @@ def main(argv = sys.argv):
     sys.stderr.write("Summary of times:\n")
     posterior.write_height_summary(out = sys.stdout)
 
+    color_line = ""
+    fill_arg = ""
+    fill_command = ""
+    if args.colors:
+        if len(args.colors) != posterior.number_of_comparisons:
+            raise Exception(
+                    "\nError: The number of colors ({0}) does not match the\n"
+                    "number of comparisons ({1})".format(
+                            len(args.colors),
+                            posterior.number_of_comparisons))
+        color_line = "comparison_colors = c(\"{colors}\")".format(
+                colors = "\", \"".join(args.colors))
+        fill_arg = ", fill = comparison"
+        fill_command = " scale_fill_manual(values = rev(comparison_colors), guide = FALSE) +"
+
     if args.no_plot:
         sys.exit(0)
 
@@ -148,13 +171,13 @@ comparison = c(\"{labels}\")
 
 data <- data.frame(time = time, comparison = comparison)
 data$comparison = factor(data$comparison, levels = rev(unique(as.character(data$comparison))))
-
-ggplot(data, aes(x = time, y = comparison, height = ..density..)) +
+{color_line}
+ggplot(data, aes(x = time, y = comparison, height = ..density..{fill_arg})) +
     geom_density_ridges(stat = \"density\", scale = {plot_scale}, rel_min_height = 0.001) +
     theme_minimal(base_size = {plot_base_size}) +
     theme(axis.text.y = element_text(vjust = 0)) +
     scale_x_continuous({scale_x_continuous_args}) +
-    scale_y_discrete(expand = c(0.01, 0)) +
+    scale_y_discrete(expand = c(0.01, 0)) +{fill_command}
     labs(x = \"{x_label}\") +
     labs(y = \"{y_label}\")
 
@@ -182,12 +205,15 @@ r <- tryCatch(
 """.format(
             heights = ", ".join(str(h) for h in heights),
             labels = "\", \"".join(labels),
+            color_line = color_line,
+            fill_arg = fill_arg,
             plot_scale = plot_scale,
             plot_base_size= plot_base_size,
             scale_x_continuous_args = ", ".join(scale_x_continuous_args),
             plot_width = plot_width,
             plot_height = plot_height,
             plot_units = plot_units,
+            fill_command = fill_command,
             x_label = args.x_label,
             y_label = args.y_label,
             pdf_path = os.path.basename(pdf_path),
