@@ -6,7 +6,6 @@ CLI program for converting a *.loci file from ipyrad to dpp-msbayes format.
 
 import os
 import sys
-import errno
 import random
 import argparse
 
@@ -28,18 +27,6 @@ bottleProportionShapeB = 0.0
 bottleProportionShared = 0
 numTauClasses = 0
 """
-
-def make_directory(path):
-    """
-    Creates directory `path`, but suppresses error if `path` already exists.
-    """
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            pass
-        else:
-            raise e
 
 def main(argv = sys.argv):
     pycoevolity.write_splash(sys.stderr)
@@ -122,7 +109,7 @@ def main(argv = sys.argv):
                 os.getcwd(),
                 "loci2dppmsbayes-output{0}".format(path_suffix)
                 )
-        make_directory(args.output_dir)
+        pycoevolity.fileio.make_directory(args.output_dir)
 
     config_path = os.path.join(
             args.output_dir,

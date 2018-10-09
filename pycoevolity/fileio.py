@@ -4,6 +4,19 @@ import os
 import sys
 import io
 import gzip
+import errno
+
+def make_directory(path):
+    """
+    Creates directory `path`, but suppresses error if `path` already exists.
+    """
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise e
 
 def is_gzipped(file_path):
     """
