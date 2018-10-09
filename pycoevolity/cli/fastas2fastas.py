@@ -24,7 +24,7 @@ def main(argv = sys.argv):
     parser.add_argument('-o', '--output-dir',
             metavar = 'OUTPUT-DIRECTORY',
             type = pycoevolity.argparse_utils.arg_is_dir,
-            help = ('Path to directory in which to write output files. ')
+            help = ('Path to directory in which to write output files. '
                     'Default: \'pyco-fasta-files\' directory within the '
                     'current working directory.'))
     parser.add_argument('-n', '--number-of-loci',
@@ -117,7 +117,7 @@ def main(argv = sys.argv):
                 number_of_samples = args.number_of_loci,
                 with_replacement = args.with_replacement)
 
-    data.write_simple_fastas(
+    data.write_union_fasta_files(
             directory = args.output_dir)
 
 if __name__ == "__main__":

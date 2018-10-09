@@ -769,7 +769,7 @@ class PyradLoci(object):
                 indent = "",
                 use_names_at_interleaves = False)
 
-    def write_simple_fastas(self,
+    def write_union_fasta_files(self,
             directory):
         if not os.path.isdir(directory):
             raise Exception("{0!r} is not a valid directory".format(directory))
@@ -780,6 +780,7 @@ class PyradLoci(object):
         suffix = ""
         if self._label_suffix:
             suffix = self.label_suffix
+        labels = self._get_labels()
         path_indices = range(len(self._numbers_of_sites))
         if self._sample_indices:
             path_indices = self._sample_indices
@@ -797,14 +798,11 @@ class PyradLoci(object):
             if os.path.exists(path):
                 raise Exception("The path {0!r} already exists. "
                         "Please designate a different directory.".format(path))
-            seqs = self._parse_tmp_locus_file_as_list(tmp_path)
-            locus_length
+            seqs = self._parse_tmp_locus_file(tmp_path)
+            seq_length = len(list(seqs.values())[0])
             with open(path, "w") as out:
-                for label, seq in seqs:
-                    if locus_length is None:
-                        locus_length = len(s)
-                    else:
-                        assert locus_length == len(s)
+                for label in labels:
+                    seq = seqs.get(label, "?" * seq_length)
                     out.write(">{label}\n{sequence}\n".format(
                             label = prefix + label + suffix,
                             sequence = seq))
