@@ -294,7 +294,7 @@ class PyradLoci(object):
         self._remove_triallelic_sites = remove_triallelic_sites
         self._convert_to_binary = convert_to_binary
         self._number_of_triallelic_sites = 0
-        self._path = path
+        self._paths = [path]
         self._sequences_removed = {}
         self._label_suffix = None
         self._label_prefix = None
@@ -475,7 +475,7 @@ class PyradLoci(object):
                 out.write("{0}\t{1}\n".format(label, "".join(seq)))
 
     def _parse_loci_file(self):
-        with ReadFile(self._path) as stream:
+        with ReadFile(self._paths[0]) as stream:
             seqs = []
             for i, line in enumerate(stream):
                 if line.startswith("//"):
@@ -486,7 +486,7 @@ class PyradLoci(object):
                     label, seq = line.strip().split()
                 except ValueError as e:
                     sys.stderr.write("ERROR: Problem parsing line {0} of {1}:\n{2}".format(
-                            i + 1, self._path, line))
+                            i + 1, self._paths[0], line))
                     raise
                 if label in self._sequences_removed:
                     self._sequences_removed[label] += 1
@@ -512,7 +512,7 @@ class PyradLoci(object):
     label_prefix = property(_get_label_prefix, _set_label_prefix)
 
     def _get_path(self):
-        return self._path
+        return self._paths[0]
 
     path = property(_get_path)
 
@@ -627,6 +627,14 @@ class PyradLoci(object):
             for line in stream:
                 label, seq = line.strip().split()
                 seqs[label] = seq
+        return seqs
+
+    def _parse_tmp_locus_file_as_list(self, path):
+        seqs = []
+        with ReadFile(path) as stream:
+            for line in stream:
+                label, seq = line.strip().split()
+                seqs.append((label, seq))
         return seqs
 
     def get_label_buffer_size(self):
@@ -760,6 +768,46 @@ class PyradLoci(object):
         self.write_interleaved_sequences(stream,
                 indent = "",
                 use_names_at_interleaves = False)
+
+    def write_simple_fastas(self,
+            directory):
+        if not os.path.isdir(directory):
+            raise Exception("{0!r} is not a valid directory".format(directory))
+        locus_number_buffer = len(str(self.number_of_loci))
+        prefix = ""
+        if self._label_prefix:
+            prefix = self.label_prefix
+        suffix = ""
+        if self._label_suffix:
+            suffix = self.label_suffix
+        path_indices = range(len(self._numbers_of_sites))
+        if self._sample_indices:
+            path_indices = self._sample_indices
+        for counter, locus_idx in enumerate(path_indices):
+            tmp_path = self._tmp_locus_paths[locus_idx]
+            if len(self._paths) == len(self._numbers_of_sites):
+                path = os.path.join(directory,
+                        os.path.basename(self._paths[locus_idx]))
+            else:
+                locus_number = "{locus_num:0{buffer_size}d}".format(
+                        locus_num = counter,
+                        buffer_size = locus_number_buffer)
+                path = os.path.join(directory,
+                        "locus-{0}.fasta".format(locus_number))
+            if os.path.exists(path):
+                raise Exception("The path {0!r} already exists. "
+                        "Please designate a different directory.".format(path))
+            seqs = self._parse_tmp_locus_file_as_list(tmp_path)
+            locus_length
+            with open(path, "w") as out:
+                for label, seq in seqs:
+                    if locus_length is None:
+                        locus_length = len(s)
+                    else:
+                        assert locus_length == len(s)
+                    out.write(">{label}\n{sequence}\n".format(
+                            label = prefix + label + suffix,
+                            sequence = seq))
 
 class FastaLoci(PyradLoci):
 
