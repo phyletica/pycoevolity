@@ -49,6 +49,10 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             help = ('A suffix to append to every sequence label. This can be '
                     'useful for ensuring that all population labels are '
                     'unique across pairs.'))
+    parser.add_argument('-c', '--charset',
+            action = 'store_true',
+            help = ('Include charset block in output nexus file. This option '
+                    'is ignored if output format is not nexus.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -77,7 +81,11 @@ def main(argv = sys.argv, write_method = "write_nexus"):
         for n, c in seqs_removed.items():
             sys.stderr.write("\t\t{0}: {1}\n".format(n, c))
             
-    getattr(data, write_method)()
+    write_kwargs = {}
+    if write_method == "write_nexus":
+        if args.charset:
+            write_kwargs["include_charset_block"] = True
+    getattr(data, write_method)(**write_kwargs)
 
 def main_nexus(argv = sys.argv):
     main(argv = argv, write_method = "write_nexus")
