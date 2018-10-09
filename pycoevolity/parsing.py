@@ -348,6 +348,14 @@ class PyradLoci(object):
         self._populations = sorted(self._population_to_labels.keys())
 
     def _process_locus(self, sequences):
+        if self._sequences_removed:
+            seqs = []
+            for seq_label, seq_chars in sequences:
+                if seq_label in self._sequences_removed:
+                    self._sequences_removed[seq_label] += 1
+                else:
+                    seqs.append((seq_label, seq_chars))
+            sequences = seqs
         nsites = len(sequences[0][1])
         residues = [set() for i in range(nsites)]
         for site_idx in range(nsites):
