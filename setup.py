@@ -25,6 +25,7 @@ setup(
                 'fastas2nex = pycoevolity.cli.fastas2alignment:main_nexus',
                 'fastas2phy = pycoevolity.cli.fastas2alignment:main_phylip',
                 'loci2dppmsbayes = pycoevolity.cli.loci2dppmsbayes:main',
+                'fastas2fastas = pycoevolity.cli.fastas2fastas:main',
                 'pyco-sumtimes = pycoevolity.cli.sumtimes:main',
                 'pyco-sumevents = pycoevolity.cli.sumevents:main',
                 'pyco-sumsizes = pycoevolity.cli.sumsizes:main',
