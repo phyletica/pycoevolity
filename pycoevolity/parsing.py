@@ -602,6 +602,17 @@ class PyradLoci(object):
                      nchar = self.number_of_sites))
         return s
 
+    def write_nexus_charset_block(self, stream):
+        stream.write("BEGIN SETS;\n")
+        total_n_sites = 0
+        for i, n in enumerate(self._numbers_of_sites):
+            stream.write("    CHARSET locus{locus_id}={start}-{end};\n".format(
+                    locus_id = i + 1,
+                    start = total_n_sites + 1,
+                    end = total_n_sites + n))
+            total_n_sites += n
+        stream.write("END;\n")
+
     def _parse_tmp_locus_file(self, path):
         seqs = {}
         with ReadFile(path) as stream:
@@ -720,7 +731,8 @@ class PyradLoci(object):
                         locus_length = locus_length,
                         path = path_for_table))
 
-    def write_nexus(self, stream = None):
+    def write_nexus(self, stream = None,
+            include_charset_block = False):
         if stream is None:
             stream = sys.stdout
         stream.write("#NEXUS\n\n")
@@ -729,6 +741,9 @@ class PyradLoci(object):
                 self.get_nexus_characters_block_preamble()))
         self.write_interleaved_sequences(stream, indent = " " * 8)
         stream.write("    ;\nEND;\n")
+        if include_charset_block:
+            stream.write("\n")
+            self.write_nexus_charset_block(stream)
 
     def write_phylip(self, stream = None):
         if stream is None:
@@ -737,3 +752,56 @@ class PyradLoci(object):
         self.write_interleaved_sequences(stream,
                 indent = "",
                 use_names_at_interleaves = False)
+
+class FastaLoci(PyradLoci):
+
+    def __init__(self, paths,
+            remove_triallelic_sites = False,
+            convert_to_binary = False,
+            sequence_ids_to_remove = []):
+        self._labels = set()
+        self._population_to_labels = None
+        self._populations = None
+        self._numbers_of_sites = []
+        self._tempfs = tempfs.TempFileSystem()
+        self._tmp_locus_paths = []
+        self._remove_triallelic_sites = remove_triallelic_sites
+        self._convert_to_binary = convert_to_binary
+        self._number_of_triallelic_sites = 0
+        self._paths = paths
+        self._sequences_removed = {}
+        self._label_suffix = None
+        self._label_prefix = None
+        self._sample_indices = None
+        if sequence_ids_to_remove:
+            self._sequences_removed = dict(zip(
+                    sequence_ids_to_remove,
+                    (0 for i in range(len(sequence_ids_to_remove)))
+                    ))
+        self._parse_loci_file()
+
+    def _parse_loci_file(self):
+        for path in self._paths:
+            seqs = self.parse_fasta_file(path)
+            self._process_locus(seqs)
+        assert len(self._numbers_of_sites) == len(self._tmp_locus_paths)
+
+    @classmethod
+    def parse_fasta_file(cls, path):
+        seqs = []
+        current_seq = []
+        label = None
+        with ReadFile(path) as stream:
+            for i, line in enumerate(stream):
+                stripped_line = line.strip()
+                if line.startswith('>'):
+                    if current_seq:
+                        seqs.append((label, tuple(current_seq)))
+                    label = stripped_line[1:]
+                    current_seq = []
+                else:
+                    if stripped_line:
+                        current_seq.extend([c for c in stripped_line])
+        if current_seq:
+            seqs.append((label, tuple(current_seq)))
+        return seqs
