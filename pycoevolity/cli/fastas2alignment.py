@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 """
-CLI program for converting a fasta files to concatenated nexus format.
+CLI program for converting fasta files to concatenated nexus format.
 """
 
 import os
