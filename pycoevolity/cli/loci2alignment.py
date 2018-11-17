@@ -49,9 +49,9 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             help = ('A suffix to append to every sequence label. This can be '
                     'useful for ensuring that all population labels are '
                     'unique across pairs.'))
-    parser.add_argument('-c', '--charset',
+    parser.add_argument('-c', '--charsets',
             action = 'store_true',
-            help = ('Include charset block in output nexus file. This option '
+            help = ('Include charsets block in output nexus file. This option '
                     'is ignored if output format is not nexus.'))
 
     if argv == sys.argv:
@@ -83,7 +83,7 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             
     write_kwargs = {}
     if write_method == "write_nexus":
-        if args.charset:
+        if args.charsets:
             write_kwargs["include_charset_block"] = True
     getattr(data, write_method)(**write_kwargs)
 
