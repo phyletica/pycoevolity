@@ -77,6 +77,11 @@ def main(argv = sys.argv):
             type = str,
             default = "Comparison",
             help = ('Label for the Y-axis. Default: \'Comparison\'.'))
+    parser.add_argument('--base-font-size',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_positive_float,
+            default = 14.0,
+            help = ('The base font size. Default: 14.0.'))
     parser.add_argument('--colors',
             action = 'store',
             type = str,
@@ -153,7 +158,7 @@ def main(argv = sys.argv):
     plot_height = plot_width / 1.618034
     plot_units = "in"
     plot_scale = 8
-    plot_base_size = 14
+    plot_base_size = args.base_font_size
     scale_x_continuous_args = ["expand = c(0.05, 0)"]
     if args.x_limits:
         scale_x_continuous_args.append("limits = c({0}, {1})".format(
