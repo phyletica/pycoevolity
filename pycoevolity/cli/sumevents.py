@@ -44,6 +44,11 @@ def main(argv = sys.argv):
             type = str,
             default = "Probability",
             help = ('Label for the Y-axis. Default: \'Probability\'.'))
+    parser.add_argument('--bf-font-size',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_nonnegative_float,
+            default = 4.0,
+            help = ('Font size for the Bayes factor labels. Default: 4.0.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -131,16 +136,18 @@ if (plot_prior) {{
 if (plot_prior) {{
     ggplot(data, aes(x = nevents, y = probability, fill = label)) +
         geom_col(position = "dodge") +
+        scale_x_discrete(limits = nevents) +
         theme_minimal(base_size = {plot_base_size}) +
         theme({legend_arg}) +
         scale_colour_manual(values = bar_colors) +
         scale_fill_manual(values = bar_colors) +
         labs(x = \"{x_label}\") +
         labs(y = \"{y_label}\") +
-        annotate("text", x = nevents, y = bf_positions, label = bf_labels)
+        annotate("text", x = nevents, y = bf_positions, label = bf_labels, size = {bf_font_size})
 }} else {{
     ggplot(data, aes(x = nevents, y = probability, fill = label)) +
         geom_col(position = "dodge") +
+        scale_x_discrete(limits = nevents) +
         theme_minimal(base_size = {plot_base_size}) +
         theme({legend_arg}) +
         scale_colour_manual(values = bar_colors) +
@@ -181,6 +188,7 @@ r <- tryCatch(
             legend_arg = legend_arg,
             x_label = args.x_label,
             y_label = args.y_label,
+            bf_font_size = args.bf_font_size,
             plot_base_size= plot_base_size,
             plot_width = plot_width,
             plot_height = plot_height,
