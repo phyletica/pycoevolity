@@ -67,3 +67,12 @@ def arg_is_positive_float(i):
         msg = '{0!r} is not a positive real number'.format(i)
         raise argparse.ArgumentTypeError(msg)
     return float(i)
+
+def arg_is_nonnegative_float(i):
+    try:
+        if float(i) < 0.0:
+            raise
+    except:
+        msg = '{0!r} is not a non-negative real number'.format(i)
+        raise argparse.ArgumentTypeError(msg)
+    return float(i)
