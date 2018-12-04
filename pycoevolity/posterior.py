@@ -266,7 +266,7 @@ class ChainConvergenceSummary(object):
         
 
 class PosteriorSample(object):
-    def __init__(self, paths, burnin = 0):
+    def __init__(self, paths, burnin = 0, include_time_in_coal_units = False):
         self.paths = list(paths)
         self.parameter_samples = {}
         self.model_summary = None
@@ -278,9 +278,9 @@ class PosteriorSample(object):
         self.header = None
         self.burnin = burnin
         self.number_of_samples = 0
-        self._parse_posterior_paths()
+        self._parse_posterior_paths(include_time_in_coal_units)
 
-    def _parse_posterior_paths(self):
+    def _parse_posterior_paths(self, include_time_in_coal_units = False):
         self.header = tuple(parsing.parse_header_from_path(self.paths[0]))
         d = parsing.get_dict_from_spreadsheets(self.paths, offset = self.burnin)
         n = len(d[self.header[0]])
@@ -311,6 +311,21 @@ class PosteriorSample(object):
                 self.parameter_samples['number_of_events'],
                 self.parameter_samples['model'])
         assert(self.model_summary.number_of_samples == self.number_of_samples)
+
+        if include_time_in_coal_units:
+            for i in range(n):
+                for label in self.height_labels:
+                    ht_key = "root_height_{0}".format(label)
+                    sz_key = "pop_size_{0}".format(label)
+                    t = self.parameter_samples[ht_key][i]
+                    n = self.parameter_samples[sz_key][i]
+                    t_coal = t / (2.0 * n)
+                    coal_key = "coal_root_height_{0}".format(label)
+                    if coal_key in self.parameter_samples:
+                        self.parameter_samples[coal_key].append(t_coal)
+                    else:
+                        self.parameter_samples[coal_key] = [t_coal]
+            assert(len(self.parameter_samples[coal_key]) == self.number_of_samples)
 
     def _parse_height_keys_and_labels(self):
         ht_index_keys = []
