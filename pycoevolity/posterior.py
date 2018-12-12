@@ -422,6 +422,23 @@ class PosteriorSample(object):
             heights.extend(hts)
         return labels, heights
 
+    def get_labels_and_heights(self, label_map = {},
+            include_model_indices = False):
+        labels = []
+        heights = []
+        map_model = self.get_map_models()[0]
+        for i, ht_key in enumerate(self.height_keys):
+            tip_label = self.height_labels[i]
+            assert ht_key.endswith(tip_label)
+            assert tip_label == self.tip_labels[i][0]
+            pretty_labels = [label_map.get(l, l) for l in self.tip_labels[i]]
+            label = " | ".join(pretty_labels)
+            if include_model_indices:
+                label = "{0} {1}".format(label, map_model[i])
+            labels.append(label)
+            heights.append(self.parameter_samples[ht_key])
+        return labels, heights
+
     def write_height_summary(self, out = sys.stdout):
         out.write("comparison\tmean\tmedian\tci_95_lower\tci_95_upper\thpdi_95_lower\thpdi_95_upper\n")
         for i, ht_key in enumerate(self.height_keys):
@@ -454,6 +471,16 @@ class PosteriorSample(object):
                         ci_95_upper = summary["qi_95"][1],
                         hpdi_95_lower = summary["hpdi_95"][0],
                         hpdi_95_upper = summary["hpdi_95"][1]))
+            size_key = "pop_size_root_{0}".format(tips[0])
+            summary  = stats.get_summary(self.parameter_samples[size_key])
+            out.write("{population}\t{mean}\t{median}\t{ci_95_lower}\t{ci_95_upper}\t{hpdi_95_lower}\t{hpdi_95_upper}\n".format(
+                    population = "{0}-root".format(tips[0]),
+                    mean = summary["mean"],
+                    median = summary["median"],
+                    ci_95_lower = summary["qi_95"][0],
+                    ci_95_upper = summary["qi_95"][1],
+                    hpdi_95_lower = summary["hpdi_95"][0],
+                    hpdi_95_upper = summary["hpdi_95"][1]))
 
     def get_population_sizes_2d(self, label_map = {}):
         labels = []

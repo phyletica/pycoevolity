@@ -50,6 +50,9 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
+    parser.add_argument('--violin',
+            action = 'store_true',
+            help = ('Produce a violin plot, rather than a ridge plot.'))
     parser.add_argument('--include-map-model',
             action = 'store_true',
             help = ('Include event indices associated with the maximum a '
@@ -150,12 +153,87 @@ def main(argv = sys.argv):
     if args.no_plot:
         sys.exit(0)
 
+    plot_width = 7.0
+    plot_height = plot_width / 1.618034
+
+    if args.violin:
+        try:
+            import matplotlib as mpl
+            import matplotlib.pyplot as plt
+            from matplotlib import gridspec
+        except ImportError as e:
+            sys.stderr.write('ERROR: matplotlib could not be imported; it is needed for violin plots')
+            raise e
+
+        # Use TrueType (42) fonts rather than Type 3 fonts
+        mpl.rcParams["pdf.fonttype"] = 42
+        mpl.rcParams["ps.fonttype"] = 42
+        tex_font_settings = {
+                "text.usetex": True,
+                "font.family": "sans-serif",
+                "text.latex.preamble" : [
+                        "\\usepackage[T1]{fontenc}",
+                        "\\usepackage[cm]{sfmath}",
+                        ]
+        }
+
+        mpl.rcParams.update(tex_font_settings)
+
+        labels, heights = posterior.get_labels_and_heights(
+                label_map = label_map,
+                include_model_indices = args.include_map_model)
+
+        fig = plt.figure(figsize = (plot_width, plot_height))
+        gs = gridspec.GridSpec(1, 1,
+                wspace = 0.0,
+                hspace = 0.0)
+        ax = plt.subplot(gs[0, 0])
+        v = ax.violinplot(heights,
+                positions = range(1, len(heights) + 1),
+                vert = False,
+                widths = 0.8,
+                showmeans = True,
+                showextrema = False,
+                showmedians = False,
+                points = 100,
+                bw_method = None,
+                )
+
+        if args.x_limits:
+            xlims = sorted(args.x_limits)
+            ax.set_xlim(xlims[0], xlims[1])
+        elif args.include_zero:
+            xlims = list(ax.get_xlim())
+            xlims[0] = 0.0
+            ax.set_xlim(xlims[0], xlims[1])
+
+        ax.yaxis.set_ticks(range(1, len(labels) + 1))
+        ytick_labels = [item for item in ax.get_yticklabels()]
+        assert(len(ytick_labels) == len(labels))
+        for i in range(len(ytick_labels)):
+            ytick_labels[i].set_text(labels[i])
+        ax.set_yticklabels(ytick_labels)
+
+        ax.set_xlabel(
+                args.x_label)
+        ax.set_ylabel(
+                args.y_label)
+
+        # gs.update(
+        #         left = pad_left,
+        #         right = pad_right,
+        #         bottom = pad_bottom,
+        #         top = pad_top)
+
+        plt.savefig(pdf_path)
+        sys.stderr.write("Here are the outputs:\n")
+        sys.stderr.write("    PDF plot: {0!r}\n".format(pdf_path))
+        sys.exit(0)
+
     labels, heights = posterior.get_heights_2d(
             label_map = label_map,
             include_model_indices = args.include_map_model)
 
-    plot_width = 7.0
-    plot_height = plot_width / 1.618034
     plot_units = "in"
     plot_scale = 8
     plot_base_size = args.base_font_size
