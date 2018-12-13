@@ -50,10 +50,12 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
-    parser.add_argument('--include-map-model',
+    parser.add_argument('--violin',
             action = 'store_true',
-            help = ('Include event indices associated with the maximum a '
-                    'posteriori (MAP) model in the comparison labels.'))
+            help = ('Produce a violin plot, rather than a ridge plot.'))
+    parser.add_argument('--relative',
+            action = 'store_true',
+            help = ('Only plot the relative sizes of ancestral populations.'))
     parser.add_argument('--x-limits',
             action = 'store',
             nargs = 2,
@@ -64,13 +66,17 @@ def main(argv = sys.argv):
     parser.add_argument('-x', '--x-label',
             action = 'store',
             type = str,
-            default = "Size",
             help = ('Label for the X-axis. Default: \'Size\'.'))
     parser.add_argument('-y', '--y-label',
             action = 'store',
             type = str,
             default = "Population",
             help = ('Label for the Y-axis. Default: \'Population\'.'))
+    parser.add_argument('-w', '--width',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_positive_float,
+            default = 7.0,
+            help = ('The width of the plot. Default: 7.0.'))
     parser.add_argument('--base-font-size',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_positive_float,
@@ -109,6 +115,11 @@ def main(argv = sys.argv):
         for label, replacement in args.label:
             label_map[label] = replacement
 
+    if args.x_label is None:
+        args.x_label = "Size"
+        if args.relative:
+            args.x_label = "Relative size of ancestral population"
+
     sys.stderr.write("Parsing log files...\n")
     posterior = pycoevolity.posterior.PosteriorSample(paths = args.log_paths,
             burnin = args.burnin)
@@ -121,11 +132,122 @@ def main(argv = sys.argv):
     if args.no_plot:
         sys.exit(0)
 
-    labels, sizes = posterior.get_population_sizes_2d(
-            label_map = label_map)
-
-    plot_width = 7.0
+    plot_width = args.width 
     plot_height = plot_width / 1.618034
+
+    if args.violin:
+        try:
+            import matplotlib as mpl
+            import matplotlib.pyplot as plt
+            from matplotlib import gridspec
+        except ImportError as e:
+            sys.stderr.write('ERROR: matplotlib could not be imported; it is needed for violin plots')
+            raise e
+
+        # Use TrueType (42) fonts rather than Type 3 fonts
+        mpl.rcParams["pdf.fonttype"] = 42
+        mpl.rcParams["ps.fonttype"] = 42
+        tex_font_settings = {
+                "text.usetex": True,
+                "font.family": "sans-serif",
+                "text.latex.preamble" : [
+                        "\\usepackage[T1]{fontenc}",
+                        "\\usepackage[cm]{sfmath}",
+                        ]
+        }
+
+        mpl.rcParams.update(tex_font_settings)
+
+        if args.relative:
+            labels, sizes = posterior.get_labels_and_relative_sizes(
+                    label_map = label_map)
+        else:
+            labels, sizes = posterior.get_labels_and_sizes(
+                    label_map = label_map)
+
+        fig = plt.figure(figsize = (plot_width, plot_height))
+        gs = gridspec.GridSpec(1, 1,
+                wspace = 0.0,
+                hspace = 0.0)
+        ax = plt.subplot(gs[0, 0])
+        positions = range(1, len(sizes) + 1)
+        v = ax.violinplot(sizes,
+                positions = positions,
+                vert = False,
+                widths = 0.9,
+                showmeans = False,
+                showextrema = False,
+                showmedians = False,
+                points = 100,
+                bw_method = None,
+                )
+
+        colors = ["gray"] * len(labels)
+        for i in range(len(v["bodies"])):
+            v["bodies"][i].set_alpha(1)
+            v["bodies"][i].set_facecolor(colors[i])
+            v["bodies"][i].set_edgecolor(colors[i])
+
+        means = []
+        ci_lower = []
+        ci_upper = []
+        for sample in sizes:
+            summary = pycoevolity.stats.get_summary(sample)
+            means.append(summary["mean"])
+            ci_lower.append(summary["qi_95"][0])
+            ci_upper.append(summary["qi_95"][1])
+        ax.hlines(positions, ci_lower, ci_upper,
+                colors = "black",
+                linestyle = "solid",
+                zorder = 100)
+        ax.scatter(ci_lower, positions,
+                marker = "|",
+                color = "black",
+                s = 120,
+                zorder = 200,
+                )
+        ax.scatter(ci_upper, positions,
+                marker = "|",
+                color = "black",
+                s = 120,
+                zorder = 200,
+                )
+        ax.scatter(means, positions,
+                marker = ".",
+                color = "white",
+                s = 50,
+                zorder = 300,
+                )
+
+        if args.x_limits:
+            xlims = sorted(args.x_limits)
+            ax.set_xlim(xlims[0], xlims[1])
+
+        ax.yaxis.set_ticks(range(1, len(labels) + 1))
+        ytick_labels = [item for item in ax.get_yticklabels()]
+        assert(len(ytick_labels) == len(labels))
+        for i in range(len(ytick_labels)):
+            ytick_labels[i].set_text(labels[i])
+        ax.set_yticklabels(ytick_labels)
+
+        ax.set_xlabel(
+                args.x_label)
+        ax.set_ylabel(
+                args.y_label)
+
+        fig.tight_layout()
+        plt.savefig(pdf_path)
+        sys.stderr.write("Here are the outputs:\n")
+        sys.stderr.write("    PDF plot: {0!r}\n".format(pdf_path))
+        sys.exit(0)
+
+    if args.relative:
+        labels, sizes = posterior.get_relative_population_sizes_2d(
+                label_map = label_map)
+    else:
+        labels, sizes = posterior.get_population_sizes_2d(
+                label_map = label_map)
+
     plot_units = "in"
     plot_scale = 8
     plot_base_size = args.base_font_size

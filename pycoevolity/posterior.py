@@ -500,6 +500,80 @@ class PosteriorSample(object):
             sizes.extend(root_sizes)
         return labels, sizes
 
+    def get_relative_population_sizes_2d(self, label_map = {}):
+        labels = []
+        sizes = []
+        for tips in self.tip_labels:
+            tip_sizes = []
+            for t in tips:
+                size_key = "pop_size_{0}".format(t)
+                szs = list(self.parameter_samples[size_key])
+                tip_sizes.append(szs)
+            mean_tip_sizes = []
+            if len(tips) == 1:
+                mean_tip_sizes = tip_sizes[0]
+            else:
+                for sample_idx in range(len(tip_sizes[0])):
+                    total = 0.0
+                    for tip_idx in range(len(tips)):
+                        total += tip_sizes[tip_idx][sample_idx]
+                    mn = total / float(len(tips))
+                    mean_tip_sizes.append(mn)
+            root_size_key = "pop_size_root_{0}".format(tips[0])
+            root_sizes = list(self.parameter_samples[root_size_key])
+            rel_root_sizes = [root_sizes[i] / mean_tip_sizes[i] for i in range(len(root_sizes))]
+            root_label = "root-{0}".format(tips[0])
+            pretty_root_label = label_map.get(root_label, root_label)
+            labels.extend([pretty_root_label] * len(root_sizes))
+            sizes.extend(rel_root_sizes)
+        return labels, sizes
+
+    def get_labels_and_sizes(self, label_map = {}):
+        labels = []
+        sizes = []
+        for tips in self.tip_labels:
+            for t in tips:
+                size_key = "pop_size_{0}".format(t)
+                szs = list(self.parameter_samples[size_key])
+                pretty_label = label_map.get(t, t)
+                labels.append(pretty_label)
+                sizes.append(szs)
+            root_size_key = "pop_size_root_{0}".format(tips[0])
+            root_sizes = list(self.parameter_samples[root_size_key])
+            root_label = "root-{0}".format(tips[0])
+            pretty_root_label = label_map.get(root_label, root_label)
+            labels.append(pretty_root_label)
+            sizes.append(root_sizes)
+        return labels, sizes
+
+    def get_labels_and_relative_sizes(self, label_map = {}):
+        labels = []
+        sizes = []
+        for tips in self.tip_labels:
+            tip_sizes = []
+            for t in tips:
+                size_key = "pop_size_{0}".format(t)
+                szs = list(self.parameter_samples[size_key])
+                tip_sizes.append(szs)
+            mean_tip_sizes = []
+            if len(tips) == 1:
+                mean_tip_sizes = tip_sizes[0]
+            else:
+                for sample_idx in range(len(tip_sizes[0])):
+                    total = 0.0
+                    for tip_idx in range(len(tips)):
+                        total += tip_sizes[tip_idx][sample_idx]
+                    mn = total / float(len(tips))
+                    mean_tip_sizes.append(mn)
+            root_size_key = "pop_size_root_{0}".format(tips[0])
+            root_sizes = list(self.parameter_samples[root_size_key])
+            rel_root_sizes = [root_sizes[i] / mean_tip_sizes[i] for i in range(len(root_sizes))]
+            root_label = "root-{0}".format(tips[0])
+            pretty_root_label = label_map.get(root_label, root_label)
+            labels.append(pretty_root_label)
+            sizes.append(rel_root_sizes)
+        return labels, sizes
+
 
 class SumcoevolityNeventsTable(object):
     def __init__(self, sumcoevolity_nevents_table_path):

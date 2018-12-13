@@ -80,6 +80,11 @@ def main(argv = sys.argv):
             type = str,
             default = "Comparison",
             help = ('Label for the Y-axis. Default: \'Comparison\'.'))
+    parser.add_argument('-w', '--width',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_positive_float,
+            default = 7.0,
+            help = ('The width of the plot. Default: 7.0.'))
     parser.add_argument('--base-font-size',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_positive_float,
@@ -153,7 +158,7 @@ def main(argv = sys.argv):
     if args.no_plot:
         sys.exit(0)
 
-    plot_width = 7.0
+    plot_width = args.width 
     plot_height = plot_width / 1.618034
 
     if args.violin:
@@ -188,15 +193,54 @@ def main(argv = sys.argv):
                 wspace = 0.0,
                 hspace = 0.0)
         ax = plt.subplot(gs[0, 0])
+        positions = range(1, len(heights) + 1)
         v = ax.violinplot(heights,
-                positions = range(1, len(heights) + 1),
+                positions = positions,
                 vert = False,
-                widths = 0.8,
-                showmeans = True,
+                widths = 0.9,
+                showmeans = False,
                 showextrema = False,
                 showmedians = False,
                 points = 100,
                 bw_method = None,
+                )
+
+        if not args.colors:
+            args.colors = ["gray"] * len(labels)
+        for i in range(len(v["bodies"])):
+            v["bodies"][i].set_alpha(1)
+            v["bodies"][i].set_facecolor(args.colors[i])
+            v["bodies"][i].set_edgecolor(args.colors[i])
+
+        means = []
+        ci_lower = []
+        ci_upper = []
+        for sample in heights:
+            summary = pycoevolity.stats.get_summary(sample)
+            means.append(summary["mean"])
+            ci_lower.append(summary["qi_95"][0])
+            ci_upper.append(summary["qi_95"][1])
+        ax.hlines(positions, ci_lower, ci_upper,
+                colors = "black",
+                linestyle = "solid",
+                zorder = 100)
+        ax.scatter(ci_lower, positions,
+                marker = "|",
+                color = "black",
+                s = 120,
+                zorder = 200,
+                )
+        ax.scatter(ci_upper, positions,
+                marker = "|",
+                color = "black",
+                s = 120,
+                zorder = 200,
+                )
+        ax.scatter(means, positions,
+                marker = ".",
+                color = "white",
+                s = 50,
+                zorder = 300,
                 )
 
         if args.x_limits:
@@ -219,12 +263,7 @@ def main(argv = sys.argv):
         ax.set_ylabel(
                 args.y_label)
 
-        # gs.update(
-        #         left = pad_left,
-        #         right = pad_right,
-        #         bottom = pad_bottom,
-        #         top = pad_top)
-
+        fig.tight_layout()
         plt.savefig(pdf_path)
         sys.stderr.write("Here are the outputs:\n")
         sys.stderr.write("    PDF plot: {0!r}\n".format(pdf_path))
