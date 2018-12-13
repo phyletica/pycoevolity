@@ -49,6 +49,11 @@ def main(argv = sys.argv):
             type = pycoevolity.argparse_utils.arg_is_nonnegative_float,
             default = 4.0,
             help = ('Font size for the Bayes factor labels. Default: 4.0.'))
+    parser.add_argument('-w', '--width',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_positive_float,
+            default = 7.0,
+            help = ('The width of the plot. Default: 7.0.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -91,7 +96,7 @@ def main(argv = sys.argv):
             if a:
                 bfs[i] = a + bfs[i]
 
-    plot_width = 7.0
+    plot_width = args.width
     plot_height = plot_width / 1.618034
     plot_units = "in"
     plot_scale = 8
