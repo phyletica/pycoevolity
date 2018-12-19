@@ -404,11 +404,18 @@ class PosteriorSample(object):
         return stats.rank(self.parameter_samples[parameter_key], value)
     
     def get_heights_2d(self, label_map = {},
+            comparisons_to_ignore = [],
             include_model_indices = False):
         labels = []
         heights = []
         map_model = self.get_map_models()[0]
         for i, ht_key in enumerate(self.height_keys):
+            skip = False
+            for tl in self.tip_labels[i]:
+                if tl in comparisons_to_ignore:
+                    skip = True
+            if skip:
+                continue
             tip_label = self.height_labels[i]
             assert ht_key.endswith(tip_label)
             assert tip_label == self.tip_labels[i][0]
@@ -423,11 +430,18 @@ class PosteriorSample(object):
         return labels, heights
 
     def get_labels_and_heights(self, label_map = {},
+            comparisons_to_ignore = [],
             include_model_indices = False):
         labels = []
         heights = []
         map_model = self.get_map_models()[0]
         for i, ht_key in enumerate(self.height_keys):
+            skip = False
+            for tl in self.tip_labels[i]:
+                if tl in comparisons_to_ignore:
+                    skip = True
+            if skip:
+                continue
             tip_label = self.height_labels[i]
             assert ht_key.endswith(tip_label)
             assert tip_label == self.tip_labels[i][0]

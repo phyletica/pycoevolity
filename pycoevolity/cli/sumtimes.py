@@ -50,6 +50,17 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
+    parser.add_argument('-i', '--ignore',
+            action = 'append',
+            type = str,
+            metavar = ("COMPARISON-LABEL"),
+            help = ('Ignore (i.e., do not plot) the specified comparison. '
+                    'This option takes one argument: The original label '
+                    'used to identify a population (i.e., the prefix or suffix '
+                    'in the original alignment analyzed by Ecoevolity) '
+                    'Note, you need to quote labels with spaces. '
+                    'This option can be used multiple times to ignore '
+                    'multiple comparisons.'))
     parser.add_argument('--violin',
             action = 'store_true',
             help = ('Produce a violin plot, rather than a ridge plot.'))
@@ -140,23 +151,12 @@ def main(argv = sys.argv):
     sys.stderr.write("Summary of times:\n")
     posterior.write_height_summary(out = sys.stdout)
 
-    color_line = ""
-    fill_arg = ""
-    fill_command = ""
-    if args.colors:
-        if len(args.colors) != posterior.number_of_comparisons:
-            raise Exception(
-                    "\nError: The number of colors ({0}) does not match the\n"
-                    "number of comparisons ({1})".format(
-                            len(args.colors),
-                            posterior.number_of_comparisons))
-        color_line = "comparison_colors = c(\"{colors}\")".format(
-                colors = "\", \"".join(args.colors))
-        fill_arg = ", fill = comparison"
-        fill_command = " scale_fill_manual(values = rev(comparison_colors), guide = FALSE) +"
-
     if args.no_plot:
         sys.exit(0)
+
+    comparisons_to_ignore = []
+    if args.ignore:
+        comparisons_to_ignore = args.ignore
 
     plot_width = args.width 
     plot_height = plot_width / 1.618034
@@ -186,7 +186,15 @@ def main(argv = sys.argv):
 
         labels, heights = posterior.get_labels_and_heights(
                 label_map = label_map,
+                comparisons_to_ignore = comparisons_to_ignore,
                 include_model_indices = args.include_map_model)
+
+        if args.colors and (len(args.colors) != len(labels)):
+            raise Exception(
+                    "\nError: The number of colors ({0}) does not match the\n"
+                    "number of comparisons ({1})".format(
+                            len(args.colors),
+                            len(labels)))
 
         fig = plt.figure(figsize = (plot_width, plot_height))
         gs = gridspec.GridSpec(1, 1,
@@ -271,7 +279,26 @@ def main(argv = sys.argv):
 
     labels, heights = posterior.get_heights_2d(
             label_map = label_map,
+            comparisons_to_ignore = comparisons_to_ignore,
             include_model_indices = args.include_map_model)
+
+    if args.colors:
+        unique_labels = set(labels)
+        if len(args.colors) != len(unique_labels):
+            raise Exception(
+                    "\nError: The number of colors ({0}) does not match the\n"
+                    "number of comparisons ({1})".format(
+                            len(args.colors),
+                            len(unique_labels)))
+
+    color_line = ""
+    fill_arg = ""
+    fill_command = ""
+    if args.colors:
+        color_line = "comparison_colors = c(\"{colors}\")".format(
+                colors = "\", \"".join(args.colors))
+        fill_arg = ", fill = comparison"
+        fill_command = " scale_fill_manual(values = rev(comparison_colors), guide = FALSE) +"
 
     plot_units = "in"
     plot_scale = 8
