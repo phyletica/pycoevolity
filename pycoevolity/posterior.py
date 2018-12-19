@@ -271,6 +271,8 @@ class PosteriorSample(object):
         self.parameter_samples = {}
         self.model_summary = None
         self.height_index_keys = None
+        self.pair_height_index_keys = None
+        self.singleton_height_index_keys = None
         self.height_keys = None
         self.height_labels = None
         self.tip_labels = None
@@ -302,6 +304,20 @@ class PosteriorSample(object):
         self._parse_tip_labels()
         assert len(self.tip_labels) == self.number_of_comparisons
 
+        for i, tlabels in enumerate(self.tip_labels):
+            if len(tlabels) == 2:
+                if not self.pair_height_index_keys:
+                    self.pair_height_index_keys = [self.height_index_keys[i]]
+                else:
+                    self.pair_height_index_keys.append(self.height_index_keys[i])
+            elif len(tlabels) == 1:
+                if not self.singleton_height_index_keys:
+                    self.singleton_height_index_keys = [self.height_index_keys[i]]
+                else:
+                    self.singleton_height_index_keys.append(self.height_index_keys[i])
+            else:
+                raise Exception("Unexpected number of tips: {0}".format(len(tlabels)))
+
         models = []
         for i in range(n):
             models.append(tuple(int(d[h][i]) for h in self.height_index_keys))
@@ -311,6 +327,7 @@ class PosteriorSample(object):
                 self.parameter_samples['number_of_events'],
                 self.parameter_samples['model'])
         assert(self.model_summary.number_of_samples == self.number_of_samples)
+        # TODO: Now do model summaries for pairs and singletons here
 
         if include_time_in_coal_units:
             for i in range(n):
