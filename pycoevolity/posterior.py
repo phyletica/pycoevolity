@@ -355,8 +355,8 @@ class PosteriorSample(object):
             div_nevents = []
             demog_nevents = []
             for i in range(n):
-                div_m, = standardize_partition(int(d[h][i]) for h in self.div_height_index_keys)
-                demog_m, = standardize_partition(int(d[h][i]) for h in self.demog_height_index_keys)
+                div_m, vals = standardize_partition(int(d[h][i]) for h in self.div_height_index_keys)
+                demog_m, vals = standardize_partition(int(d[h][i]) for h in self.demog_height_index_keys)
                 div_n = max(div_m) + 1
                 demog_n = max(demog_m) + 1
                 div_models.append(div_m)
