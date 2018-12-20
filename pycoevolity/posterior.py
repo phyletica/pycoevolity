@@ -11,6 +11,20 @@ from pycoevolity import stats
 _LOG = logging.getLogger(__name__)
 
 
+def standardize_partition(elements):
+    el_map = {}
+    next_idx = 0
+    partition = []
+    values = {}
+    for i, el in enumerate(elements):
+        if not el_map.has_key(el):
+            el_map[el] = next_idx
+            values[next_idx] = [el]
+            next_idx += 1
+        partition.append(el_map[el])
+    return tuple(partition), values
+
+
 class PosteriorModelSummary(object):
     def __init__(self, nevent_samples, model_samples):
         nevents = tuple(nevent_samples)
@@ -270,9 +284,11 @@ class PosteriorSample(object):
         self.paths = list(paths)
         self.parameter_samples = {}
         self.model_summary = None
+        self.div_model_summary = None
+        self.demog_model_summary = None
         self.height_index_keys = None
-        self.pair_height_index_keys = None
-        self.singleton_height_index_keys = None
+        self.div_height_index_keys = None
+        self.demog_height_index_keys = None
         self.height_keys = None
         self.height_labels = None
         self.tip_labels = None
@@ -306,15 +322,15 @@ class PosteriorSample(object):
 
         for i, tlabels in enumerate(self.tip_labels):
             if len(tlabels) == 2:
-                if not self.pair_height_index_keys:
-                    self.pair_height_index_keys = [self.height_index_keys[i]]
+                if not self.div_height_index_keys:
+                    self.div_height_index_keys = [self.height_index_keys[i]]
                 else:
-                    self.pair_height_index_keys.append(self.height_index_keys[i])
+                    self.div_height_index_keys.append(self.height_index_keys[i])
             elif len(tlabels) == 1:
-                if not self.singleton_height_index_keys:
-                    self.singleton_height_index_keys = [self.height_index_keys[i]]
+                if not self.demog_height_index_keys:
+                    self.demog_height_index_keys = [self.height_index_keys[i]]
                 else:
-                    self.singleton_height_index_keys.append(self.height_index_keys[i])
+                    self.demog_height_index_keys.append(self.height_index_keys[i])
             else:
                 raise Exception("Unexpected number of tips: {0}".format(len(tlabels)))
 
@@ -327,7 +343,42 @@ class PosteriorSample(object):
                 self.parameter_samples['number_of_events'],
                 self.parameter_samples['model'])
         assert(self.model_summary.number_of_samples == self.number_of_samples)
-        # TODO: Now do model summaries for pairs and singletons here
+        
+        # Model summaries for pairs and singletons separately
+        if not self.demog_height_index_keys:
+            self.div_model_summary = self.model_summary
+        elif not self.div_height_index_keys:
+            self.demog_model_summary = self.model_summary
+        else:
+            div_models = []
+            demog_models = []
+            div_nevents = []
+            demog_nevents = []
+            for i in range(n):
+                div_m, = standardize_partition(int(d[h][i]) for h in self.div_height_index_keys)
+                demog_m, = standardize_partition(int(d[h][i]) for h in self.demog_height_index_keys)
+                div_n = max(div_m) + 1
+                demog_n = max(demog_m) + 1
+                div_models.append(div_m)
+                demog_models.append(demog_m)
+                div_nevents.append(div_n)
+                demog_nevents.append(demog_n)
+            assert len(div_models) == self.number_of_samples
+            assert len(demog_models) == self.number_of_samples
+            assert len(div_nevents) == self.number_of_samples
+            assert len(demog_nevents) == self.number_of_samples
+            self.parameter_samples['div_model'] = tuple(div_models)
+            self.parameter_samples['demog_model'] = tuple(demog_models)
+            self.parameter_samples['number_of_div_events'] = tuple(div_nevents)
+            self.parameter_samples['number_of_demog_events'] = tuple(demog_nevents)
+            self.div_model_summary = PosteriorModelSummary(
+                    self.parameter_samples['number_of_div_events'],
+                    self.parameter_samples['div_model'])
+            assert(self.div_model_summary.number_of_samples == self.number_of_samples)
+            self.demog_model_summary = PosteriorModelSummary(
+                    self.parameter_samples['number_of_demog_events'],
+                    self.parameter_samples['demog_model'])
+            assert(self.demog_model_summary.number_of_samples == self.number_of_samples)
 
         if include_time_in_coal_units:
             for i in range(n):
@@ -384,11 +435,33 @@ class PosteriorSample(object):
     def get_models(self):
         return self.model_summary.get_models()
 
+    def get_div_models(self):
+        return self.div_model_summary.get_models()
+
+    def get_demog_models(self):
+        return self.demog_model_summary.get_models()
+
     def get_numbers_of_events(self):
         return self.model_summary.get_numbers_of_events()
 
+    def get_numbers_of_div_events(self):
+        return self.div_model_summary.get_numbers_of_events()
+
+    def get_numbers_of_demog_events(self):
+        return self.demog_model_summary.get_numbers_of_events()
+
     def model_in_credibility_set(self, model_tuple, credibility_cut_off = 0.95):
         return self.model_summary.model_in_credibility_set(
+                model_tuple,
+                credibility_cut_off)
+
+    def div_model_in_credibility_set(self, model_tuple, credibility_cut_off = 0.95):
+        return self.div_model_summary.model_in_credibility_set(
+                model_tuple,
+                credibility_cut_off)
+
+    def demog_model_in_credibility_set(self, model_tuple, credibility_cut_off = 0.95):
+        return self.demog_model_summary.model_in_credibility_set(
                 model_tuple,
                 credibility_cut_off)
 
@@ -398,24 +471,74 @@ class PosteriorSample(object):
                 number_of_events,
                 credibility_cut_off)
 
+    def number_of_div_events_in_credibility_set(self, number_of_events,
+            credibility_cut_off = 0.95):
+        return self.div_model_summary.number_of_events_in_credibility_set(
+                number_of_events,
+                credibility_cut_off)
+
+    def number_of_demog_events_in_credibility_set(self, number_of_events,
+            credibility_cut_off = 0.95):
+        return self.demog_model_summary.number_of_events_in_credibility_set(
+                number_of_events,
+                credibility_cut_off)
+
     def get_model_credibility_level(self, model_tuple):
         return self.model_summary.get_model_credibility_level(model_tuple)
+
+    def get_div_model_credibility_level(self, model_tuple):
+        return self.div_model_summary.get_model_credibility_level(model_tuple)
+
+    def get_demog_model_credibility_level(self, model_tuple):
+        return self.demog_model_summary.get_model_credibility_level(model_tuple)
 
     def get_number_of_events_credibility_level(self, number_of_events):
         return self.model_summary.get_number_of_events_credibility_level(number_of_events)
 
+    def get_number_of_div_events_credibility_level(self, number_of_events):
+        return self.div_model_summary.get_number_of_events_credibility_level(number_of_events)
+
+    def get_number_of_demog_events_credibility_level(self, number_of_events):
+        return self.demog_model_summary.get_number_of_events_credibility_level(number_of_events)
+
     def get_model_probability(self, model_tuple):
         return self.model_summary.get_model_probability(model_tuple)
+
+    def get_div_model_probability(self, model_tuple):
+        return self.div_model_summary.get_model_probability(model_tuple)
+
+    def get_demog_model_probability(self, model_tuple):
+        return self.demog_model_summary.get_model_probability(model_tuple)
 
     def get_number_of_events_probability(self, number_of_events):
         return self.model_summary.get_number_of_events_probability(
                 number_of_events)
 
+    def get_number_of_div_events_probability(self, number_of_events):
+        return self.div_model_summary.get_number_of_events_probability(
+                number_of_events)
+
+    def get_number_of_demog_events_probability(self, number_of_events):
+        return self.demog_model_summary.get_number_of_events_probability(
+                number_of_events)
+
     def get_map_models(self):
         return self.model_summary.get_map_models()
 
+    def get_map_div_models(self):
+        return self.div_model_summary.get_map_models()
+
+    def get_map_demog_models(self):
+        return self.demog_model_summary.get_map_models()
+
     def get_map_numbers_of_events(self):
         return self.model_summary.get_map_numbers_of_events()
+
+    def get_map_numbers_of_div_events(self):
+        return self.div_model_summary.get_map_numbers_of_events()
+
+    def get_map_numbers_of_demog_events(self):
+        return self.demog_model_summary.get_map_numbers_of_events()
 
     def get_rank(self, parameter_key, value):
         return stats.rank(self.parameter_samples[parameter_key], value)
