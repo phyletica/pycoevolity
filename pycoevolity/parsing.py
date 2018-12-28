@@ -375,7 +375,7 @@ class Loci(object):
     def get_clone_of_unsampled_loci(self):
         c = self.clone()
         indices = []
-        for i in range(self.number_of_loci):
+        for i in range(len(self._numbers_of_sites)):
             if i not in self._sample_indices:
                 indices.append(i)
         c._sample_indices = indices
@@ -692,9 +692,12 @@ class Loci(object):
         return s
 
     def write_nexus_charset_block(self, stream):
+        nsites = self._numbers_of_sites
+        if self._sample_indices:
+            nsites = [n for i, n in enumerate(self._numbers_of_sites) if i in self._sample_indices]
         stream.write("BEGIN SETS;\n")
         total_n_sites = 0
-        for i, n in enumerate(self._numbers_of_sites):
+        for i, n in enumerate(nsites):
             stream.write("    CHARSET locus{locus_id}={start}-{end};\n".format(
                     locus_id = i + 1,
                     start = total_n_sites + 1,

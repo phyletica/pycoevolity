@@ -136,5 +136,6 @@ class TempFileSystem(object):
             self.deleted = True
                 
     def purge(self):
-        self.remove_dir(self.base_dir)
+        if os.path.exists(self.base_dir):
+            self.remove_dir(self.base_dir)
 
