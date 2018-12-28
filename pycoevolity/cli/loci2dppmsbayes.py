@@ -134,7 +134,7 @@ def main(argv = sys.argv):
 
         for i, loci_path in enumerate(args.loci_paths):
             sys.stderr.write("Parsing {0!r}...\n".format(loci_path))
-            data = pycoevolity.parsing.PyradLoci(loci_path,
+            data = pycoevolity.parsing.Loci.from_pyrad(loci_path,
                     remove_triallelic_sites = args.remove_triallelic_sites,
                     sequence_ids_to_remove = args.sample_to_delete)
             pair_label = "{pair_num:0{buffer_size}d}".format(

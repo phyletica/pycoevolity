@@ -6,6 +6,7 @@ CLI program for converting a *.loci file from ipyrad to nexus format.
 
 import os
 import sys
+import random
 import argparse
 
 import pycoevolity
@@ -53,13 +54,29 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             action = 'store_true',
             help = ('Include charsets block in output nexus file. This option '
                     'is ignored if output format is not nexus.'))
+    parser.add_argument('--split',
+            action = 'store_true',
+            help = ('Randomly split loci into two output alignments. This '
+                    'option should only be used for testing whether ecoevolity '
+                    'will estimate co-divergence between the random sets of '
+                    'loci from the same taxon.'))
+    parser.add_argument('--seed',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_positive_int,
+            help = ('Seed for random number generator. This is only used for '
+                    'the \'--split\' option.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
     else:
         args = parser.parse_args(argv)
 
-    data = pycoevolity.parsing.PyradLoci(args.loci_path,
+    rng = random.Random()
+    if not args.seed:
+        args.seed = random.randint(1, 999999999)
+    rng.seed(args.seed)
+
+    data = pycoevolity.parsing.Loci.from_pyrad(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites,
             convert_to_binary = args.convert_to_binary,
             sequence_ids_to_remove = args.sample_to_delete)
@@ -85,6 +102,13 @@ def main(argv = sys.argv, write_method = "write_nexus"):
     if write_method == "write_nexus":
         if args.charsets:
             write_kwargs["include_charset_block"] = True
+
+    if args.split:
+        data2 = data.split_loci(rng = rng,
+                auto_annotate_labels = True)
+        sys.stderr.write("\tNumber of loci in set 1: {0}\n".format(data.number_of_loci))
+        sys.stderr.write("\tNumber of loci in set 2: {0}\n".format(data2.number_of_loci))
+        getattr(data2, write_method)(**write_kwargs)
     getattr(data, write_method)(**write_kwargs)
 
 def main_nexus(argv = sys.argv):

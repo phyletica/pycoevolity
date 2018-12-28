@@ -89,7 +89,7 @@ def main(argv = sys.argv):
                 )
         pycoevolity.fileio.make_directory(args.output_dir)
 
-    data = pycoevolity.parsing.FastaLoci(args.fasta_paths,
+    data = pycoevolity.parsing.Loci.from_fastas(args.fasta_paths,
             remove_triallelic_sites = args.remove_triallelic_sites,
             convert_to_binary = args.convert_to_binary,
             sequence_ids_to_remove = args.sample_to_delete)

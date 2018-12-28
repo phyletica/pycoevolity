@@ -4,6 +4,7 @@ import sys
 import os
 import logging
 import re
+import math
 
 from pycoevolity.fileio import ReadFile
 from pycoevolity import tempfs
@@ -242,7 +243,7 @@ class EcoevolityStdOut(object):
         return sum(self._numbers_of_patterns) / float(len(self._numbers_of_patterns))
 
 
-class PyradLoci(object):
+class Loci(object):
     symbol_to_states = {
             'A': ('A',),
             'C': ('C',),
@@ -281,30 +282,73 @@ class PyradLoci(object):
             ('A', 'C', 'G', 'T') : 'N',
             }
 
-    def __init__(self, path,
-            remove_triallelic_sites = False,
-            convert_to_binary = False,
-            sequence_ids_to_remove = []):
+    def __init__(self):
         self._labels = set()
         self._population_to_labels = None
         self._populations = None
         self._numbers_of_sites = []
         self._tempfs = tempfs.TempFileSystem()
         self._tmp_locus_paths = []
-        self._remove_triallelic_sites = remove_triallelic_sites
-        self._convert_to_binary = convert_to_binary
+        self._remove_triallelic_sites = False
+        self._convert_to_binary = False
         self._number_of_triallelic_sites = 0
-        self._paths = [path]
+        self._paths = []
         self._sequences_removed = {}
         self._label_suffix = None
         self._label_prefix = None
         self._sample_indices = None
+
+    def clone(self):
+        o = self.__class__()
+        o._labels = self._labels
+        o._population_to_labels = self._population_to_labels
+        o._populations = self._populations
+        o._numbers_of_sites = self._numbers_of_sites
+        o._tempfs = self._tempfs
+        o._tmp_locus_paths = self._tmp_locus_paths
+        o._remove_triallelic_sites = self._remove_triallelic_sites
+        o._convert_to_binary = self._convert_to_binary
+        o._number_of_triallelic_sites = self._number_of_triallelic_sites
+        o._paths = self._paths
+        o._sequences_removed = self._sequences_removed
+        o._label_suffix = self._label_suffix
+        o._label_prefix = self._label_prefix
+        o._sample_indices = self._sample_indices
+        return o
+
+    @classmethod
+    def from_pyrad(cls, loci_path,
+            remove_triallelic_sites = False,
+            convert_to_binary = False,
+            sequence_ids_to_remove = []):
+        data = cls()
+        data._remove_triallelic_sites = remove_triallelic_sites
+        data._convert_to_binary = convert_to_binary
+        data._paths = [loci_path]
         if sequence_ids_to_remove:
-            self._sequences_removed = dict(zip(
+            data._sequences_removed = dict(zip(
                     sequence_ids_to_remove,
                     (0 for i in range(len(sequence_ids_to_remove)))
                     ))
-        self._parse_loci_file()
+        data._parse_loci_file()
+        return data
+
+    @classmethod
+    def from_fastas(cls, paths,
+            remove_triallelic_sites = False,
+            convert_to_binary = False,
+            sequence_ids_to_remove = []):
+        data = cls()
+        data._remove_triallelic_sites = remove_triallelic_sites
+        data._convert_to_binary = convert_to_binary
+        data._paths = paths
+        if sequence_ids_to_remove:
+            data._sequences_removed = dict(zip(
+                    sequence_ids_to_remove,
+                    (0 for i in range(len(sequence_ids_to_remove)))
+                    ))
+        data._parse_fasta_files()
+        return data
 
     def __del__(self):
         self._tempfs.purge()
@@ -327,6 +371,43 @@ class PyradLoci(object):
             indices.append(
                     rng.randint(0, max_index))
         self._sample_indices = sorted(indices)
+
+    def get_clone_of_unsampled_loci(self):
+        c = self.clone()
+        indices = []
+        for i in range(self.number_of_loci):
+            if i not in self._sample_indices:
+                indices.append(i)
+        c._sample_indices = indices
+        return c
+
+    def split_loci(self, rng,
+            auto_annotate_labels = True):
+        self.clear_loci_samples()
+        half_n_loci = int(math.ceil(self.number_of_loci / 2.0))
+        self.sample_loci(
+                rng = rng,
+                number_of_samples = half_n_loci,
+                with_replacement = False)
+        c = self.get_clone_of_unsampled_loci()
+        if auto_annotate_labels:
+            if self._label_prefix is None:
+                self._label_prefix = "set1"
+            else:
+                self._label_prefix += "set1"
+            if self._label_suffix is None:
+                self._label_suffix = "set1"
+            else:
+                self._label_suffix += "set1"
+            if c._label_prefix is None:
+                c._label_prefix = "set2"
+            else:
+                c._label_prefix += "set2"
+            if c._label_suffix is None:
+                c._label_suffix = "set2"
+            else:
+                c._label_suffix += "set2"
+        return c
 
     def clear_loci_samples(self):
         self._sample_indices = None
@@ -807,34 +888,7 @@ class PyradLoci(object):
                             label = prefix + label + suffix,
                             sequence = seq))
 
-class FastaLoci(PyradLoci):
-
-    def __init__(self, paths,
-            remove_triallelic_sites = False,
-            convert_to_binary = False,
-            sequence_ids_to_remove = []):
-        self._labels = set()
-        self._population_to_labels = None
-        self._populations = None
-        self._numbers_of_sites = []
-        self._tempfs = tempfs.TempFileSystem()
-        self._tmp_locus_paths = []
-        self._remove_triallelic_sites = remove_triallelic_sites
-        self._convert_to_binary = convert_to_binary
-        self._number_of_triallelic_sites = 0
-        self._paths = paths
-        self._sequences_removed = {}
-        self._label_suffix = None
-        self._label_prefix = None
-        self._sample_indices = None
-        if sequence_ids_to_remove:
-            self._sequences_removed = dict(zip(
-                    sequence_ids_to_remove,
-                    (0 for i in range(len(sequence_ids_to_remove)))
-                    ))
-        self._parse_loci_file()
-
-    def _parse_loci_file(self):
+    def _parse_fasta_files(self):
         for path in self._paths:
             seqs = self.parse_fasta_file(path)
             self._process_locus(seqs)
