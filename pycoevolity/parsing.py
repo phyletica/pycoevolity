@@ -20,6 +20,16 @@ def line_count(stream):
         count += 1
     return count
 
+def data_line_count(path):
+    count = 0
+    with ReadFile(path) as stream:
+        parse_header(stream, strict = True, seek = False)
+        for line in stream:
+            if line.strip() == '':
+                continue
+            count += 1
+    return count
+
 def parse_header(file_stream, sep = '\t', strict = True, seek = True):
     try:
         header_line = next(file_stream)

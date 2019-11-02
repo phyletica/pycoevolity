@@ -30,6 +30,7 @@ setup(
                 'pyco-sumevents = pycoevolity.cli.sumevents:main',
                 'pyco-sumsizes = pycoevolity.cli.sumsizes:main',
                 'pyco-sumchains = pycoevolity.cli.sumchains:main',
+                'pyco-sumsims = pycoevolity.cli.sumsims:main',
             ],
         },
 )
