@@ -14,6 +14,31 @@ import glob
 
 import pycoevolity
 
+MATPLOTLIB_AVAILABLE = False
+try:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from matplotlib import gridspec
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    sys.stderr.write('WARNING: matplotlib could not be imported; '
+            'plotting functionality not supported\n')
+
+if MATPLOTLIB_AVAILABLE:
+    # Use TrueType (42) fonts rather than Type 3 fonts
+    mpl.rcParams["pdf.fonttype"] = 42
+    mpl.rcParams["ps.fonttype"] = 42
+    tex_font_settings = {
+            "text.usetex": True,
+            "font.family": "sans-serif",
+            "text.latex.preamble" : [
+                    "\\usepackage[T1]{fontenc}",
+                    "\\usepackage[cm]{sfmath}",
+                    ]
+    }
+    mpl.rcParams.update(tex_font_settings)
+
+
 
 class ScatterData(object):
     def __init__(self,
@@ -265,6 +290,9 @@ def parse_simulation_results(true_value_paths,
     number_of_samples = None
     number_of_samples_per_chain = None
     expected_number_of_samples = None
+    height_keys = []
+    ancestral_pop_size_keys = []
+    descendant_pop_size_keys = []
     for i, true_val_path in enumerate(true_value_paths):
         true_val_path_match = true_value_path_pattern.match(
                 os.path.basename(true_val_path))
@@ -303,6 +331,9 @@ def parse_simulation_results(true_value_paths,
                     result_keys,
                     ([] for i in range(len(result_keys)))
                     ))
+            height_keys = post_sample.get_height_keys()
+            ancestral_pop_size_keys = post_sample.get_ancestral_pop_size_keys()
+            descendant_pop_size_keys = post_sample.get_descendant_pop_size_keys()
         if number_of_runs != len(state_sample_paths):
             sys.stderr.write(
                 "WARNING: found output from {nruns} runs for sim {sim_num};\n"
@@ -342,7 +373,11 @@ def parse_simulation_results(true_value_paths,
                 post_sample = post_sample,
                 number_of_runs = number_of_runs,
                 results = results)
-    return result_keys, results
+    return (results,
+            result_keys,
+            height_keys,
+            ancestral_pop_size_keys,
+            descendant_pop_size_keys)
 
 def get_errors(values, lowers, uppers):
     n = len(values)
@@ -354,6 +389,7 @@ def get_errors(values, lowers, uppers):
 def generate_scatter_plot(
         data,
         plot_path,
+        parameter_symbol = "t",
         title = None,
         title_size = 16.0,
         x_label = None,
@@ -514,7 +550,13 @@ def main(argv = sys.argv):
             type = pycoevolity.argparse_utils.arg_is_nonnegative_int,
             default = 0,
             help = ('The number of samples to remove from the beginning of '
-                    'each log file as burn in.'))
+                    'each log file as burn in. Default: 0.'))
+    parser.add_argument('-o', '--output-dir',
+            action = 'store',
+            type = pycoevolity.argparse_utils.arg_is_dir,
+            default = os.getcwd(),
+            help = ('Path to directory in which to write output files. '
+                    'Default is the current working directory.'))
     parser.add_argument('-p', '--prefix',
             action = 'store',
             type = str,
@@ -541,8 +583,13 @@ def main(argv = sys.argv):
             len(true_value_paths),
             sim_dir))
     
-    result_keys, results = parse_simulation_results(true_value_paths,
-            burnin = args.burnin)
+    (results,
+            result_keys,
+            height_keys,
+            ancestral_pop_size_keys,
+            descendant_pop_size_keys) = parse_simulation_results(
+                    true_value_paths,
+                    burnin = args.burnin)
 
     # Write summary table to stdout
     for row in pycoevolity.parsing.dict_line_iter(results, sep = '\t', header = result_keys):
@@ -551,29 +598,14 @@ def main(argv = sys.argv):
     if args.no_plot:
         sys.exit(0)
 
+    if not MATPLOTLIB_AVAILABLE:
+        sys.stderr.write("ERROR: Unable to import matplotlib for generating plots\n")
+        sys.exit(1)
+
 
     ###################################################################
     # Plotting
     ###################################################################
-    import matplotlib as mpl
-    
-    # Use TrueType (42) fonts rather than Type 3 fonts
-    mpl.rcParams["pdf.fonttype"] = 42
-    mpl.rcParams["ps.fonttype"] = 42
-    tex_font_settings = {
-            "text.usetex": True,
-            "font.family": "sans-serif",
-            "text.latex.preamble" : [
-                    "\\usepackage[T1]{fontenc}",
-                    "\\usepackage[cm]{sfmath}",
-                    ]
-    }
-    
-    mpl.rcParams.update(tex_font_settings)
-    
-    import matplotlib.pyplot as plt
-    from matplotlib import gridspec
-
     brooks_gelman_1998_recommended_psrf = 1.2
 
     pad_left = 0.16
@@ -583,12 +615,204 @@ def main(argv = sys.argv):
     plot_width = 2.8
     plot_height = 2.2
 
-    header_keys = tuple(pycoevolity.parsing.parse_header_from_path(true_value_paths[0]))
-    height_parameters = [k for k in header_keys if k.startswith("root_height_")]
-    ancestral_pop_size_parameters = [k for k in header_keys if k.startswith("pop_size_root_")]
-    print height_parameters
-    
-    
+    path_prefix = os.path.join(args.output_dir, args.prefix)
+
+    # Plot div times
+    parameter_symbol = "t"
+    data = ScatterData.init(
+            results = results,
+            parameters = height_keys,
+            highlight_parameter_prefix = "psrf",
+            highlight_threshold = brooks_gelman_1998_recommended_psrf,
+            highlight_greater_than = True)
+    plot_path = "{prefix}all-comparisons-div-time.pdf".format(
+            prefix = path_prefix)
+    generate_scatter_plot(
+            data = data,
+            plot_path = plot_path,
+            parameter_symbol = parameter_symbol,
+            title = None,
+            title_size = 16.0,
+            x_label = "True divergence time",
+            x_label_size = 16.0,
+            y_label = "Estimated divergence time",
+            y_label_size = 16.0,
+            plot_width = plot_width,
+            plot_height = plot_height,
+            pad_left = pad_left,
+            pad_right = pad_right,
+            pad_bottom = pad_bottom,
+            pad_top = pad_top,
+            force_shared_xy_ranges = True,
+            xy_limits = None,
+            include_coverage = True,
+            include_rmse = True,
+            include_identity_line = True,
+            include_error_bars = True)
+    for parameter in height_keys:
+        data = ScatterData.init(
+                results = results,
+                parameters = [parameter],
+                highlight_parameter_prefix = "psrf",
+                highlight_threshold = brooks_gelman_1998_recommended_psrf,
+                highlight_greater_than = True)
+        comparison_label = parameter[12:]
+        plot_path = "{prefix}{label}-div-time.pdf".format(
+                prefix = path_prefix,
+                label = comparison_label)
+        generate_scatter_plot(
+                data = data,
+                plot_path = plot_path,
+                parameter_symbol = parameter_symbol,
+                title = None,
+                title_size = 16.0,
+                x_label = "True divergence time",
+                x_label_size = 16.0,
+                y_label = "Estimated divergence time",
+                y_label_size = 16.0,
+                plot_width = plot_width,
+                plot_height = plot_height,
+                pad_left = pad_left,
+                pad_right = pad_right,
+                pad_bottom = pad_bottom,
+                pad_top = pad_top,
+                force_shared_xy_ranges = True,
+                xy_limits = None,
+                include_coverage = True,
+                include_rmse = True,
+                include_identity_line = True,
+                include_error_bars = True)
+
+    # Plot ancestral pop sizes
+    parameter_symbol = "N_e"
+    data = ScatterData.init(
+            results = results,
+            parameters = ancestral_pop_size_keys,
+            highlight_parameter_prefix = "psrf",
+            highlight_threshold = brooks_gelman_1998_recommended_psrf,
+            highlight_greater_than = True)
+    plot_path = "{prefix}all-comparisons-ancestral-pop-size.pdf".format(
+            prefix = path_prefix)
+    generate_scatter_plot(
+            data = data,
+            plot_path = plot_path,
+            parameter_symbol = parameter_symbol,
+            title = None,
+            title_size = 16.0,
+            x_label = "True ancestral $N_e$",
+            x_label_size = 16.0,
+            y_label = "Estimated ancestral $N_e$",
+            y_label_size = 16.0,
+            plot_width = plot_width,
+            plot_height = plot_height,
+            pad_left = pad_left,
+            pad_right = pad_right,
+            pad_bottom = pad_bottom,
+            pad_top = pad_top,
+            force_shared_xy_ranges = True,
+            xy_limits = None,
+            include_coverage = True,
+            include_rmse = True,
+            include_identity_line = True,
+            include_error_bars = True)
+    for parameter in ancestral_pop_size_keys:
+        data = ScatterData.init(
+                results = results,
+                parameters = [parameter],
+                highlight_parameter_prefix = "psrf",
+                highlight_threshold = brooks_gelman_1998_recommended_psrf,
+                highlight_greater_than = True)
+        comparison_label = parameter[14:]
+        plot_path = "{prefix}{label}-ancestral-pop-size.pdf".format(
+                prefix = path_prefix,
+                label = comparison_label)
+        generate_scatter_plot(
+                data = data,
+                plot_path = plot_path,
+                parameter_symbol = parameter_symbol,
+                title = None,
+                title_size = 16.0,
+                x_label = "True ancestral $N_e$",
+                x_label_size = 16.0,
+                y_label = "Estimated ancestral $N_e$",
+                y_label_size = 16.0,
+                plot_width = plot_width,
+                plot_height = plot_height,
+                pad_left = pad_left,
+                pad_right = pad_right,
+                pad_bottom = pad_bottom,
+                pad_top = pad_top,
+                force_shared_xy_ranges = True,
+                xy_limits = None,
+                include_coverage = True,
+                include_rmse = True,
+                include_identity_line = True,
+                include_error_bars = True)
+
+    # Plot descendant pop sizes
+    data = ScatterData.init(
+            results = results,
+            parameters = descendant_pop_size_keys,
+            highlight_parameter_prefix = "psrf",
+            highlight_threshold = brooks_gelman_1998_recommended_psrf,
+            highlight_greater_than = True)
+    plot_path = "{prefix}all-comparisons-descendant-pop-size.pdf".format(
+            prefix = path_prefix)
+    generate_scatter_plot(
+            data = data,
+            plot_path = plot_path,
+            parameter_symbol = parameter_symbol,
+            title = None,
+            title_size = 16.0,
+            x_label = "True descendant $N_e$",
+            x_label_size = 16.0,
+            y_label = "Estimated descendant $N_e$",
+            y_label_size = 16.0,
+            plot_width = plot_width,
+            plot_height = plot_height,
+            pad_left = pad_left,
+            pad_right = pad_right,
+            pad_bottom = pad_bottom,
+            pad_top = pad_top,
+            force_shared_xy_ranges = True,
+            xy_limits = None,
+            include_coverage = True,
+            include_rmse = True,
+            include_identity_line = True,
+            include_error_bars = True)
+    for parameter in descendant_pop_size_keys:
+        data = ScatterData.init(
+                results = results,
+                parameters = [parameter],
+                highlight_parameter_prefix = "psrf",
+                highlight_threshold = brooks_gelman_1998_recommended_psrf,
+                highlight_greater_than = True)
+        comparison_label = parameter[9:]
+        plot_path = "{prefix}{label}-descendant-pop-size.pdf".format(
+                prefix = path_prefix,
+                label = comparison_label)
+        generate_scatter_plot(
+                data = data,
+                plot_path = plot_path,
+                parameter_symbol = parameter_symbol,
+                title = None,
+                title_size = 16.0,
+                x_label = "True descendant $N_e$",
+                x_label_size = 16.0,
+                y_label = "Estimated descendant $N_e$",
+                y_label_size = 16.0,
+                plot_width = plot_width,
+                plot_height = plot_height,
+                pad_left = pad_left,
+                pad_right = pad_right,
+                pad_bottom = pad_bottom,
+                pad_top = pad_top,
+                force_shared_xy_ranges = True,
+                xy_limits = None,
+                include_coverage = True,
+                include_rmse = True,
+                include_identity_line = True,
+                include_error_bars = True)
 
 
 if __name__ == "__main__":

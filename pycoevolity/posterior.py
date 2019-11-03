@@ -298,6 +298,22 @@ class PosteriorSample(object):
         self.number_of_samples = 0
         self._parse_posterior_paths(include_time_in_coal_units)
 
+    def get_height_keys(self):
+        return self.height_keys
+
+    def get_ancestral_pop_size_keys(self):
+        k = []
+        for l in self.height_labels:
+            k.append("pop_size_root_{0}".format(l))
+        return k
+
+    def get_descendant_pop_size_keys(self):
+        k = []
+        for labels in self.tip_labels:
+            for l in labels:
+                k.append("pop_size_{0}".format(l))
+        return k
+
     def _parse_posterior_paths(self, include_time_in_coal_units = False):
         self.header = tuple(parsing.parse_header_from_path(self.paths[0]))
         d = parsing.get_dict_from_spreadsheets(self.paths, offset = self.burnin)
