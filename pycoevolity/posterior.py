@@ -17,7 +17,7 @@ def standardize_partition(elements):
     partition = []
     values = {}
     for i, el in enumerate(elements):
-        if not el_map.has_key(el):
+        if not el in el_map:
             el_map[el] = next_idx
             values[next_idx] = [el]
             next_idx += 1
