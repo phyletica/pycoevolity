@@ -375,6 +375,7 @@ def parse_simulation_results(true_value_paths,
                 results = results)
     return (results,
             result_keys,
+            number_of_comparisons,
             height_keys,
             ancestral_pop_size_keys,
             descendant_pop_size_keys)
@@ -385,6 +386,20 @@ def get_errors(values, lowers, uppers):
     assert(n == len(uppers))
     return [[values[i] - lowers[i] for i in range(n)],
             [uppers[i] - values[i] for i in range(n)]]
+
+def truncate_color_map(cmap, min_val = 0.0, max_val = 10, n = 100):
+    new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
+            'trunc({n},{a:.2f},{b:.2f})'.format(
+                    n = cmap.name,
+                    a = min_val,
+                    b = max_val),
+            cmap(list(get_sequence_iter(min_val, max_val, n))))
+    return new_cmap
+
+def get_sequence_iter(start = 0.0, stop = 1.0, n = 10):
+    assert(stop > start)
+    step = (stop - start) / float(n - 1)
+    return ((start + (i * step)) for i in range(n))
 
 def generate_scatter_plot(
         data,
@@ -536,6 +551,246 @@ def generate_scatter_plot(
             top = pad_top)
     plt.savefig(plot_path, dpi=600)
 
+def generate_model_plot(
+        results,
+        plot_path,
+        number_of_comparisons = 3,
+        show_all_models = False,
+        plot_title = None,
+        include_x_label = True,
+        include_y_label = True,
+        include_median = True,
+        include_cs = True,
+        include_prop_correct = True,
+        plot_width = 3.5,
+        plot_height = 3.0,
+        xy_label_size = 16.0,
+        title_size = 16.0,
+        pad_left = 0.2,
+        pad_right = 0.99,
+        pad_bottom = 0.18,
+        pad_top = 0.9,
+        lower_annotation_y = 0.02,
+        upper_annotation_y = 0.92,
+        model_key = "model",
+        num_events_key = "num_events"):
+    # Only show all models for 3 comparisons
+    if show_all_models and (number_of_comparisons != 3):
+        show_all_models = False
+    cmap = truncate_color_map(plt.cm.binary, 0.0, 0.65, 100)
+    model_to_index = {
+            "0,0,0": 0,
+            "0,0,1": 1,
+            "0,1,0": 2,
+            "0,1,1": 3,
+            "0,1,2": 4,
+            }
+    index_to_model = {}
+    for k, v in model_to_index.items():
+        index_to_model[v] = k
+
+    plt.close('all')
+    fig = plt.figure(figsize = (plot_width, plot_height))
+    gs = gridspec.GridSpec(1, 1,
+            wspace = 0.0,
+            hspace = 0.0)
+
+    true_map_nevents = []
+    true_map_model = []
+    true_map_nevents_probs = []
+    for i in range(number_of_comparisons):
+        true_map_nevents.append([0 for i in range(number_of_comparisons)])
+        true_map_nevents_probs.append([[] for i in range(number_of_comparisons)])
+    for i in range(5):
+        true_map_model.append([0 for i in range(5)])
+        # true_map_nevents_probs.append([[] for i in range(5)])
+    true_nevents = tuple(int(x) for x in results["true_{num_events}".format(num_events = num_events_key)])
+    map_nevents = tuple(int(x) for x in results["map_{num_events}".format(num_events = num_events_key)])
+    true_model = tuple(x for x in results["true_{model}".format(model = model_key)])
+    map_model = tuple(x for x in results["map_{model}".format(model = model_key)])
+    true_nevents_cred_levels = tuple(float(x) for x in results["true_{num_events}_cred_level".format(num_events = num_events_key)])
+    true_model_cred_levels = tuple(float(x) for x in results["true_{model}_cred_level".format(model = model_key)])
+    assert(len(true_nevents) == len(map_nevents))
+    assert(len(true_nevents) == len(true_nevents_cred_levels))
+    assert(len(true_nevents) == len(true_model_cred_levels))
+    assert(len(true_nevents) == len(true_model))
+    assert(len(true_nevents) == len(map_model))
+
+    true_nevents_probs = []
+    map_nevents_probs = []
+    for i in range(len(true_nevents)):
+        true_nevents_probs.append(float(
+            results["{num_events}_{n}_p".format(num_events = num_events_key, n = true_nevents[i])][i]))
+        map_nevents_probs.append(float(
+            results["{num_events}_{n}_p".format(num_events = num_events_key, n = map_nevents[i])][i]))
+    assert(len(true_nevents) == len(true_nevents_probs))
+    assert(len(true_nevents) == len(map_nevents_probs))
+
+    mean_true_nevents_prob = sum(true_nevents_probs) / len(true_nevents_probs)
+    median_true_nevents_prob = pycoevolity.stats.median(true_nevents_probs)
+
+    true_model_probs = tuple(float(x) for x in results["true_{model}_p".format(model = model_key)])
+    assert(len(true_nevents) == len(true_model_probs))
+
+    mean_true_model_prob = sum(true_model_probs) / len(true_model_probs)
+    median_true_model_prob = pycoevolity.stats.median(true_model_probs)
+
+    nevents_within_95_cred = 0
+    model_within_95_cred = 0
+    ncorrect = 0
+    model_ncorrect = 0
+    for i in range(len(true_nevents)):
+        true_map_nevents[map_nevents[i] - 1][true_nevents[i] - 1] += 1
+        true_map_nevents_probs[map_nevents[i] - 1][true_nevents[i] - 1].append(map_nevents_probs[i])
+        if show_all_models:
+            true_map_model[model_to_index[map_model[i]]][model_to_index[true_model[i]]] += 1
+        if true_nevents_cred_levels[i] <= 0.95:
+            nevents_within_95_cred += 1
+        if true_model_cred_levels[i] <= 0.95:
+            model_within_95_cred += 1
+        if true_nevents[i] == map_nevents[i]:
+            ncorrect += 1
+        if true_model[i] == map_model[i]:
+            model_ncorrect += 1
+    p_nevents_within_95_cred = nevents_within_95_cred / float(len(true_nevents))
+    p_model_within_95_cred = model_within_95_cred / float(len(true_nevents))
+    p_correct = ncorrect / float(len(true_nevents))
+    p_model_correct = model_ncorrect /  float(len(true_nevents))
+
+    ax = plt.subplot(gs[0, 0])
+
+    if show_all_models:
+        ax.imshow(true_map_model,
+                origin = 'lower',
+                cmap = cmap,
+                interpolation = 'none',
+                aspect = 'auto'
+                )
+        for i, row_list in enumerate(true_map_model):
+            for j, n in enumerate(row_list):
+                ax.text(j, i,
+                        str(n),
+                        horizontalalignment = "center",
+                        verticalalignment = "center",
+                        # fontsize = 8,
+                        )
+    else:
+        ax.imshow(true_map_nevents,
+                origin = 'lower',
+                cmap = cmap,
+                interpolation = 'none',
+                aspect = 'auto'
+                )
+        for i, row_list in enumerate(true_map_nevents):
+            for j, num_events in enumerate(row_list):
+                ax.text(j, i,
+                        str(num_events),
+                        horizontalalignment = "center",
+                        verticalalignment = "center")
+
+    if include_cs:
+        if show_all_models:
+            ax.text(0.98, lower_annotation_y,
+                    "$p(\\mathcal{{T}} \\in \\textrm{{\\sffamily CS}}) = {0:.3f}$".format(
+                            p_model_within_95_cred),
+                    horizontalalignment = "right",
+                    verticalalignment = "bottom",
+                    transform = ax.transAxes)
+        else:
+            ax.text(0.98, lower_annotation_y,
+                    "$p(k \\in \\textrm{{\\sffamily CS}}) = {0:.3f}$".format(
+                            p_nevents_within_95_cred),
+                    horizontalalignment = "right",
+                    verticalalignment = "bottom",
+                    transform = ax.transAxes)
+    if include_prop_correct:
+        if show_all_models:
+            ax.text(0.02, upper_annotation_y,
+                    "$p(\\hat{{\\mathcal{{T}}}} = \\mathcal{{T}}) = {0:.3f}$".format(
+                            p_model_correct),
+                    horizontalalignment = "left",
+                    verticalalignment = "bottom",
+                    transform = ax.transAxes)
+        else:
+            ax.text(0.02, upper_annotation_y,
+                    "$p(\\hat{{k}} = k) = {0:.3f}$".format(
+                            p_correct),
+                    horizontalalignment = "left",
+                    verticalalignment = "bottom",
+                    transform = ax.transAxes)
+    if include_median:
+        if show_all_models:
+            ax.text(0.98, upper_annotation_y,
+                    "$\\widetilde{{p(\\mathcal{{T}}|\\mathbf{{D}})}} = {0:.3f}$".format(
+                            median_true_model_prob),
+                    horizontalalignment = "right",
+                    verticalalignment = "bottom",
+                    transform = ax.transAxes)
+        else:
+            ax.text(0.98, upper_annotation_y,
+                    "$\\widetilde{{p(k|\\mathbf{{D}})}} = {0:.3f}$".format(
+                            median_true_nevents_prob),
+                    horizontalalignment = "right",
+                    verticalalignment = "bottom",
+                    transform = ax.transAxes)
+    if include_x_label:
+        if show_all_models:
+            ax.set_xlabel("True model ($\\mathcal{{T}}$)",
+                    # labelpad = 8.0,
+                    fontsize = xy_label_size)
+        else:
+            ax.set_xlabel("True \\# of events ($k$)",
+                    # labelpad = 8.0,
+                    fontsize = xy_label_size)
+    if include_y_label:
+        if show_all_models:
+            ax.set_ylabel("MAP model ($\\hat{{\\mathcal{{T}}}}$)",
+                    labelpad = 8.0,
+                    fontsize = xy_label_size)
+        else:
+            ax.set_ylabel("MAP \\# of events ($\\hat{{k}}$)",
+                    labelpad = 8.0,
+                    fontsize = xy_label_size)
+    if plot_title:
+        ax.set_title(plot_title,
+                fontsize = title_size)
+
+    # Make sure ticks correspond only with number of events or model
+    if not show_all_models:
+        ax.xaxis.set_ticks(range(number_of_comparisons))
+        ax.yaxis.set_ticks(range(number_of_comparisons))
+    else:
+        ax.xaxis.set_ticks(range(5))
+        ax.yaxis.set_ticks(range(5))
+    xtick_labels = [item for item in ax.get_xticklabels()]
+    for i in range(len(xtick_labels)):
+        if show_all_models:
+            xtick_labels[i].set_text(index_to_model[i])
+        else:
+            xtick_labels[i].set_text(str(i + 1))
+    ytick_labels = [item for item in ax.get_yticklabels()]
+    for i in range(len(ytick_labels)):
+        if show_all_models:
+            ytick_labels[i].set_text(index_to_model[i])
+        else:
+            ytick_labels[i].set_text(str(i + 1))
+    ax.set_xticklabels(xtick_labels)
+    ax.set_yticklabels(ytick_labels)
+
+    gs.update(
+            left = pad_left,
+            right = pad_right,
+            bottom = pad_bottom,
+            top = pad_top)
+    plt.savefig(plot_path)
+
+def plot_path_writable(plot_path, force = False):
+    if force or (not os.path.exists(plot_path)):
+        return True
+    sys.stderr.write("Plot path \'{0}\' already exists.\n"
+            "  Use \'--force\' option to force overwrite.\n".format(plot_path))
+    return False
+
 
 def main(argv = sys.argv):
     pycoevolity.write_splash(sys.stderr)
@@ -585,6 +840,7 @@ def main(argv = sys.argv):
     
     (results,
             result_keys,
+            number_of_comparisons,
             height_keys,
             ancestral_pop_size_keys,
             descendant_pop_size_keys) = parse_simulation_results(
@@ -608,16 +864,17 @@ def main(argv = sys.argv):
     ###################################################################
     brooks_gelman_1998_recommended_psrf = 1.2
 
-    pad_left = 0.16
+    pad_left = 0.22
     pad_right = 0.94
-    pad_bottom = 0.12
+    pad_bottom = 0.18
     pad_top = 0.965
-    plot_width = 2.8
-    plot_height = 2.2
+    plot_width = 4.0
+    plot_height = 3.2
 
     path_prefix = os.path.join(args.output_dir, args.prefix)
 
-    # Plot div times
+    # Plot event times
+    sys.stderr.write("Plotting event times...\n")
     parameter_symbol = "t"
     data = ScatterData.init(
             results = results,
@@ -625,17 +882,18 @@ def main(argv = sys.argv):
             highlight_parameter_prefix = "psrf",
             highlight_threshold = brooks_gelman_1998_recommended_psrf,
             highlight_greater_than = True)
-    plot_path = "{prefix}all-comparisons-div-time.pdf".format(
+    plot_path = "{prefix}all-comparisons-event-time.pdf".format(
             prefix = path_prefix)
-    generate_scatter_plot(
+    if plot_path_writable(plot_path, force = args.force):
+        generate_scatter_plot(
             data = data,
             plot_path = plot_path,
             parameter_symbol = parameter_symbol,
             title = None,
             title_size = 16.0,
-            x_label = "True divergence time",
+            x_label = "True event time",
             x_label_size = 16.0,
-            y_label = "Estimated divergence time",
+            y_label = "Estimated event time",
             y_label_size = 16.0,
             plot_width = plot_width,
             plot_height = plot_height,
@@ -657,33 +915,35 @@ def main(argv = sys.argv):
                 highlight_threshold = brooks_gelman_1998_recommended_psrf,
                 highlight_greater_than = True)
         comparison_label = parameter[12:]
-        plot_path = "{prefix}{label}-div-time.pdf".format(
+        plot_path = "{prefix}{label}-event-time.pdf".format(
                 prefix = path_prefix,
                 label = comparison_label)
-        generate_scatter_plot(
-                data = data,
-                plot_path = plot_path,
-                parameter_symbol = parameter_symbol,
-                title = None,
-                title_size = 16.0,
-                x_label = "True divergence time",
-                x_label_size = 16.0,
-                y_label = "Estimated divergence time",
-                y_label_size = 16.0,
-                plot_width = plot_width,
-                plot_height = plot_height,
-                pad_left = pad_left,
-                pad_right = pad_right,
-                pad_bottom = pad_bottom,
-                pad_top = pad_top,
-                force_shared_xy_ranges = True,
-                xy_limits = None,
-                include_coverage = True,
-                include_rmse = True,
-                include_identity_line = True,
-                include_error_bars = True)
+        if plot_path_writable(plot_path, force = args.force):
+            generate_scatter_plot(
+                    data = data,
+                    plot_path = plot_path,
+                    parameter_symbol = parameter_symbol,
+                    title = None,
+                    title_size = 16.0,
+                    x_label = "True event time",
+                    x_label_size = 16.0,
+                    y_label = "Estimated event time",
+                    y_label_size = 16.0,
+                    plot_width = plot_width,
+                    plot_height = plot_height,
+                    pad_left = pad_left,
+                    pad_right = pad_right,
+                    pad_bottom = pad_bottom,
+                    pad_top = pad_top,
+                    force_shared_xy_ranges = True,
+                    xy_limits = None,
+                    include_coverage = True,
+                    include_rmse = True,
+                    include_identity_line = True,
+                    include_error_bars = True)
 
     # Plot ancestral pop sizes
+    sys.stderr.write("Plotting ancestral population sizes...\n")
     parameter_symbol = "N_e"
     data = ScatterData.init(
             results = results,
@@ -693,39 +953,7 @@ def main(argv = sys.argv):
             highlight_greater_than = True)
     plot_path = "{prefix}all-comparisons-ancestral-pop-size.pdf".format(
             prefix = path_prefix)
-    generate_scatter_plot(
-            data = data,
-            plot_path = plot_path,
-            parameter_symbol = parameter_symbol,
-            title = None,
-            title_size = 16.0,
-            x_label = "True ancestral $N_e$",
-            x_label_size = 16.0,
-            y_label = "Estimated ancestral $N_e$",
-            y_label_size = 16.0,
-            plot_width = plot_width,
-            plot_height = plot_height,
-            pad_left = pad_left,
-            pad_right = pad_right,
-            pad_bottom = pad_bottom,
-            pad_top = pad_top,
-            force_shared_xy_ranges = True,
-            xy_limits = None,
-            include_coverage = True,
-            include_rmse = True,
-            include_identity_line = True,
-            include_error_bars = True)
-    for parameter in ancestral_pop_size_keys:
-        data = ScatterData.init(
-                results = results,
-                parameters = [parameter],
-                highlight_parameter_prefix = "psrf",
-                highlight_threshold = brooks_gelman_1998_recommended_psrf,
-                highlight_greater_than = True)
-        comparison_label = parameter[14:]
-        plot_path = "{prefix}{label}-ancestral-pop-size.pdf".format(
-                prefix = path_prefix,
-                label = comparison_label)
+    if plot_path_writable(plot_path, force = args.force):
         generate_scatter_plot(
                 data = data,
                 plot_path = plot_path,
@@ -748,8 +976,43 @@ def main(argv = sys.argv):
                 include_rmse = True,
                 include_identity_line = True,
                 include_error_bars = True)
+    for parameter in ancestral_pop_size_keys:
+        data = ScatterData.init(
+                results = results,
+                parameters = [parameter],
+                highlight_parameter_prefix = "psrf",
+                highlight_threshold = brooks_gelman_1998_recommended_psrf,
+                highlight_greater_than = True)
+        comparison_label = parameter[14:]
+        plot_path = "{prefix}{label}-ancestral-pop-size.pdf".format(
+                prefix = path_prefix,
+                label = comparison_label)
+        if plot_path_writable(plot_path, force = args.force):
+            generate_scatter_plot(
+                    data = data,
+                    plot_path = plot_path,
+                    parameter_symbol = parameter_symbol,
+                    title = None,
+                    title_size = 16.0,
+                    x_label = "True ancestral $N_e$",
+                    x_label_size = 16.0,
+                    y_label = "Estimated ancestral $N_e$",
+                    y_label_size = 16.0,
+                    plot_width = plot_width,
+                    plot_height = plot_height,
+                    pad_left = pad_left,
+                    pad_right = pad_right,
+                    pad_bottom = pad_bottom,
+                    pad_top = pad_top,
+                    force_shared_xy_ranges = True,
+                    xy_limits = None,
+                    include_coverage = True,
+                    include_rmse = True,
+                    include_identity_line = True,
+                    include_error_bars = True)
 
     # Plot descendant pop sizes
+    sys.stderr.write("Plotting descendant population sizes...\n")
     data = ScatterData.init(
             results = results,
             parameters = descendant_pop_size_keys,
@@ -758,39 +1021,7 @@ def main(argv = sys.argv):
             highlight_greater_than = True)
     plot_path = "{prefix}all-comparisons-descendant-pop-size.pdf".format(
             prefix = path_prefix)
-    generate_scatter_plot(
-            data = data,
-            plot_path = plot_path,
-            parameter_symbol = parameter_symbol,
-            title = None,
-            title_size = 16.0,
-            x_label = "True descendant $N_e$",
-            x_label_size = 16.0,
-            y_label = "Estimated descendant $N_e$",
-            y_label_size = 16.0,
-            plot_width = plot_width,
-            plot_height = plot_height,
-            pad_left = pad_left,
-            pad_right = pad_right,
-            pad_bottom = pad_bottom,
-            pad_top = pad_top,
-            force_shared_xy_ranges = True,
-            xy_limits = None,
-            include_coverage = True,
-            include_rmse = True,
-            include_identity_line = True,
-            include_error_bars = True)
-    for parameter in descendant_pop_size_keys:
-        data = ScatterData.init(
-                results = results,
-                parameters = [parameter],
-                highlight_parameter_prefix = "psrf",
-                highlight_threshold = brooks_gelman_1998_recommended_psrf,
-                highlight_greater_than = True)
-        comparison_label = parameter[9:]
-        plot_path = "{prefix}{label}-descendant-pop-size.pdf".format(
-                prefix = path_prefix,
-                label = comparison_label)
+    if plot_path_writable(plot_path, force = args.force):
         generate_scatter_plot(
                 data = data,
                 plot_path = plot_path,
@@ -813,6 +1044,66 @@ def main(argv = sys.argv):
                 include_rmse = True,
                 include_identity_line = True,
                 include_error_bars = True)
+    for parameter in descendant_pop_size_keys:
+        data = ScatterData.init(
+                results = results,
+                parameters = [parameter],
+                highlight_parameter_prefix = "psrf",
+                highlight_threshold = brooks_gelman_1998_recommended_psrf,
+                highlight_greater_than = True)
+        comparison_label = parameter[9:]
+        plot_path = "{prefix}{label}-descendant-pop-size.pdf".format(
+                prefix = path_prefix,
+                label = comparison_label)
+        if plot_path_writable(plot_path, force = args.force):
+            generate_scatter_plot(
+                    data = data,
+                    plot_path = plot_path,
+                    parameter_symbol = parameter_symbol,
+                    title = None,
+                    title_size = 16.0,
+                    x_label = "True descendant $N_e$",
+                    x_label_size = 16.0,
+                    y_label = "Estimated descendant $N_e$",
+                    y_label_size = 16.0,
+                    plot_width = plot_width,
+                    plot_height = plot_height,
+                    pad_left = pad_left,
+                    pad_right = pad_right,
+                    pad_bottom = pad_bottom,
+                    pad_top = pad_top,
+                    force_shared_xy_ranges = True,
+                    xy_limits = None,
+                    include_coverage = True,
+                    include_rmse = True,
+                    include_identity_line = True,
+                    include_error_bars = True)
+
+    # Plot model performance
+    sys.stderr.write("Plotting event models...\n")
+    plot_path = "{prefix}all-comparisons-model.pdf".format(
+            prefix = path_prefix)
+    if plot_path_writable(plot_path, force = args.force):
+        generate_model_plot(
+                results = results,
+                plot_path = plot_path,
+                number_of_comparisons = number_of_comparisons,
+                plot_title = None,
+                include_x_label = True,
+                include_y_label = True,
+                include_median = True,
+                include_cs = True,
+                include_prop_correct = True,
+                plot_width = plot_width * 0.90,
+                plot_height = plot_height,
+                xy_label_size = 16.0,
+                title_size = 16.0,
+                pad_left = pad_left - 0.04,
+                pad_right = 0.985,
+                pad_bottom = pad_bottom,
+                pad_top = pad_top - 0.07,
+                lower_annotation_y = 0.01,
+                upper_annotation_y = 1.015)
 
 
 if __name__ == "__main__":
