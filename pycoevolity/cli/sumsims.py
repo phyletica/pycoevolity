@@ -253,7 +253,7 @@ def append_results_from_sim_rep(
         ss = pycoevolity.stats.get_summary(post_sample.parameter_samples[p])
         ess = pycoevolity.stats.effective_sample_size(
                 post_sample.parameter_samples[p])
-        nsamples_per_chain = post_sample.number_of_samples / number_of_runs
+        nsamples_per_chain = int(post_sample.number_of_samples / number_of_runs)
         ess_sum = 0.0
         samples_by_chain = []
         for i in range(number_of_runs):
