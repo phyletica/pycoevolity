@@ -1,3 +1,30 @@
+Version 0.2.0
+=============
+
+Changes
+-------
+-   Adding sumsims CLI tool for summarizing and plotting results of ecoevolity
+    analyses on datasets simulated with simcoevolity.
+
+-   Adding formatting options to CLI plotting tools for greater control over
+    output plots.
+
+-   Adding option to output violin plots for sumsizes and sumtimes tools.
+
+-   Adding option to plotting tools to ignore (i.e., do not plot) specified
+    comparisons.
+
+-   Adding option to PosteriorSample class to store event times in coalescent
+    units.
+
+-   Posterior classes updated to keep track of models and number of events
+    separately for divergence and demographic comparisons.
+
+-   Adding option to randomly split loci from one dataset into two datasets.
+    This option is offered by CLI tools for converting pyrad loci file or fasta
+    files to a nexus or phylip alignment.
+
+
 Version 0.1.2
 =============
 
