@@ -808,7 +808,7 @@ def main(argv = sys.argv):
                     'each log file as burn in. Default: 0.'))
     parser.add_argument('-o', '--output-dir',
             action = 'store',
-            type = pycoevolity.argparse_utils.arg_is_dir,
+            type = str,
             default = os.getcwd(),
             help = ('Path to directory in which to write output files. '
                     'Default is the current working directory.'))
@@ -871,6 +871,14 @@ def main(argv = sys.argv):
     plot_width = 4.0
     plot_height = 3.2
 
+    if not os.path.exists(args.output_dir):
+        try:
+            os.mkdir(args.output_dir)
+        except:
+            sys.stderr("ERROR: unable to create output directory "
+                    "\'{0}\'\n".format(
+                        args.output_dir))
+            raise
     path_prefix = os.path.join(args.output_dir, args.prefix)
 
     # Plot event times
