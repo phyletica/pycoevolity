@@ -17,6 +17,7 @@ import pycoevolity
 MATPLOTLIB_AVAILABLE = False
 try:
     import matplotlib as mpl
+    mpl.use("agg")
     import matplotlib.pyplot as plt
     from matplotlib import gridspec
     MATPLOTLIB_AVAILABLE = True
