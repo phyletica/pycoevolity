@@ -29,15 +29,17 @@ if MATPLOTLIB_AVAILABLE:
     # Use TrueType (42) fonts rather than Type 3 fonts
     mpl.rcParams["pdf.fonttype"] = 42
     mpl.rcParams["ps.fonttype"] = 42
-    tex_font_settings = {
-            "text.usetex": True,
-            "font.family": "sans-serif",
-            "text.latex.preamble" : [
-                    "\\usepackage[T1]{fontenc}",
-                    "\\usepackage[cm]{sfmath}",
-                    ]
-    }
-    mpl.rcParams.update(tex_font_settings)
+
+    ## These settings are nice, but require latex to be installed
+    # tex_font_settings = {
+    #         "text.usetex": True,
+    #         "font.family": "sans-serif",
+    #         "text.latex.preamble" : [
+    #                 "\\usepackage[T1]{fontenc}",
+    #                 "\\usepackage[cm]{sfmath}",
+    #                 ]
+    # }
+    # mpl.rcParams.update(tex_font_settings)
 
 
 
@@ -467,15 +469,15 @@ def generate_scatter_plot(
                 y = data.y,
                 yerr = get_errors(data.y, data.y_lower, data.y_upper),
                 ecolor = '0.65',
-                elinewidth = 0.5,
-                capsize = 0.8,
+                elinewidth = 1.0,
+                capsize = 1.5,
                 barsabove = False,
                 marker = 'o',
                 linestyle = '',
                 markerfacecolor = 'none',
                 markeredgecolor = '0.35',
-                markeredgewidth = 0.7,
-                markersize = 2.5,
+                markeredgewidth = 1.0,
+                markersize = 3.5,
                 zorder = 100,
                 rasterized = True)
     else:
@@ -485,8 +487,8 @@ def generate_scatter_plot(
                 linestyle = '',
                 markerfacecolor = 'none',
                 markeredgecolor = '0.35',
-                markeredgewidth = 0.7,
-                markersize = 2.5,
+                markeredgewidth = 1.0,
+                markersize = 3.5,
                 zorder = 100,
                 rasterized = True)
     if data.has_highlights():
@@ -496,8 +498,8 @@ def generate_scatter_plot(
                 linestyle = '',
                 markerfacecolor = 'none',
                 markeredgecolor = data.highlight_color,
-                markeredgewidth = 0.7,
-                markersize = 2.5,
+                markeredgewidth = 1.0,
+                markersize = 3.5,
                 zorder = 200,
                 rasterized = True)
     ax.set_xlim(x_axis_min, x_axis_max)
@@ -513,26 +515,34 @@ def generate_scatter_plot(
                 marker = '',
                 zorder = 0)
     if include_coverage:
-        ax.text(0.02, 0.97,
-                "\\normalsize\\noindent$p({0:s} \\in \\textrm{{\\sffamily CI}}) = {1:.3f}$".format(
+        ax.text(0.02, 0.98,
+                "$p({0:s} \\in CI) = {1:.3f}$".format(
                         parameter_symbol,
                         proportion_within_ci),
                 horizontalalignment = "left",
                 verticalalignment = "top",
                 transform = ax.transAxes,
                 size = 8.0,
+                bbox = {
+                    'facecolor': 'white',
+                    'edgecolor': 'white',
+                    'pad': 2},
                 zorder = 300)
     if include_rmse:
-        text_y = 0.97
+        text_y = 0.92
         if include_coverage:
-            text_y = 0.87
+            text_y = 0.92
         ax.text(0.02, text_y,
-                "\\normalsize\\noindent RMSE = {0:.2e}".format(
+                "RMSE = {0:.2e}".format(
                         rmse),
                 horizontalalignment = "left",
                 verticalalignment = "top",
                 transform = ax.transAxes,
                 size = 8.0,
+                bbox = {
+                    'facecolor': 'white',
+                    'edgecolor': 'white',
+                    'pad': 2},
                 zorder = 300)
     if x_label is not None:
         ax.set_xlabel(
@@ -545,6 +555,10 @@ def generate_scatter_plot(
     if title is not None:
         ax.set_title(plot_title,
                 fontsize = title_size)
+
+    # Limit ticks and labels along x-axis to avoid label overlap
+    ax.xaxis.set_major_locator(plt.MaxNLocator(4))
+
     gs.update(
             left = pad_left,
             right = pad_right,
@@ -692,14 +706,14 @@ def generate_model_plot(
     if include_cs:
         if show_all_models:
             ax.text(0.98, lower_annotation_y,
-                    "$p(\\mathcal{{T}} \\in \\textrm{{\\sffamily CS}}) = {0:.3f}$".format(
+                    "$p(\\mathcal{{T}} \\in CS) = {0:.3f}$".format(
                             p_model_within_95_cred),
                     horizontalalignment = "right",
                     verticalalignment = "bottom",
                     transform = ax.transAxes)
         else:
             ax.text(0.98, lower_annotation_y,
-                    "$p(k \\in \\textrm{{\\sffamily CS}}) = {0:.3f}$".format(
+                    "$p(k \\in CS) = {0:.3f}$".format(
                             p_nevents_within_95_cred),
                     horizontalalignment = "right",
                     verticalalignment = "bottom",
@@ -740,7 +754,7 @@ def generate_model_plot(
                     # labelpad = 8.0,
                     fontsize = xy_label_size)
         else:
-            ax.set_xlabel("True \\# of events ($k$)",
+            ax.set_xlabel("True # of events ($k$)",
                     # labelpad = 8.0,
                     fontsize = xy_label_size)
     if include_y_label:
@@ -749,7 +763,7 @@ def generate_model_plot(
                     labelpad = 8.0,
                     fontsize = xy_label_size)
         else:
-            ax.set_ylabel("MAP \\# of events ($\\hat{{k}}$)",
+            ax.set_ylabel("MAP # of events ($\\hat{{k}}$)",
                     labelpad = 8.0,
                     fontsize = xy_label_size)
     if plot_title:
@@ -865,12 +879,12 @@ def main(argv = sys.argv):
     ###################################################################
     brooks_gelman_1998_recommended_psrf = 1.2
 
-    pad_left = 0.22
+    pad_left = 0.21
     pad_right = 0.94
-    pad_bottom = 0.18
+    pad_bottom = 0.16
     pad_top = 0.965
-    plot_width = 4.0
-    plot_height = 3.2
+    plot_width = 5.0
+    plot_height = 3.8
 
     if not os.path.exists(args.output_dir):
         try:
@@ -1103,7 +1117,7 @@ def main(argv = sys.argv):
                 include_median = True,
                 include_cs = True,
                 include_prop_correct = True,
-                plot_width = plot_width * 0.90,
+                plot_width = plot_width * 0.85,
                 plot_height = plot_height,
                 xy_label_size = 16.0,
                 title_size = 16.0,
