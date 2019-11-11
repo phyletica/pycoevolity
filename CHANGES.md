@@ -3,6 +3,14 @@ Version 0.2.1
 
 Changes
 -------
+-   Updating sumsims tool to avoid LaTeX dependencies.
+
+
+Version 0.2.1
+=============
+
+Changes
+-------
 -   Updating sumsims tool to specify a backend for matplotlib (mpl.use("agg")).
     This should avoid the invalid DISPLAY environmental variable RuntimeError
     on some systems.
