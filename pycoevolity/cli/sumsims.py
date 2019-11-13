@@ -379,6 +379,7 @@ def parse_simulation_results(true_value_paths,
     return (results,
             result_keys,
             number_of_comparisons,
+            number_of_runs,
             height_keys,
             ancestral_pop_size_keys,
             descendant_pop_size_keys)
@@ -564,7 +565,8 @@ def generate_scatter_plot(
             right = pad_right,
             bottom = pad_bottom,
             top = pad_top)
-    plt.savefig(plot_path, dpi=600)
+    # plt.savefig(plot_path, dpi=600)
+    plt.savefig(plot_path)
 
 def generate_model_plot(
         results,
@@ -839,39 +841,71 @@ def main(argv = sys.argv):
     parser.add_argument('--no-plot',
             action = 'store_true',
             help = ('Skip plotting; only report summary table.'))
+    parser.add_argument('-t', '--summary-table',
+            type = pycoevolity.argparse_utils.arg_is_file,
+            help = ('Path to summary table previously output by pyco-sumsims. '
+                    'Only plotting is done (no simulation files are parsed.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
     else:
         args = parser.parse_args(argv)
 
-    sim_dir = args.sim_directory
+    if args.summary_table:
+        results = pycoevolity.parsing.get_dict_from_spreadsheets(
+                [args.summary_table],
+                sep = "\t",
+                header = None)
+        number_of_comparisons = len(results["true_model"][0].split(","))
+        height_keys = []
+        ancestral_pop_size_keys = []
+        descendant_pop_size_keys = []
+        for k in results.keys():
+            if k.startswith("true_root_height_"):
+                height_keys.append(k[5:])
+                continue
+            if k.startswith("true_pop_size_"):
+                if k.startswith("true_pop_size_root_"):
+                    ancestral_pop_size_keys.append(k[5:])
+                else:
+                    descendant_pop_size_keys.append(k[5:])
 
-    true_value_paths = sorted(glob.glob(os.path.join(sim_dir,
-            "*simcoevolity-sim-*-true-values.txt")))
-    sys.stderr.write("{0} simulations found in \'{1}\'\n".format(
-            len(true_value_paths),
-            sim_dir))
-    
-    (results,
-            result_keys,
-            number_of_comparisons,
-            height_keys,
-            ancestral_pop_size_keys,
-            descendant_pop_size_keys) = parse_simulation_results(
-                    true_value_paths,
-                    burnin = args.burnin)
+        number_of_runs = 1
+        number_pattern = re.compile(r"^\d+\S*$")
+        # if PSRF is a number, multiple runs were summarized and so we can use
+        # PSRF for plotting
+        if number_pattern.match(results["psrf_{0}".format(height_keys[0])][0]):
+            number_of_runs = 2
 
-    # Write summary table to stdout
-    for row in pycoevolity.parsing.dict_line_iter(results, sep = '\t', header = result_keys):
-        sys.stdout.write(row)
+    else:
+        sim_dir = args.sim_directory
 
-    if args.no_plot:
-        sys.exit(0)
+        true_value_paths = sorted(glob.glob(os.path.join(sim_dir,
+                "*simcoevolity-sim-*-true-values.txt")))
+        sys.stderr.write("{0} simulations found in \'{1}\'\n".format(
+                len(true_value_paths),
+                sim_dir))
+        
+        (results,
+                result_keys,
+                number_of_comparisons,
+                number_of_runs,
+                height_keys,
+                ancestral_pop_size_keys,
+                descendant_pop_size_keys) = parse_simulation_results(
+                        true_value_paths,
+                        burnin = args.burnin)
 
-    if not MATPLOTLIB_AVAILABLE:
-        sys.stderr.write("ERROR: Unable to import matplotlib for generating plots\n")
-        sys.exit(1)
+        # Write summary table to stdout
+        for row in pycoevolity.parsing.dict_line_iter(results, sep = '\t', header = result_keys):
+            sys.stdout.write(row)
+
+        if args.no_plot:
+            sys.exit(0)
+
+        if not MATPLOTLIB_AVAILABLE:
+            sys.stderr.write("ERROR: Unable to import matplotlib for generating plots\n")
+            sys.exit(1)
 
 
     ###################################################################
@@ -896,15 +930,27 @@ def main(argv = sys.argv):
             raise
     path_prefix = os.path.join(args.output_dir, args.prefix)
 
+    highlight_parameter_prefix = "psrf"
+    highlight_threshold = brooks_gelman_1998_recommended_psrf
+    highlight_greater_than = True
+    if number_of_runs < 2:
+        highlight_parameter_prefix = "ess"
+        highlight_threshold = 200
+        highlight_greater_than = False
+    sys.stderr.write("Highlighting plotted estimates with {statistic} {relation} {threshold}\n".format(
+            statistic = highlight_parameter_prefix.upper(),
+            relation = ">" if highlight_greater_than else "<",
+            threshold = highlight_threshold))
+
     # Plot event times
     sys.stderr.write("Plotting event times...\n")
     parameter_symbol = "t"
     data = ScatterData.init(
             results = results,
             parameters = height_keys,
-            highlight_parameter_prefix = "psrf",
-            highlight_threshold = brooks_gelman_1998_recommended_psrf,
-            highlight_greater_than = True)
+            highlight_parameter_prefix = highlight_parameter_prefix,
+            highlight_threshold = highlight_threshold,
+            highlight_greater_than = highlight_greater_than)
     plot_path = "{prefix}all-comparisons-event-time.pdf".format(
             prefix = path_prefix)
     if plot_path_writable(plot_path, force = args.force):
@@ -934,9 +980,9 @@ def main(argv = sys.argv):
         data = ScatterData.init(
                 results = results,
                 parameters = [parameter],
-                highlight_parameter_prefix = "psrf",
-                highlight_threshold = brooks_gelman_1998_recommended_psrf,
-                highlight_greater_than = True)
+                highlight_parameter_prefix = highlight_parameter_prefix,
+                highlight_threshold = highlight_threshold,
+                highlight_greater_than = highlight_greater_than)
         comparison_label = parameter[12:]
         plot_path = "{prefix}{label}-event-time.pdf".format(
                 prefix = path_prefix,
@@ -971,9 +1017,9 @@ def main(argv = sys.argv):
     data = ScatterData.init(
             results = results,
             parameters = ancestral_pop_size_keys,
-            highlight_parameter_prefix = "psrf",
-            highlight_threshold = brooks_gelman_1998_recommended_psrf,
-            highlight_greater_than = True)
+            highlight_parameter_prefix = highlight_parameter_prefix,
+            highlight_threshold = highlight_threshold,
+            highlight_greater_than = highlight_greater_than)
     plot_path = "{prefix}all-comparisons-ancestral-pop-size.pdf".format(
             prefix = path_prefix)
     if plot_path_writable(plot_path, force = args.force):
@@ -1003,9 +1049,9 @@ def main(argv = sys.argv):
         data = ScatterData.init(
                 results = results,
                 parameters = [parameter],
-                highlight_parameter_prefix = "psrf",
-                highlight_threshold = brooks_gelman_1998_recommended_psrf,
-                highlight_greater_than = True)
+                highlight_parameter_prefix = highlight_parameter_prefix,
+                highlight_threshold = highlight_threshold,
+                highlight_greater_than = highlight_greater_than)
         comparison_label = parameter[14:]
         plot_path = "{prefix}{label}-ancestral-pop-size.pdf".format(
                 prefix = path_prefix,
@@ -1039,9 +1085,9 @@ def main(argv = sys.argv):
     data = ScatterData.init(
             results = results,
             parameters = descendant_pop_size_keys,
-            highlight_parameter_prefix = "psrf",
-            highlight_threshold = brooks_gelman_1998_recommended_psrf,
-            highlight_greater_than = True)
+            highlight_parameter_prefix = highlight_parameter_prefix,
+            highlight_threshold = highlight_threshold,
+            highlight_greater_than = highlight_greater_than)
     plot_path = "{prefix}all-comparisons-descendant-pop-size.pdf".format(
             prefix = path_prefix)
     if plot_path_writable(plot_path, force = args.force):
@@ -1071,9 +1117,9 @@ def main(argv = sys.argv):
         data = ScatterData.init(
                 results = results,
                 parameters = [parameter],
-                highlight_parameter_prefix = "psrf",
-                highlight_threshold = brooks_gelman_1998_recommended_psrf,
-                highlight_greater_than = True)
+                highlight_parameter_prefix = highlight_parameter_prefix,
+                highlight_threshold = highlight_threshold,
+                highlight_greater_than = highlight_greater_than)
         comparison_label = parameter[9:]
         plot_path = "{prefix}{label}-descendant-pop-size.pdf".format(
                 prefix = path_prefix,
