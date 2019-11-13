@@ -4,7 +4,7 @@ import sys
 import os
 
 __project__ = "pycoevolity"
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 __author__ = "Jamie Oaks"
 __copyright__ = "Copyright 2017 Jamie Oaks."
 __license__ = """

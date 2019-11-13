@@ -1,3 +1,12 @@
+Version 0.2.4
+=============
+
+Changes
+-------
+-   Fixing highlighting bug in plots of sumsims tool (highlighting estimates
+    with poor ESS values, rather than good).
+
+
 Version 0.2.3
 =============
 
