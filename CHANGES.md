@@ -1,4 +1,15 @@
-Version 0.2.1
+Version 0.2.3
+=============
+
+Changes
+-------
+-   Updating sumsims tool to make plotting more robust across matplotlib
+    environments.
+-   Adding option to plot directly from previous summary table produced by
+    sumsims.
+
+
+Version 0.2.2
 =============
 
 Changes
