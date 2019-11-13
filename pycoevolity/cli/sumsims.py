@@ -75,6 +75,7 @@ class ScatterData(object):
         d._y_lower = []
         d._y_upper = []
         d._highlight_threshold = highlight_threshold
+        d._highlight_greater_than = highlight_greater_than
         d._highlight_values = []
         d._highlight_indices = []
         for parameter_str in parameters:
