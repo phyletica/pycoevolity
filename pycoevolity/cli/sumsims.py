@@ -815,8 +815,13 @@ def main(argv = sys.argv):
 
     parser.add_argument('sim_directory',
             metavar = 'PATH-TO-SIM-DIRECTORY',
-            type = pycoevolity.argparse_utils.arg_is_dir,
-            help = ('Path to directory with simulation files.'))
+            type = pycoevolity.argparse_utils.arg_is_path,
+            help = ('Path to directory with simulation files. '
+                    'Also, this can be a path to a summary table previously '
+                    'output by pyco-sumsims. If a summary-table path is '
+                    'provided, only plotting is done (no simulation files are '
+                    'parsed), and so the \'-b/--burnin\' and \'--no-plot\' '
+                    'options will be ignored.'))
     parser.add_argument('-b', '--burnin',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_nonnegative_int,
@@ -841,31 +846,35 @@ def main(argv = sys.argv):
     parser.add_argument('--no-plot',
             action = 'store_true',
             help = ('Skip plotting; only report summary table.'))
-    parser.add_argument('-t', '--summary-table',
-            type = pycoevolity.argparse_utils.arg_is_file,
-            help = ('Path to summary table previously output by pyco-sumsims. '
-                    'Only plotting is done (no simulation files are parsed.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
     else:
         args = parser.parse_args(argv)
 
-    if args.summary_table:
+    summary_table_path = None
+    if os.path.isfile(args.sim_directory):
+        summary_table_path = args.sim_directory
+
+    if summary_table_path is not None:
         results = pycoevolity.parsing.get_dict_from_spreadsheets(
-                [args.summary_table],
+                [summary_table_path],
                 sep = "\t",
                 header = None)
+        for k in ("sim", "sample_size", "true_model", "map_model", "true_num_events", "map_num_events"):
+            if k not in results:
+                raise Exception("Problem parsing summary table. "
+                        "\'{0}\' not found as column header".format(k))
         number_of_comparisons = len(results["true_model"][0].split(","))
         height_keys = []
         ancestral_pop_size_keys = []
         descendant_pop_size_keys = []
         for k in results.keys():
-            if k.startswith("true_root_height_"):
+            if k.startswith("mean_root_height_"):
                 height_keys.append(k[5:])
                 continue
-            if k.startswith("true_pop_size_"):
-                if k.startswith("true_pop_size_root_"):
+            if k.startswith("mean_pop_size_"):
+                if k.startswith("mean_pop_size_root_"):
                     ancestral_pop_size_keys.append(k[5:])
                 else:
                     descendant_pop_size_keys.append(k[5:])
@@ -882,6 +891,9 @@ def main(argv = sys.argv):
 
         true_value_paths = sorted(glob.glob(os.path.join(sim_dir,
                 "*simcoevolity-sim-*-true-values.txt")))
+        if len(true_value_paths) < 1:
+            raise Exception("No simulations found in \'{0}\'".format(
+                sim_dir))
         sys.stderr.write("{0} simulations found in \'{1}\'\n".format(
                 len(true_value_paths),
                 sim_dir))
