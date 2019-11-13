@@ -480,7 +480,7 @@ def generate_scatter_plot(
                 markeredgewidth = 1.0,
                 markersize = 3.5,
                 zorder = 100,
-                rasterized = True)
+                rasterized = False)
     else:
         line, = ax.plot(data.x, data.y)
         plt.setp(line,
@@ -491,9 +491,9 @@ def generate_scatter_plot(
                 markeredgewidth = 1.0,
                 markersize = 3.5,
                 zorder = 100,
-                rasterized = True)
+                rasterized = False)
     if data.has_highlights():
-        line, = ax.plot(x = data.highlight_x, y = data.highlight_y)
+        line, = ax.plot(data.highlight_x, data.highlight_y)
         plt.setp(line,
                 marker = 'o',
                 linestyle = '',
@@ -502,7 +502,7 @@ def generate_scatter_plot(
                 markeredgewidth = 1.0,
                 markersize = 3.5,
                 zorder = 200,
-                rasterized = True)
+                rasterized = False)
     ax.set_xlim(x_axis_min, x_axis_max)
     ax.set_ylim(y_axis_min, y_axis_max)
     if include_identity_line:
@@ -930,13 +930,15 @@ def main(argv = sys.argv):
             raise
     path_prefix = os.path.join(args.output_dir, args.prefix)
 
-    highlight_parameter_prefix = "psrf"
-    highlight_threshold = brooks_gelman_1998_recommended_psrf
-    highlight_greater_than = True
-    if number_of_runs < 2:
-        highlight_parameter_prefix = "ess"
-        highlight_threshold = 200
-        highlight_greater_than = False
+    highlight_parameter_prefix = "ess"
+    highlight_threshold = 200
+    highlight_greater_than = False
+    # Because the number of runs could be variable among replicates, just using
+    # ESS for simplicity
+    # if number_of_runs > 1:
+    #     highlight_parameter_prefix = "psrf"
+    #     highlight_threshold = brooks_gelman_1998_recommended_psrf
+    #     highlight_greater_than = True
     sys.stderr.write("Highlighting plotted estimates with {statistic} {relation} {threshold}\n".format(
             statistic = highlight_parameter_prefix.upper(),
             relation = ">" if highlight_greater_than else "<",
