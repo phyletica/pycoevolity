@@ -816,6 +816,7 @@ def main(argv = sys.argv):
 
     parser.add_argument('sim_directory',
             metavar = 'PATH-TO-SIM-DIRECTORY',
+            nargs = '+',
             type = pycoevolity.argparse_utils.arg_is_path,
             help = ('Path to directory with simulation files. '
                     'Also, this can be a path to a summary table previously '
@@ -853,20 +854,39 @@ def main(argv = sys.argv):
     else:
         args = parser.parse_args(argv)
 
-    summary_table_path = None
-    if os.path.isfile(args.sim_directory):
-        summary_table_path = args.sim_directory
+    summary_table_paths = []
+    sim_dir_paths = []
+    for path in args.sim_directory:
+        if os.path.isfile(path):
+            summary_table_paths.append(path)
+        else:
+            sim_dir_paths.append(path)
 
-    if summary_table_path is not None:
+    if summary_table_paths and sim_dir_paths:
+        raise Exception(
+                "Multiple paths provided that are a mix of files and "
+                "directories. You can provide a path to a single directory "
+                "with simulations files OR one or more paths to summary-table "
+                "files. You cannot provide a mix of both.")
+    if len(sim_dir_paths) > 1:
+        raise Exception(
+                "Paths to {0} directories were provided. Only one path to a "
+                "directory containing simulation files is allowed.".format(
+                        len(sim_dir_paths)))
+
+    if summary_table_paths:
         results = pycoevolity.parsing.get_dict_from_spreadsheets(
-                [summary_table_path],
+                summary_table_paths,
                 sep = "\t",
                 header = None)
         for k in ("sim", "sample_size", "true_model", "map_model", "true_num_events", "map_num_events"):
             if k not in results:
                 raise Exception("Problem parsing summary table. "
                         "\'{0}\' not found as column header".format(k))
-        number_of_comparisons = len(results["true_model"][0].split(","))
+        example_event_model = results["true_model"][0]
+        number_of_comparisons = len(example_event_model.split(","))
+        if (len(example_event_model) > 1) and (example_event_model.find(",") < 0):
+            number_of_comparisons = len(example_event_model)
         height_keys = []
         ancestral_pop_size_keys = []
         descendant_pop_size_keys = []
@@ -888,7 +908,7 @@ def main(argv = sys.argv):
             number_of_runs = 2
 
     else:
-        sim_dir = args.sim_directory
+        sim_dir = sim_dir_paths[0]
 
         true_value_paths = sorted(glob.glob(os.path.join(sim_dir,
                 "*simcoevolity-sim-*-true-values.txt")))
