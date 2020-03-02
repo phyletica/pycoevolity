@@ -54,6 +54,10 @@ def main(argv = sys.argv):
             type = pycoevolity.argparse_utils.arg_is_positive_float,
             default = 7.0,
             help = ('The width of the plot. Default: 7.0.'))
+    parser.add_argument('--use-r',
+            action = 'store_true',
+            help = ('Create and execute an R script for plotting with ggplot2. '
+                    'Default is to use matplotlib for plotting.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -64,32 +68,26 @@ def main(argv = sys.argv):
     if len(prefix.split(os.path.sep)) < 2:
         prefix = os.path.join(os.curdir, prefix)
 
-    r_path = prefix + "pycoevolity-plot-nevents.R"
     pdf_path = prefix + "pycoevolity-nevents.pdf"
-    png_path = prefix + "pycoevolity-nevents.png"
-    svg_path = prefix + "pycoevolity-nevents.svg"
-    output_dir = os.path.dirname(r_path)
+    output_dir = os.path.dirname(pdf_path)
     if not output_dir:
         output_dir = os.curdir
     if not args.force:
-        for p in [r_path, pdf_path, png_path, svg_path]:
-            if os.path.exists(p):
-                raise Exception(
-                        "\nERROR: File {0!r} already exists.\n"
-                        "Use \'-p/--prefix\' option to specify a different prefix,\n"
-                        "or the \'-f/--force\' option to overwrite existing "
-                        "files.".format(p))
+        if os.path.exists(pdf_path):
+            raise Exception(
+                    "\nERROR: File {0!r} already exists.\n"
+                    "Use \'-p/--prefix\' option to specify a different prefix,\n"
+                    "or the \'-f/--force\' option to overwrite existing "
+                    "files.".format(pdf_path))
 
     sys.stderr.write("Parsing nevents file...\n")
     nevents = pycoevolity.posterior.SumcoevolityNeventsTable(args.nevents_path)
 
     max_prob = max(nevents.posterior_probs)
-    plot_prior = "FALSE"
     prior_probs = [0.0] * nevents.number_of_elements
     bfs = ["0"] * nevents.number_of_elements
     if not nevents.no_prior:
         max_prob = max(nevents.posterior_probs + nevents.prior_probs)
-        plot_prior = "TRUE"
         prior_probs = nevents.prior_probs 
         bfs = ["{:.3g}".format(x) for x in nevents.bayes_factors]
         for i, a in enumerate(nevents.bayes_factors_annotations):
@@ -98,6 +96,107 @@ def main(argv = sys.argv):
 
     plot_width = args.width
     plot_height = plot_width / 1.618034
+
+    try:
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+        from matplotlib import gridspec
+    except ImportError as e:
+        sys.stderr.write('WARNING: matplotlib could not be imported; '
+                'it is needed for Python plotting. Will try using '
+                'R instead.')
+        args.use_r = True
+
+    if not args.use_r:
+        #######################################################################
+        # Using matplotlib for plotting
+        #######################################################################
+        # Use TrueType (42) fonts rather than Type 3 fonts
+        mpl.rcParams["pdf.fonttype"] = 42
+        mpl.rcParams["ps.fonttype"] = 42
+
+        fig = plt.figure(figsize = (plot_width, plot_height))
+        gs = gridspec.GridSpec(1, 1,
+                wspace = 0.0,
+                hspace = 0.0)
+        ax = plt.subplot(gs[0, 0])
+
+        nevents_indices = [float(x) for x in range(nevents.number_of_elements)]
+        bar_width = 0.45
+        if nevents.no_prior:
+            bar_width *= 2.0
+        posterior_color = "0.3"
+        prior_color = "0.85"
+
+        bars_posterior = ax.bar(
+                nevents_indices,
+                nevents.posterior_probs,
+                bar_width,
+                color = posterior_color,
+                label = "Posterior")
+        if not nevents.no_prior:
+            bars_prior = ax.bar(
+                    [x + bar_width for x in nevents_indices],
+                    prior_probs,
+                    bar_width,
+                    color = prior_color,
+                    label = "Prior")
+
+        ax.set_xlabel("Number of events")
+        ax.set_ylabel("Probability")
+        x_tick_labels = [str(i + 1) for i in range(nevents.number_of_elements)]
+        if nevents.no_prior:
+            ax.set_ylabel("Posterior probability")
+            plt.xticks(
+                    nevents_indices,
+                    x_tick_labels
+                    )
+        else:
+            y_min, y_max = ax.get_ylim()
+            y_max *= 1.08
+            ax.set_ylim(y_min, y_max)
+            bar_midpoints = [x + (bar_width / 2.0) for x in nevents_indices]
+            plt.xticks(
+                    bar_midpoints,
+                    x_tick_labels
+                    )
+            for i, x in enumerate(bar_midpoints):
+                bf = bfs[i]
+                y = y_max * 0.99
+                if ((i + 1) % 2) == 0:
+                    y = y_max * 0.94 
+                ax.text(x, y, bf,
+                        horizontalalignment = "center",
+                        verticalalignment = "top",
+                        size = 8.0,
+                        zorder = 300)
+
+        if not nevents.no_prior:
+            ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2)
+        fig.tight_layout()
+        plt.savefig(pdf_path)
+
+        sys.exit()
+
+
+    ###########################################################################
+    # Creating and executing R script for plotting
+    ###########################################################################
+    r_path = prefix + "pycoevolity-plot-nevents.R"
+    png_path = prefix + "pycoevolity-nevents.png"
+    svg_path = prefix + "pycoevolity-nevents.svg"
+    if not args.force:
+        for p in [r_path, png_path, svg_path]:
+            if os.path.exists(p):
+                raise Exception(
+                        "\nERROR: File {0!r} already exists.\n"
+                        "Use \'-p/--prefix\' option to specify a different prefix,\n"
+                        "or the \'-f/--force\' option to overwrite existing "
+                        "files.".format(p))
+
+    plot_prior = "FALSE"
+    if not nevents.no_prior:
+        plot_prior = "TRUE"
     plot_units = "in"
     plot_scale = 8
     plot_base_size = 14
@@ -201,6 +300,8 @@ r <- tryCatch(
             pdf_path = os.path.basename(pdf_path),
             png_path = os.path.basename(png_path),
             svg_path = os.path.basename(svg_path))
+
+
 
     with open(r_path, "w") as out:
         out.write("{0}".format(rscript))
