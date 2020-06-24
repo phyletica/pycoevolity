@@ -11,3 +11,7 @@ class ArgumentError(PycoevolityError):
 class TempFSError(PycoevolityError):
     def __init__(self, *args, **kwargs):
         PycoevolityError.__init__(self, *args, **kwargs)
+
+class InvalidSetPartitionError(PycoevolityError):
+    def __init__(self, *args, **kwargs):
+        PycoevolityError.__init__(self, *args, **kwargs)

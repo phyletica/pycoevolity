@@ -16,7 +16,8 @@ setup(
         # test_suite = "pycoevolity.test",
         # test_loader = "unittest:TestLoader",
         install_requires = [
-            # 'matplotlib'
+            # 'matplotlib',
+            'munkres',
         ],
         entry_points = {
             'console_scripts': [

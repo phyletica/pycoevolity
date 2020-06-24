@@ -7,22 +7,9 @@ import logging
 
 from pycoevolity import parsing
 from pycoevolity import stats
+from pycoevolity import partition
 
 _LOG = logging.getLogger(__name__)
-
-
-def standardize_partition(elements):
-    el_map = {}
-    next_idx = 0
-    partition = []
-    values = {}
-    for i, el in enumerate(elements):
-        if not el in el_map:
-            el_map[el] = next_idx
-            values[next_idx] = [el]
-            next_idx += 1
-        partition.append(el_map[el])
-    return tuple(partition), values
 
 
 class PosteriorModelSummary(object):
@@ -33,6 +20,7 @@ class PosteriorModelSummary(object):
         self.number_of_samples = len(nevents)
         self.number_of_events_probabilities = stats.get_freqs(nevents)
         self.model_probabilities = stats.get_freqs(models)
+        self.set_partitions = partition.SetPartitionCollection.get_from_indices(models)
 
     def get_models(self):
         return sorted(self.model_probabilities.items(),
@@ -66,6 +54,10 @@ class PosteriorModelSummary(object):
 
     def get_model_probability(self, model_tuple):
         return self.model_probabilities.get(model_tuple, 0.0)
+
+    def distances_from(self, model_tuple):
+        p = partition.SetPartition(model_tuple)
+        return self.set_partitions.distances_from(p)
 
     def get_number_of_events_probability(self, number_of_events):
         return self.number_of_events_probabilities.get(number_of_events, 0.0)
@@ -182,6 +174,9 @@ class PosteriorSummary(object):
 
     def get_map_numbers_of_events(self):
         return self.model_summary.get_map_numbers_of_events()
+
+    def distances_from(model_tuple):
+        return self.model_summary.distances_from(model_tuple)
 
 
 class ChainConvergenceSummary(object):
@@ -371,8 +366,8 @@ class PosteriorSample(object):
             div_nevents = []
             demog_nevents = []
             for i in range(n):
-                div_m, vals = standardize_partition(int(d[h][i]) for h in self.div_height_index_keys)
-                demog_m, vals = standardize_partition(int(d[h][i]) for h in self.demog_height_index_keys)
+                div_m, vals = partition.standardize_partition(int(d[h][i]) for h in self.div_height_index_keys)
+                demog_m, vals = partition.standardize_partition(int(d[h][i]) for h in self.demog_height_index_keys)
                 div_n = max(div_m) + 1
                 demog_n = max(demog_m) + 1
                 div_models.append(div_m)

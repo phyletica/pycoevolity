@@ -34,6 +34,7 @@ import pycoevolity.stats
 import pycoevolity.parsing
 import pycoevolity.posterior
 import pycoevolity.argparse_utils
+import pycoevolity.partition
 
 def _get_git_data(repo_path):
     try:
