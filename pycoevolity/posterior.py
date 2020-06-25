@@ -192,7 +192,7 @@ class PosteriorSummary(object):
     def get_map_numbers_of_events(self):
         return self.model_summary.get_map_numbers_of_events()
 
-    def distances_from(model_tuple):
+    def distances_from(self, model_tuple):
         return self.model_summary.distances_from(model_tuple)
 
     def get_map_model_distances_from(self, model_tuple):
@@ -762,7 +762,7 @@ class PosteriorSample(object):
             sizes.append(rel_root_sizes)
         return labels, sizes
 
-    def distances_from(model_tuple):
+    def distances_from(self, model_tuple):
         return self.model_summary.distances_from(model_tuple)
 
     def get_map_model_distances_from(self, model_tuple):
