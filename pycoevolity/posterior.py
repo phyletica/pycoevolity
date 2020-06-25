@@ -762,6 +762,15 @@ class PosteriorSample(object):
             sizes.append(rel_root_sizes)
         return labels, sizes
 
+    def distances_from(model_tuple):
+        return self.model_summary.distances_from(model_tuple)
+
+    def get_map_model_distances_from(self, model_tuple):
+        return self.model_summary.get_map_model_distances_from(model_tuple)
+
+    def get_median_model_distances_from(self, model_tuple):
+        return self.model_summary.get_median_model_distances_from(model_tuple)
+
 
 class SumcoevolityNeventsTable(object):
     def __init__(self, sumcoevolity_nevents_table_path):
