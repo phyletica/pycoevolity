@@ -37,6 +37,53 @@ class Subset(object):
             self._value = value
         else:
             self.value = value
+
+    def __eq__(self, other):
+        """
+        We ignore value when checking equivalence.
+        """
+        if type(other) is type(self):
+            return self._indices == other._indices
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        if len(self._indices) < 1:
+            if len(other._indices) < 1:
+                return False
+            return True
+        if len(other._indices) < 1:
+            return False
+        return sorted(self._indices)[0] < sorted(other._indices)[0]
+
+    def __le__(self, other):
+        if len(self._indices) < 1:
+            if len(other._indices) < 1:
+                return True
+            return True
+        if len(other._indices) < 1:
+            return False
+        return sorted(self._indices)[0] <= sorted(other._indices)[0]
+
+    def __gt__(self, other):
+        if len(self._indices) < 1:
+            if len(other._indices) < 1:
+                return False
+            return False
+        if len(other._indices) < 1:
+            return True
+        return sorted(self._indices)[0] > sorted(other._indices)[0]
+
+    def __ge__(self, other):
+        if len(self._indices) < 1:
+            if len(other._indices) < 1:
+                return True
+            return False
+        if len(other._indices) < 1:
+            return True
+        return sorted(self._indices)[0] >= sorted(other._indices)[0]
     
     def add_index(self, i):
         if i in self._indices:
@@ -79,6 +126,16 @@ class SetPartition(object):
             self.add_subset(ss)
         if self._subsets:
             self.check_validity()
+        self._subsets_need_sorting = True
+        self._sort_subsets()
+
+    def __eq__(self, other):
+        """
+        We ignore value when checking equivalence.
+        """
+        if type(other) is type(self):
+            return self._subsets == other._subsets
+        return False
 
     @classmethod
     def get_from_indices(self, partition_indices):
@@ -97,6 +154,14 @@ class SetPartition(object):
             if i in self._indices:
                 raise errors.InvalidSetPartitionError("Duplicate element: {}".format(i))
             self._indices.add(i)
+        self._subsets_need_sorting = True
+
+    def as_indices(self):
+        indices = [-1] * self.number_of_elements
+        for subset_index, subset in enumerate(self._subsets):
+            for element_index in subset.set_of_indices:
+                indices[element_index] = subset_index
+        return tuple(indices)
 
     def _get_number_of_subsets(self):
         return len(self._subsets)
@@ -109,7 +174,13 @@ class SetPartition(object):
         return n
     number_of_elements = property(_get_number_of_elements)
 
+    def _sort_subsets(self):
+        if self._subsets_need_sorting:
+            self._subsets.sort()
+            self._subsets_need_sorting = False
+
     def _get_subsets(self):
+        self._sort_subsets()
         return self._subsets
     subsets = property(_get_subsets)
 
@@ -166,7 +237,7 @@ class SetPartition(object):
 
 class SetPartitionCollection(object):
     def __init__(self, set_partitions = []):
-        self._set_partitons = []
+        self._set_partitions = []
         for p in set_partitions:
             self.add_set_partition(p)
 
@@ -179,7 +250,7 @@ class SetPartitionCollection(object):
 
     def add_set_partition(self, p):
         assert isinstance(p, SetPartition)
-        self._set_partitons.append(p)
+        self._set_partitions.append(p)
 
     def _get_partitions(self):
         return self._set_partitions
