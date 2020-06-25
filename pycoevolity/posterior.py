@@ -13,14 +13,17 @@ _LOG = logging.getLogger(__name__)
 
 
 class PosteriorModelSummary(object):
-    def __init__(self, nevent_samples, model_samples):
+    def __init__(self, nevent_samples, model_samples, set_partitions = None):
         nevents = tuple(nevent_samples)
         models = tuple(model_samples)
         assert(len(nevents) == len(models))
         self.number_of_samples = len(nevents)
         self.number_of_events_probabilities = stats.get_freqs(nevents)
         self.model_probabilities = stats.get_freqs(models)
-        self.set_partitions = partition.SetPartitionCollection.get_from_indices(models)
+        self.set_partitions = None
+        if set_partitions:
+            assert set_partitions.number_of_partitions == len(models)
+            self.set_partitions = set_partitions
 
     def get_models(self):
         return sorted(self.model_probabilities.items(),
@@ -54,27 +57,6 @@ class PosteriorModelSummary(object):
 
     def get_model_probability(self, model_tuple):
         return self.model_probabilities.get(model_tuple, 0.0)
-
-    def distances_from(self, model_tuple):
-        p = partition.SetPartition(model_tuple)
-        return self.set_partitions.distances_from(p)
-
-    def get_map_model_distances_from(self, model_tuple):
-        distances = []
-        p = partition.SetPartition(model_tuple)
-        for map_model in self.get_map_models():
-            m = partition.SetPartition(map_model)
-            distances.append(p.distance(m))
-        return distances
-
-    def get_median_model_distances_from(self, model_tuple):
-        distances = []
-        p = partition.SetPartition(model_tuple)
-        median_models, min_dist = self.set_partitions.median_sampled_partitions()
-        for med_model in median_models:
-            m = partition.SetPartition(med_model)
-            distances.append(p.distance(m))
-        return distances
 
     def get_number_of_events_probability(self, number_of_events):
         return self.number_of_events_probabilities.get(number_of_events, 0.0)
@@ -118,6 +100,31 @@ class PosteriorModelSummary(object):
         assert(math.fabs(1.0 - total_prob) < 1e-6)
         return 1.0
 
+    def distances_from(self, model_tuple):
+        p = partition.SetPartition.get_from_indices(model_tuple)
+        return self.set_partitions.distances_from(p)
+
+    def get_map_model_distances_from(self, model_tuple):
+        distances = []
+        p = partition.SetPartition.get_from_indices(model_tuple)
+        for map_model in self.get_map_models():
+            m = partition.SetPartition.get_from_indices(map_model)
+            distances.append(p.distance(m))
+        return distances
+
+    def get_median_model_distances_from(self, model_tuple):
+        distances = []
+        p = partition.SetPartition.get_from_indices(model_tuple)
+        median_models, min_dist = self.set_partitions.median_sampled_partitions()
+        unique_median_models = set()
+        for m in median_models:
+            m_indices = m.as_indices()
+            if m_indices in unique_median_models:
+                continue
+            distances.append(p.distance(m))
+            unique_median_models.add(m_indices)
+        return distances
+
 
 class PosteriorSummary(object):
     def __init__(self, paths, burnin = 0):
@@ -125,6 +132,7 @@ class PosteriorSummary(object):
         self.parameter_summaries = {}
         self.model_summary = None
         self.height_index_keys = None
+        self.height_labels = None
         self.header = None
         self.burnin = burnin
         self.number_of_samples = 0
@@ -144,7 +152,22 @@ class PosteriorSummary(object):
                     (float(x) for x in v))
             assert(self.parameter_summaries[k]['n'] == n)
         self.number_of_samples = n
-        self.height_index_keys = tuple(h for h in self.header if h.startswith('root_height_index'))
+        self._parse_height_keys_and_labels()
+
+        set_partitions = partition.SetPartitionCollection()
+        for sample_idx in range(n):
+            height_index_to_subsets = {}
+            for comp_idx, l in enumerate(self.height_labels):
+                ht_key = "root_height_{0}".format(l)
+                ht_idx_key = "root_height_index_{0}".format(l)
+                ht = d[ht_key][sample_idx]
+                ht_idx = d[ht_idx_key][sample_idx]
+                if not ht_idx in height_index_to_subsets:
+                    height_index_to_subsets[ht_idx] = partition.Subset(value = float(ht))
+                height_index_to_subsets[ht_idx].add_index(comp_idx)
+            p = partition.SetPartition(height_index_to_subsets.values())
+            set_partitions.add_set_partition(p)
+
         models = []
         for i in range(n):
             models.append(tuple(int(d[h][i]) for h in self.height_index_keys))
@@ -153,8 +176,21 @@ class PosteriorSummary(object):
         nevent_samples = (int(x) for x in d['number_of_events'])
         self.model_summary = PosteriorModelSummary(
                 nevent_samples,
-                models)
+                models,
+                set_partitions)
         assert(self.model_summary.number_of_samples == self.number_of_samples)
+
+    def _parse_height_keys_and_labels(self):
+        ht_index_keys = []
+        labels = []
+        ht_index_prefix = "root_height_index_"
+        for h in self.header:
+            if h.startswith(ht_index_prefix):
+                ht_index_keys.append(h)
+                labels.append(h[len(ht_index_prefix):])
+        assert len(ht_index_keys) == len(labels)
+        self.height_index_keys = tuple(ht_index_keys)
+        self.height_labels = tuple(labels)
 
     def get_models(self):
         return self.model_summary.get_models()
@@ -309,6 +345,8 @@ class PosteriorSample(object):
         self.demog_height_index_keys = None
         self.height_keys = None
         self.height_labels = None
+        self.div_height_labels = None
+        self.demog_height_labels = None
         self.tip_labels = None
         self.number_of_comparisons = None
         self.header = None
@@ -360,13 +398,35 @@ class PosteriorSample(object):
                     self.div_height_index_keys = [self.height_index_keys[i]]
                 else:
                     self.div_height_index_keys.append(self.height_index_keys[i])
+                if not self.div_height_labels:
+                    self.div_height_labels = [self.height_labels[i]]
+                else:
+                    self.div_height_labels.append(self.height_labels[i])
             elif len(tlabels) == 1:
                 if not self.demog_height_index_keys:
                     self.demog_height_index_keys = [self.height_index_keys[i]]
                 else:
                     self.demog_height_index_keys.append(self.height_index_keys[i])
+                if not self.demog_height_labels:
+                    self.demog_height_labels = [self.height_labels[i]]
+                else:
+                    self.demog_height_labels.append(self.height_labels[i])
             else:
                 raise Exception("Unexpected number of tips: {0}".format(len(tlabels)))
+
+        set_partitions = partition.SetPartitionCollection()
+        for sample_idx in range(n):
+            height_index_to_subsets = {}
+            for comp_idx, l in enumerate(self.height_labels):
+                ht_key = "root_height_{0}".format(l)
+                ht_idx_key = "root_height_index_{0}".format(l)
+                ht = d[ht_key][sample_idx]
+                ht_idx = d[ht_idx_key][sample_idx]
+                if not ht_idx in height_index_to_subsets:
+                    height_index_to_subsets[ht_idx] = partition.Subset(value = float(ht))
+                height_index_to_subsets[ht_idx].add_index(comp_idx)
+            p = partition.SetPartition(height_index_to_subsets.values())
+            set_partitions.add_set_partition(p)
 
         models = []
         for i in range(n):
@@ -375,7 +435,8 @@ class PosteriorSample(object):
         self.parameter_samples['model'] = tuple(models)
         self.model_summary = PosteriorModelSummary(
                 self.parameter_samples['number_of_events'],
-                self.parameter_samples['model'])
+                self.parameter_samples['model'],
+                set_partitions)
         assert(self.model_summary.number_of_samples == self.number_of_samples)
         
         # Model summaries for pairs and singletons separately
@@ -388,6 +449,8 @@ class PosteriorSample(object):
             demog_models = []
             div_nevents = []
             demog_nevents = []
+            div_set_partitions = partition.SetPartitionCollection()
+            demog_set_partitions = partition.SetPartitionCollection()
             for i in range(n):
                 div_m, vals = partition.standardize_partition(int(d[h][i]) for h in self.div_height_index_keys)
                 demog_m, vals = partition.standardize_partition(int(d[h][i]) for h in self.demog_height_index_keys)
@@ -397,21 +460,50 @@ class PosteriorSample(object):
                 demog_models.append(demog_m)
                 div_nevents.append(div_n)
                 demog_nevents.append(demog_n)
+
+                div_index_to_subsets = {}
+                for div_comp_idx, l in enumerate(self.div_height_labels):
+                    ht_key = "root_height_{0}".format(l)
+                    ht_idx_key = "root_height_index_{0}".format(l)
+                    ht = d[ht_key][i]
+                    ht_idx = d[ht_idx_key][i]
+                    if not ht_idx in div_index_to_subsets:
+                        div_index_to_subsets[ht_idx] = partition.Subset(value = float(ht))
+                    div_index_to_subsets[ht_idx].add_index(div_comp_idx)
+                p = partition.SetPartition(div_index_to_subsets.values())
+                div_set_partitions.add_set_partition(p)
+
+                demog_index_to_subsets = {}
+                for demog_comp_idx, l in enumerate(self.demog_height_labels):
+                    ht_key = "root_height_{0}".format(l)
+                    ht_idx_key = "root_height_index_{0}".format(l)
+                    ht = d[ht_key][i]
+                    ht_idx = d[ht_idx_key][i]
+                    if not ht_idx in demog_index_to_subsets:
+                        demog_index_to_subsets[ht_idx] = partition.Subset(value = float(ht))
+                    demog_index_to_subsets[ht_idx].add_index(demog_comp_idx)
+                p = partition.SetPartition(demog_index_to_subsets.values())
+                demog_set_partitions.add_set_partition(p)
+
             assert len(div_models) == self.number_of_samples
             assert len(demog_models) == self.number_of_samples
             assert len(div_nevents) == self.number_of_samples
             assert len(demog_nevents) == self.number_of_samples
+            assert div_set_partitions.number_of_partitions == self.number_of_samples
+            assert demog_set_partitions.number_of_partitions == self.number_of_samples
             self.parameter_samples['div_model'] = tuple(div_models)
             self.parameter_samples['demog_model'] = tuple(demog_models)
             self.parameter_samples['number_of_div_events'] = tuple(div_nevents)
             self.parameter_samples['number_of_demog_events'] = tuple(demog_nevents)
             self.div_model_summary = PosteriorModelSummary(
                     self.parameter_samples['number_of_div_events'],
-                    self.parameter_samples['div_model'])
+                    self.parameter_samples['div_model'],
+                    div_set_partitions)
             assert(self.div_model_summary.number_of_samples == self.number_of_samples)
             self.demog_model_summary = PosteriorModelSummary(
                     self.parameter_samples['number_of_demog_events'],
-                    self.parameter_samples['demog_model'])
+                    self.parameter_samples['demog_model'],
+                    demog_set_partitions)
             assert(self.demog_model_summary.number_of_samples == self.number_of_samples)
 
         if include_time_in_coal_units:

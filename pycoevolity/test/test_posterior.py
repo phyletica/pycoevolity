@@ -66,6 +66,15 @@ class PosteriorSummaryTestCase(unittest.TestCase):
         self.assertEqual(ps.get_model_credibility_level((0, 0, 1)), 0.0)
         self.assertEqual(ps.get_model_credibility_level((0, 1, 1)), 1.0)
 
+        d = ps.distances_from((0,0,0))
+        self.assertEqual(list(d), [1] * ps.number_of_samples)
+
+        d = ps.get_map_model_distances_from((0,0,0))
+        self.assertEqual(d, [1])
+
+        d = ps.get_median_model_distances_from((0,0,0))
+        self.assertEqual(d, [1])
+
 
 class PosteriorSampleTestCase(unittest.TestCase):
 
@@ -138,6 +147,15 @@ class PosteriorSampleTestCase(unittest.TestCase):
 
         self.assertEqual(ps.get_map_models(), ((0, 0, 1),))
         self.assertEqual(ps.get_map_numbers_of_events(), (2,))
+
+        d = ps.distances_from((0,0,0))
+        self.assertEqual(list(d), [1] * ps.number_of_samples)
+
+        d = ps.get_map_model_distances_from((0,0,0))
+        self.assertEqual(d, [1])
+
+        d = ps.get_median_model_distances_from((0,0,0))
+        self.assertEqual(d, [1])
         
 
 if __name__ == '__main__':
