@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
-from pycoevolity import __version__
+exec(open("pycoevolity/metadata.py").read())
 
 setup(
-        name = "pycoevolity",
+        name = __project__,
         version = __version__,
-        description = "Package for summarizing output of ecoevolity",
-        author = "Jamie Oaks",
+        description = __description__,
+        author = __author__,
         author_email = "joaks1@gmail.com",
-        license = "GPL",
+        license = __license_short__,
         packages = find_packages(),
         include_package_data = True,
         zip_safe = False,
