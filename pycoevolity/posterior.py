@@ -59,6 +59,23 @@ class PosteriorModelSummary(object):
         p = partition.SetPartition(model_tuple)
         return self.set_partitions.distances_from(p)
 
+    def get_map_model_distances_from(self, model_tuple):
+        distances = []
+        p = partition.SetPartition(model_tuple)
+        for map_model in self.get_map_models():
+            m = partition.SetPartition(map_model)
+            distances.append(p.distance(m))
+        return distances
+
+    def get_median_model_distances_from(self, model_tuple):
+        distances = []
+        p = partition.SetPartition(model_tuple)
+        median_models, min_dist = self.set_partitions.median_sampled_partitions()
+        for med_model in median_models:
+            m = partition.SetPartition(med_model)
+            distances.append(p.distance(m))
+        return distances
+
     def get_number_of_events_probability(self, number_of_events):
         return self.number_of_events_probabilities.get(number_of_events, 0.0)
 
@@ -177,6 +194,12 @@ class PosteriorSummary(object):
 
     def distances_from(model_tuple):
         return self.model_summary.distances_from(model_tuple)
+
+    def get_map_model_distances_from(self, model_tuple):
+        return self.model_summary.get_map_model_distances_from(model_tuple)
+
+    def get_median_model_distances_from(self, model_tuple):
+        return self.model_summary.get_median_model_distances_from(model_tuple)
 
 
 class ChainConvergenceSummary(object):
