@@ -1,3 +1,17 @@
+Version 0.2.5
+=============
+
+Changes
+-------
+-   Updating pyco-sumsims to allow mutlple summary-table files to plot from.
+-   Updating pyco-sumevents to plot via matplotlib by default; can still choose
+    to use R.
+-   Updating posterior classes to summarize model distances (set-partitions
+    distances); this uses the Hungarian (Munkres) algorithm via the Munkres
+    package.
+-   Updating logic in setup script to be more robust/portable.
+
+
 Version 0.2.4
 =============
 
