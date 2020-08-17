@@ -17,7 +17,8 @@ setup(
         # test_loader = "unittest:TestLoader",
         install_requires = [
             # 'matplotlib',
-            'munkres',
+            'munkres;python_version>"3"',
+            'munkres<=1.0.12;python_version<"3"',
         ],
         entry_points = {
             'console_scripts': [
