@@ -3,7 +3,7 @@
 import sys
 import os
 
-from .metadata import *
+from pycoevolity import metadata
 
 
 PACKAGE_DIR = os.path.abspath(__file__)
@@ -81,7 +81,8 @@ __gitinfo__ = ""
 __branch__, __commit__, __committime__ = _get_git_data(__homedir__)
 
 def get_description():
-    d = "{0} version {1}".format(__project__, __version__)
+    d = "{0} version {1}".format(metadata.__project__,
+            metadata.__version__)
     if __branch__:
         d += " {0}".format(__branch__)
     if __commit__:
@@ -93,7 +94,7 @@ def get_description():
 def write_splash(stream, console_width = 72):
     w = console_width
     stream.write("{0}\n".format("=" * w))
-    stream.write("{0:^{1}}\n".format(__project__.capitalize(), w))
+    stream.write("{0:^{1}}\n".format(metadata.__project__.capitalize(), w))
     stream.write("{0:^{1}}\n\n".format(
             "Summarizing evolutionary coevality",
             w))
@@ -102,13 +103,13 @@ def write_splash(stream, console_width = 72):
             w))
     stream.write("{0:^{1}}\n\n".format(
             "Version {v} ({b} {c}: {t})".format(
-                    v = __version__,
+                    v = metadata.__version__,
                     b = __branch__,
                     c = __commit__,
                     t = __committime__),
             w))
     stream.write("{0:^{1}}\n".format(
-            "License: {}".format(__license_short__),
+            "License: {}".format(metadata.__license_short__),
             w))
     # for line in __license__.strip().split("\n"):
     #     stream.write("{0:^{1}}\n".format(line, w))
