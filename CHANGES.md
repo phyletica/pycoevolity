@@ -1,3 +1,13 @@
+Version 0.2.6
+=============
+
+Changes
+-------
+-   Adding pyco-dummy-data command-line tool for generating dummy biallelic
+    data in YAML format. Such files are often useful as templates for running
+    simulations with simcoevolity.
+
+
 Version 0.2.5
 =============
 
