@@ -114,3 +114,30 @@ def write_splash(stream, console_width = 72):
     # for line in __license__.strip().split("\n"):
     #     stream.write("{0:^{1}}\n".format(line, w))
     stream.write("{0}\n".format("=" * w))
+
+def write_dummy_biallelic_data_file(
+        nspecies = 2,
+        ngenomes = 10,
+        ncharacters = 1000,
+        prefix = "sp",
+        out = sys.stdout):
+    nspecies_padding = len(str(nspecies))
+    out.write("---\n");
+    out.write("markers_are_dominant: false\n")
+    out.write("population_labels: [")
+    for sp_idx in range(nspecies):
+        if sp_idx > 0:
+            out.write(", ")
+        sp_label = prefix + "{n:0{padding}d}".format(
+                n = sp_idx + 1,
+                padding = nspecies_padding)
+        out.write("{0}".format(sp_label))
+    out.write("]\n")
+    out.write("allele_count_patterns:\n")
+    out.write("    - [")
+    for sp_idx in range(nspecies):
+        if sp_idx > 0:
+            out.write(", ")
+        out.write("[1, {0}]".format(ngenomes))
+    out.write("]\n")
+    out.write("pattern_weights: [{0}]\n".format(ncharacters))
