@@ -1,3 +1,13 @@
+Version 0.2.7
+=============
+
+Changes
+-------
+-   Adding option to command-line tools ``loci2nex`` and ``loci2phy`` to
+    convert names of sequence label. A CSV file can now be provided with the
+    current seq labels in the first colum and the desired labels in the second.
+
+
 Version 0.2.6
 =============
 
