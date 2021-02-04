@@ -50,6 +50,13 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             help = ('A suffix to append to every sequence label. This can be '
                     'useful for ensuring that all population labels are '
                     'unique across pairs.'))
+    parser.add_argument('-m', '--label-change-map',
+            type = pycoevolity.argparse_utils.arg_is_file,
+            metavar = "SEQ-LABEL-CHANGE-CSV-PATH",
+            help = ('Path to a CSV file with sequence labels to find and '
+                    'replace. The CSV file should have 2 columns: current '
+                    'sequence labels in the first, and the replacements in '
+                    'the second.'))
     parser.add_argument('-c', '--charsets',
             action = 'store_true',
             help = ('Include charsets block in output nexus file. This option '
@@ -76,10 +83,15 @@ def main(argv = sys.argv, write_method = "write_nexus"):
         args.seed = random.randint(1, 999999999)
     rng.seed(args.seed)
 
+    label_change_map_path = None
+    if args.label_change_map:
+        label_change_map_path = args.label_change_map
+
     data = pycoevolity.parsing.Loci.from_pyrad(args.loci_path,
             remove_triallelic_sites = args.remove_triallelic_sites,
             convert_to_binary = args.convert_to_binary,
-            sequence_ids_to_remove = args.sample_to_delete)
+            sequence_ids_to_remove = args.sample_to_delete,
+            label_change_map_path = label_change_map_path)
     if args.prefix:
         data.label_prefix = args.prefix
     if args.suffix:

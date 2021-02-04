@@ -307,6 +307,7 @@ class Loci(object):
         self._label_suffix = None
         self._label_prefix = None
         self._sample_indices = None
+        self._label_change_dict = {}
 
     def clone(self):
         o = self.__class__()
@@ -324,13 +325,15 @@ class Loci(object):
         o._label_suffix = self._label_suffix
         o._label_prefix = self._label_prefix
         o._sample_indices = self._sample_indices
+        o._label_change_dict = self._label_change_dict
         return o
 
     @classmethod
     def from_pyrad(cls, loci_path,
             remove_triallelic_sites = False,
             convert_to_binary = False,
-            sequence_ids_to_remove = []):
+            sequence_ids_to_remove = [],
+            label_change_map_path = None):
         data = cls()
         data._remove_triallelic_sites = remove_triallelic_sites
         data._convert_to_binary = convert_to_binary
@@ -340,6 +343,8 @@ class Loci(object):
                     sequence_ids_to_remove,
                     (0 for i in range(len(sequence_ids_to_remove)))
                     ))
+        if label_change_map_path:
+            data._parse_label_change_map(label_change_map_path)
         data._parse_loci_file()
         return data
 
@@ -347,7 +352,8 @@ class Loci(object):
     def from_fastas(cls, paths,
             remove_triallelic_sites = False,
             convert_to_binary = False,
-            sequence_ids_to_remove = []):
+            sequence_ids_to_remove = [],
+            label_change_map_path = None):
         data = cls()
         data._remove_triallelic_sites = remove_triallelic_sites
         data._convert_to_binary = convert_to_binary
@@ -357,6 +363,8 @@ class Loci(object):
                     sequence_ids_to_remove,
                     (0 for i in range(len(sequence_ids_to_remove)))
                     ))
+        if label_change_map_path:
+            data._parse_label_change_map(label_change_map_path)
         data._parse_fasta_files()
         return data
 
@@ -562,8 +570,9 @@ class Loci(object):
                                 len(seq),
                                 expected_length))
                 assert recorded_length == expected_length
-                self._labels.add(label)
-                out.write("{0}\t{1}\n".format(label, "".join(seq)))
+                l = self._label_change_dict.get(label, label)
+                self._labels.add(l)
+                out.write("{0}\t{1}\n".format(l, "".join(seq)))
 
     def _parse_loci_file(self):
         with ReadFile(self._paths[0]) as stream:
@@ -906,6 +915,35 @@ class Loci(object):
             seqs = self.parse_fasta_file(path)
             self._process_locus(seqs)
         assert len(self._numbers_of_sites) == len(self._tmp_locus_paths)
+
+    def _parse_label_change_map(self, path):
+        d = {}
+        with ReadFile(path) as stream:
+            for line_idx, line in enumerate(stream):
+                labels = line.strip().split(",")
+                if len(labels) != 2:
+                    msg = ("Line {ln_idx} of {path} has {ncols} columns. "
+                            "It should have 2.".format(
+                                ln_idx = line_idx,
+                                path = path,
+                                ncols = len(labels)))
+                    raise Exception(msg)
+                current_label = labels[0].strip()
+                new_label = labels[1].strip()
+                if current_label in d:
+                    msg = ("Current seq label '{label}' found more than once "
+                            "in {path}".format(
+                                label = current_label,
+                                path = path))
+                    raise Exception(msg)
+                if new_label in d.values():
+                    msg = ("Replacement seq label '{label}' found more than once "
+                            "in {path}".format(
+                                label = new_label,
+                                path = path))
+                    raise Exception(msg)
+                d[current_label] = new_label
+        self._label_change_dict = d
 
     @classmethod
     def parse_fasta_file(cls, path):
