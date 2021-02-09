@@ -1,3 +1,12 @@
+Version 0.2.8
+=============
+
+Bug fixes
+---------
+-   Fixing issue with pyco-sumevents where it would crash if any Bayes factors
+    were "NA".
+
+
 Version 0.2.7
 =============
 
