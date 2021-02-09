@@ -89,7 +89,12 @@ def main(argv = sys.argv):
     if not nevents.no_prior:
         max_prob = max(nevents.posterior_probs + nevents.prior_probs)
         prior_probs = nevents.prior_probs 
-        bfs = ["{:.3g}".format(x) for x in nevents.bayes_factors]
+        bfs = []
+        for bayes_factor in nevents.bayes_factors:
+            if bayes_factor is None:
+                bfs.append("")
+                continue
+            bfs.append("{:.3g}".format(bayes_factor))
         for i, a in enumerate(nevents.bayes_factors_annotations):
             if a:
                 bfs[i] = a + bfs[i]
