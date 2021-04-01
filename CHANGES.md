@@ -1,3 +1,12 @@
+Version 0.2.9
+=============
+
+Changes
+-------
+-   Adding option to command-line tools ``loci2nex`` and ``loci2phy`` to
+    randomly subsample loci.
+
+
 Version 0.2.8
 =============
 
