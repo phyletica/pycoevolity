@@ -50,6 +50,13 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             help = ('A suffix to append to every sequence label. This can be '
                     'useful for ensuring that all population labels are '
                     'unique across pairs.'))
+    parser.add_argument('-m', '--label-change-map',
+            type = pycoevolity.argparse_utils.arg_is_file,
+            metavar = "SEQ-LABEL-CHANGE-CSV-PATH",
+            help = ('Path to a CSV file with sequence labels to find and '
+                    'replace. The CSV file should have 2 columns: current '
+                    'sequence labels in the first, and the replacements in '
+                    'the second.'))
     parser.add_argument('-c', '--charsets',
             action = 'store_true',
             help = ('Include charsets block in output nexus file. This option '
@@ -60,26 +67,40 @@ def main(argv = sys.argv, write_method = "write_nexus"):
                     'option should only be used for testing whether ecoevolity '
                     'will estimate co-divergence between the random sets of '
                     'loci from the same taxon.'))
+    parser.add_argument('--subsample',
+            type = int,
+            default = 0,
+            metavar = "NUMBER-OF-LOCI",
+            help = ('Randomly subsample this number of loci without replacement.'))
     parser.add_argument('--seed',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_positive_int,
             help = ('Seed for random number generator. This is only used for '
-                    'the \'--split\' option.'))
+                    'the \'--split\' or \'--subsample\'  options.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
     else:
         args = parser.parse_args(argv)
 
+    if args.split and (args.subsample > 0):
+        msg = "ERROR: '--split' and '--subsample' cannot be used together"
+        raise Exception(msg)
+
     rng = random.Random()
     if not args.seed:
         args.seed = random.randint(1, 999999999)
     rng.seed(args.seed)
 
+    label_change_map_path = None
+    if args.label_change_map:
+        label_change_map_path = args.label_change_map
+
     data = pycoevolity.parsing.Loci.from_fastas(args.fasta_paths,
             remove_triallelic_sites = args.remove_triallelic_sites,
             convert_to_binary = args.convert_to_binary,
-            sequence_ids_to_remove = args.sample_to_delete)
+            sequence_ids_to_remove = args.sample_to_delete,
+            label_change_map_path = label_change_map_path)
     if args.prefix:
         data.label_prefix = args.prefix
     if args.suffix:
@@ -109,6 +130,10 @@ def main(argv = sys.argv, write_method = "write_nexus"):
         sys.stderr.write("\tNumber of loci in set 1: {0}\n".format(data.number_of_loci))
         sys.stderr.write("\tNumber of loci in set 2: {0}\n".format(data2.number_of_loci))
         getattr(data2, write_method)(**write_kwargs)
+    elif args.subsample > 0:
+        data.sample_loci(rng = rng,
+                number_of_samples = args.subsample,
+                with_replacement = False)
     getattr(data, write_method)(**write_kwargs)
 
 def main_nexus(argv = sys.argv):

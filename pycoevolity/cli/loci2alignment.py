@@ -67,16 +67,25 @@ def main(argv = sys.argv, write_method = "write_nexus"):
                     'option should only be used for testing whether ecoevolity '
                     'will estimate co-divergence between the random sets of '
                     'loci from the same taxon.'))
+    parser.add_argument('--subsample',
+            type = int,
+            default = 0,
+            metavar = "NUMBER-OF-LOCI",
+            help = ('Randomly subsample this number of loci without replacement.'))
     parser.add_argument('--seed',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_positive_int,
             help = ('Seed for random number generator. This is only used for '
-                    'the \'--split\' option.'))
+                    'the \'--split\' or \'--subsample\'  options.'))
 
     if argv == sys.argv:
         args = parser.parse_args()
     else:
         args = parser.parse_args(argv)
+
+    if args.split and (args.subsample > 0):
+        msg = "ERROR: '--split' and '--subsample' cannot be used together"
+        raise Exception(msg)
 
     rng = random.Random()
     if not args.seed:
@@ -121,6 +130,10 @@ def main(argv = sys.argv, write_method = "write_nexus"):
         sys.stderr.write("\tNumber of loci in set 1: {0}\n".format(data.number_of_loci))
         sys.stderr.write("\tNumber of loci in set 2: {0}\n".format(data2.number_of_loci))
         getattr(data2, write_method)(**write_kwargs)
+    elif args.subsample > 0:
+        data.sample_loci(rng = rng,
+                number_of_samples = args.subsample,
+                with_replacement = False)
     getattr(data, write_method)(**write_kwargs)
 
 def main_nexus(argv = sys.argv):
