@@ -173,16 +173,17 @@ def main(argv = sys.argv):
         # Use TrueType (42) fonts rather than Type 3 fonts
         mpl.rcParams["pdf.fonttype"] = 42
         mpl.rcParams["ps.fonttype"] = 42
-        tex_font_settings = {
-                "text.usetex": True,
-                "font.family": "sans-serif",
-                "text.latex.preamble" : [
-                        "\\usepackage[T1]{fontenc}",
-                        "\\usepackage[cm]{sfmath}",
-                        ]
-        }
 
-        mpl.rcParams.update(tex_font_settings)
+        ## These settings are nice, but require latex to be installed
+        # tex_font_settings = {
+        #         "text.usetex": True,
+        #         "font.family": "sans-serif",
+        #         "text.latex.preamble" : [
+        #                 "\\usepackage[T1]{fontenc}",
+        #                 "\\usepackage[cm]{sfmath}",
+        #                 ]
+        # }
+        # mpl.rcParams.update(tex_font_settings)
 
         labels, heights = posterior.get_labels_and_heights(
                 label_map = label_map,
