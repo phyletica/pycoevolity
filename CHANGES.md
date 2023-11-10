@@ -1,3 +1,11 @@
+Version 0.2.10
+==============
+
+Changes
+-------
+-   Removing matplotlib dependencies on Latex.
+
+
 Version 0.2.9
 =============
 
