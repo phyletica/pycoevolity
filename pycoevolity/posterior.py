@@ -808,7 +808,8 @@ class PosteriorSample(object):
             sizes.extend(rel_root_sizes)
         return labels, sizes
 
-    def get_labels_and_sizes(self, label_map = {}):
+    def get_labels_and_sizes(self, label_map = {},
+            populations_to_ignore = []):
         labels = []
         sizes = []
         for tips in self.tip_labels:
@@ -816,17 +817,22 @@ class PosteriorSample(object):
                 size_key = "pop_size_{0}".format(t)
                 szs = list(self.parameter_samples[size_key])
                 pretty_label = label_map.get(t, t)
-                labels.append(pretty_label)
-                sizes.append(szs)
+                if ((t not in populations_to_ignore)
+                        and (pretty_label not in populations_to_ignore)):
+                    labels.append(pretty_label)
+                    sizes.append(szs)
             root_size_key = "pop_size_root_{0}".format(tips[0])
             root_sizes = list(self.parameter_samples[root_size_key])
             root_label = "root-{0}".format(tips[0])
             pretty_root_label = label_map.get(root_label, root_label)
-            labels.append(pretty_root_label)
-            sizes.append(root_sizes)
+            if ((root_label not in populations_to_ignore)
+                    and (pretty_root_label not in populations_to_ignore)):
+                labels.append(pretty_root_label)
+                sizes.append(root_sizes)
         return labels, sizes
 
-    def get_labels_and_relative_sizes(self, label_map = {}):
+    def get_labels_and_relative_sizes(self, label_map = {},
+            populations_to_ignore = []):
         labels = []
         sizes = []
         for tips in self.tip_labels:
@@ -850,8 +856,10 @@ class PosteriorSample(object):
             rel_root_sizes = [root_sizes[i] / mean_tip_sizes[i] for i in range(len(root_sizes))]
             root_label = "root-{0}".format(tips[0])
             pretty_root_label = label_map.get(root_label, root_label)
-            labels.append(pretty_root_label)
-            sizes.append(rel_root_sizes)
+            if ((root_label not in populations_to_ignore)
+                    and (pretty_root_label not in populations_to_ignore)):
+                labels.append(pretty_root_label)
+                sizes.append(rel_root_sizes)
         return labels, sizes
 
     def distances_from(self, model_tuple):

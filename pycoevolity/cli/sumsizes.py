@@ -50,6 +50,17 @@ def main(argv = sys.argv):
                     'Note, you need to quote labels with spaces. '
                     'This option can be used multiple times to specify label '
                     'replacements for multiple taxa.'))
+    parser.add_argument('-i', '--ignore',
+            action = 'append',
+            type = str,
+            metavar = ("COMPARISON-LABEL"),
+            help = ('Ignore (i.e., do not plot) the specified comparison. '
+                    'This option takes one argument: The original label '
+                    'used to identify a population (i.e., the prefix or suffix '
+                    'in the original alignment analyzed by Ecoevolity) '
+                    'Note, you need to quote labels with spaces. '
+                    'This option can be used multiple times to ignore '
+                    'multiple comparisons.'))
     parser.add_argument('--violin',
             action = 'store_true',
             help = ('Produce a violin plot, rather than a ridge plot.'))
@@ -132,6 +143,10 @@ def main(argv = sys.argv):
     if args.no_plot:
         sys.exit(0)
 
+    populations_to_ignore = []
+    if args.ignore:
+        populations_to_ignore = args.ignore
+
     plot_width = args.width 
     plot_height = plot_width / 1.618034
 
@@ -161,10 +176,12 @@ def main(argv = sys.argv):
 
         if args.relative:
             labels, sizes = posterior.get_labels_and_relative_sizes(
-                    label_map = label_map)
+                    label_map = label_map,
+                    populations_to_ignore = populations_to_ignore)
         else:
             labels, sizes = posterior.get_labels_and_sizes(
-                    label_map = label_map)
+                    label_map = label_map,
+                    populations_to_ignore = populations_to_ignore)
 
         fig = plt.figure(figsize = (plot_width, plot_height))
         gs = gridspec.GridSpec(1, 1,
