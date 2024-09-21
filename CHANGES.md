@@ -1,3 +1,13 @@
+Version 0.2.11
+==============
+
+Changes
+-------
+-   Adding command-line tool ``msb2nex`` (and supporting code in ``parsing.py``
+    module) for converting msbayes-formatted configs and data to
+    ecoevolity-formatted configs and data.
+
+
 Version 0.2.10
 ==============
 
