@@ -368,6 +368,38 @@ class Loci(object):
         data._parse_fasta_files()
         return data
 
+    @classmethod
+    def iter_from_msbayes_config(
+        cls,
+        msbayes_config,
+        remove_triallelic_sites = False,
+        convert_to_binary = False,
+        recode_ambig_states_as_missing = False,
+    ):
+        msbayes_cfg = msbayes_config
+        if not hasattr(msbayes_cfg, 'sample_table'):
+            msbayes_cfg = MsbayesConfig(msbayes_config,
+                                        recode_ambig_states_as_missing)
+        sample_table = msbayes_cfg.sample_table
+        for comp_idx, (comp, loci_data) in enumerate(sample_table.alignments.items()):
+            data = cls()
+            data._remove_triallelic_sites = remove_triallelic_sites
+            data._convert_to_binary = convert_to_binary
+            for locus, alignment in loci_data.items():
+                sequences = []
+                pop_seqs = alignment.sequences
+                for i, seqs in enumerate(pop_seqs):
+                    pop_suffix = "_comparison{0}pop{1}".format(comp_idx+1, i+1)
+                    for name, s in seqs:
+                        sequences.append(
+                            (f"{name}{pop_suffix}",
+                            s)
+                        )
+                data._process_locus(sequences)
+                data._paths.append(alignment.path)
+            assert len(data._numbers_of_sites) == len(data._tmp_locus_paths)
+            yield comp, data
+
     def __del__(self):
         self._tempfs.purge()
 
@@ -472,9 +504,16 @@ class Loci(object):
                 triallelic_site_indices.append(i)
         self._number_of_triallelic_sites += len(triallelic_site_indices)
         if self._remove_triallelic_sites:
+            seqs = []
+            for label, s in sequences:
+                seqs.append([label, list(s)])
             for site_idx in sorted(triallelic_site_indices, reverse = True):
-                for seq_idx in range(len(sequences)):
-                    sequences[seq_idx][1].pop(site_idx)
+                for seq_idx in range(len(seqs)):
+                    seqs[seq_idx][1].pop(site_idx)
+            new_seqs = []
+            for label, s in seqs:
+                new_seqs.append( (label, tuple(s)) )
+            sequences = new_seqs
 
         ######################################################################
         # Ecoevolity has option to automatically re-code triallelic sites, so
@@ -514,12 +553,15 @@ class Loci(object):
         ######################################################################
 
         if self.convert_to_binary:
+            seqs = []
+            for label, s in sequences:
+                seqs.append([label, list(s)])
             for site_idx in range(nsites):
                 seq_idx = 0
                 state0 = None
                 state1 = None
-                while (seq_idx < len(sequences)) and (state0 is None):
-                    states = self.symbol_to_states[sequences[seq_idx][1][site_idx]]
+                while (seq_idx < len(seqs)) and (state0 is None):
+                    states = self.symbol_to_states[seqs[seq_idx][1][site_idx]]
                     if not states:
                         seq_idx += 1
                         continue
@@ -528,8 +570,8 @@ class Loci(object):
                     if len(states) > 1:
                         state1 = states[1]
                     seq_idx += 1
-                while (seq_idx < len(sequences)) and (state1 is None):
-                    for s in self.symbol_to_states[sequences[seq_idx][1][site_idx]]:
+                while (seq_idx < len(seqs)) and (state1 is None):
+                    for s in self.symbol_to_states[seqs[seq_idx][1][site_idx]]:
                         if s != state0:
                             state1 = s
                             break
@@ -539,8 +581,8 @@ class Loci(object):
                 possible_states = (state0, state1)
                 if state1 is None:
                     possible_states = (state0,)
-                for seq_idx in range(len(sequences)):
-                    states = list(self.symbol_to_states[sequences[seq_idx][1][site_idx]])
+                for seq_idx in range(len(seqs)):
+                    states = list(self.symbol_to_states[seqs[seq_idx][1][site_idx]])
                     if not states:
                         continue
                     for state_idx in range(len(states)):
@@ -554,7 +596,11 @@ class Loci(object):
                         for s in states:
                             if s != state0:
                                 new_symbol += 1
-                    sequences[seq_idx][1][site_idx] = str(new_symbol)
+                    seqs[seq_idx][1][site_idx] = str(new_symbol)
+            new_seqs = []
+            for label, s in seqs:
+                new_seqs.append( (label, tuple(s)) )
+            sequences = new_seqs
 
         recorded_length = len(sequences[0][1])
         self._numbers_of_sites.append(recorded_length)
@@ -964,3 +1010,414 @@ class Loci(object):
         if current_seq:
             seqs.append((label, tuple(current_seq)))
         return seqs
+
+
+class MsbayesConfig(object):
+
+    def __init__(self, cfg_path, recode_ambig_states_as_missing = False):
+        if not self.is_config(cfg_path):
+            raise Exception(
+                'The following file does not appear to be a valid '
+                f'msbayes config: {cfg_path}')
+        self.sample_table = None
+        self.prior_settings = {}
+        self._parse_config(cfg_path, recode_ambig_states_as_missing)
+
+    @classmethod
+    def is_config(cls, cfg_path, max_lines_to_sample_table = 10000):
+        with ReadFile(cfg_path) as cfg_stream:
+            for i, line in enumerate(cfg_stream):
+                if i >= max_lines_to_sample_table:
+                    return False
+                if MsbayesSampleTable.begin_pattern.match(line.strip()):
+                    return True
+        return False
+
+    def _parse_config(self, cfg_path, recode_ambig_states_as_missing = False):
+        self.sample_table = MsbayesSampleTable(
+            cfg_path,
+            recode_ambig_states_as_missing,
+        )
+        self.prior_settings = self._parse_preamble(cfg_path)
+
+    def _get_taxa(self):
+        if not self.sample_table:
+            return None
+        if not self.sample_table.taxa:
+            return None
+        return self.sample_table.taxa
+
+    taxa = property(_get_taxa)
+
+    def _get_npairs(self):
+        if self.taxa is None:
+            return 0
+        return len(self.taxa)
+
+    npairs = property(_get_npairs)
+
+    def _parse_preamble(self, cfg_path):
+        d = {}
+        with ReadFile(cfg_path) as cfg_stream:
+            for i, line in enumerate(cfg_stream):
+                if MsbayesSampleTable.begin_pattern.match(line.strip()):
+                    break
+                line = line.strip()
+                if (line == '') or (line.startswith('#')):
+                    continue
+                line = line.replace("=", " ")
+                key_val = [x.strip() for x in line.split()]
+                if len(key_val) != 2:
+                    _LOG.error(
+                        'msbayes preamble item on line {0} is invalid:\n{1}\n'.format(
+                            i+1, l))
+                d[key_val[0].lower()] = key_val[1]
+        return d
+
+    def using_dpp_model(self):
+        dpp_keys = (
+            'concentrationshape',
+            'concentrationscale',
+            'taushape',
+            'tauscale',
+            'thetashape',
+            'thetascale',
+            'ancestralthetashape',
+            'ancestralthetascale',
+            'thetaparameters',
+        )
+        for k in dpp_keys:
+            if k in self.prior_settings:
+                return True
+        return False
+
+    def using_time_in_subs_per_site(self):
+        value = int(self.prior_settings.get('timeinsubspersite', 0))
+        return bool(value)
+
+    def write_ecoevolity_model_settings(self, out_stream = None):
+        if not out_stream:
+            out_stream = sys.stdout
+        if self.using_dpp_model():
+            if (('concentrationshape' in self.prior_settings) and (
+                'concentrationscale' in self.prior_settings)):
+                shape = self.prior_settings['concentrationshape']
+                scale = self.prior_settings['concentrationscale']
+                out_stream.write('event_model_prior:\n')
+                out_stream.write('    dirichlet_process:\n')
+                out_stream.write('        parameters:\n')
+                out_stream.write('            concentration:\n')
+                out_stream.write('                estimate: true\n')
+                out_stream.write('                prior:\n')
+                out_stream.write('                    gamma_distribution:\n')
+                out_stream.write(f'                        shape: {shape}\n')
+                out_stream.write(f'                        scale: {scale}\n')
+                out_stream.write('\n')
+
+            if (('taushape' in self.prior_settings) and (
+                'tauscale' in self.prior_settings)):
+                tau_shape = self.prior_settings['taushape']
+                tau_scale = self.prior_settings['tauscale']
+
+                if self.using_time_in_subs_per_site():
+                    out_stream.write('event_time_prior:\n')
+                    out_stream.write('    gamma_distribution:\n')
+                    out_stream.write(f'        shape: {tau_shape}\n')
+                    out_stream.write(f'        scale: {tau_scale}\n')
+                    out_stream.write('\n')
+
+                elif (('thetashape' in self.prior_settings) and (
+                    'thetascale' in self.prior_settings)):
+                    theta_shape = float(self.prior_settings['thetashape'])
+                    theta_scale = float(self.prior_settings['thetascale'])
+                    theta_mean = theta_shape * theta_scale
+                    tau_scale = float(tau_scale) * theta_mean
+                    out_stream.write('event_time_prior:\n')
+                    out_stream.write('    gamma_distribution:\n')
+                    out_stream.write(f'        shape: {tau_shape}\n')
+                    out_stream.write(f'        scale: {tau_scale}\n')
+                    out_stream.write('\n')
+
+        ne_shape = '5.0'
+        ne_scale = '0.0002'
+        if (('thetashape' in self.prior_settings) and (
+            'thetascale' in self.prior_settings)):
+            ne_shape = self.prior_settings['thetashape']
+            # msbayes pop size prior is on 4*Ne*mu, whereas ecoevolity is on
+            # Ne*mu
+            ne_scale = float(self.prior_settings['thetascale']) / 4.0
+        out_stream.write('global_comparison_settings:\n')
+        out_stream.write('    ploidy: 1\n')
+        out_stream.write('    genotypes_are_diploid: false\n')
+        out_stream.write('    markers_are_dominant: false\n')
+        out_stream.write('    constant_sites_removed: false\n')
+        out_stream.write('    population_name_delimiter: \" \"\n')
+        out_stream.write('    population_name_is_prefix: false\n')
+        out_stream.write('    equal_population_sizes: false\n')
+        out_stream.write('    parameters:\n')
+        out_stream.write('        freq_1:\n')
+        out_stream.write('            value: 0.5\n')
+        out_stream.write('            estimate: false\n')
+        out_stream.write('        mutation_rate:\n')
+        out_stream.write('            value: 1.0\n')
+        out_stream.write('            estimate: false\n')
+        out_stream.write('        root_relative_population_size:\n')
+        out_stream.write('            value: 1.0\n')
+        out_stream.write('            estimate: true\n')
+        out_stream.write('            prior:\n')
+        out_stream.write('                gamma_distribution:\n')
+        out_stream.write('                    shape: 100.0\n')
+        out_stream.write('                    scale: 0.01\n')
+        out_stream.write('        population_size:\n')
+        out_stream.write('            estimate: true\n')
+        out_stream.write('            prior:\n')
+        out_stream.write('                gamma_distribution:\n')
+        out_stream.write(f'                    shape: {ne_shape}\n')
+        out_stream.write(f'                    scale: {ne_scale}\n')
+
+
+class MsbayesSampleTable(object):
+    begin_pattern = re.compile(r'^begin\s*sample_tbl$', re.IGNORECASE)
+    end_pattern = re.compile(r'^end\s*sample_tbl$', re.IGNORECASE)
+
+    def __init__(self, config_path, recode_ambig_states_as_missing = False):
+        self.alignments = None
+        self.ordering = []
+        self._parse_table(config_path, recode_ambig_states_as_missing)
+
+    def _parse_table(self, config_path, recode_ambig_states_as_missing = False):
+        self.alignments = {}
+        table_started = False
+        table_finished = False
+        row_num = 0
+        with ReadFile(config_path) as config_stream:
+            for i, l in enumerate(config_stream):
+                line = l.strip()
+                if self.end_pattern.match(line):
+                    if not table_started:
+                        raise Exception(
+                            'hit end of sample table before beginning')
+                    if len(self.alignments) < 1:
+                        raise Exception(
+                            'no rows found in sample table')
+                    table_finished = True
+                    break
+                if self.begin_pattern.match(line):
+                    table_started = True
+                    continue
+                if not table_started:
+                    continue
+                if (line == '') or (line.startswith('#')):
+                    continue
+                row_num += 1
+                al = MsbayesAlignment(
+                    line,
+                    config_path,
+                    recode_ambig_states_as_missing,
+                )
+                if not al.taxon_name in self.alignments:
+                    self.alignments[al.taxon_name] = {}
+                    self.alignments[al.taxon_name][al.locus_name] = al
+                    self.ordering.append((al.taxon_name, al.locus_name))
+                    continue
+                if al.locus_name in self.alignments[al.taxon_name]:
+                    raise Exception('locus {0} found twice '
+                            'for taxon {1} at row {2} of sample '
+                            'table'.format(al.locus_name, al.taxon_name,
+                                    row_num))
+                self.alignments[al.taxon_name][al.locus_name] = al
+                self.ordering.append((al.taxon_name, al.locus_name))
+            if not table_started:
+                raise Exception('no sample table found')
+            if not table_finished:
+                raise Exception('no end of table found')
+
+    def _get_taxa(self):
+        return tuple(self.alignments.keys())
+
+    taxa = property(_get_taxa)
+
+    def _get_loci(self):
+        l = []
+        for t, d in self.alignments.items():
+            for locus in d.keys():
+                if not locus in l:
+                    l.append(locus)
+        return l
+
+    loci = property(_get_loci)
+
+    def _get_number_of_taxa(self):
+        return len(self.taxa)
+
+    npairs = property(_get_number_of_taxa)
+
+    def get_sample_table_string(self):
+        return '\n'.join(('BEGIN SAMPLE_TBL',
+                '\n'.join((str(self.alignments[t][l]) for t, l in self.ordering)),
+                'END SAMPLE_TBL'))
+
+    def __str__(self):
+        return self.get_sample_table_string()
+
+    def equals(self, other):
+        if not isinstance(other, MsbayesSampleTable):
+            return False
+        if len(self.alignments) != len(other.alignments):
+            return False
+        for i1, i2 in zip(self.alignments.items(), other.alignments.items()):
+            if i1[0] != i2[0]:
+                return False
+            if len(i1[1]) != len(i2[1]):
+                return False
+            for t1, t2 in zip(i1[1].items(), i2[1].items()):
+                if t1[0] != t2[0]:
+                    return False
+                if not t1[1].equals(t2[1]):
+                    return False
+        if self.ordering != self.ordering:
+            return False
+        return True
+
+
+class MsbayesAlignment(object):
+
+    def __init__(
+        self,
+        sample_table_row = None,
+        config_path = None,
+        recode_ambig_states_as_missing = False
+    ):
+        self.taxon_name = None
+        self.locus_name = None
+        self._ploidy_multiplier = None
+        self._mutation_rate_multiplier = None
+        self._number_of_gene_copies = None
+        self._kappa = None
+        self._length = None
+        self._base_frequencies = None
+        self.path = None
+        self.sequences = None
+        if sample_table_row != None:
+            self._parse_sample_table_row(
+                sample_table_row,
+                config_path,
+                recode_ambig_states_as_missing)
+
+    def _parse_sample_table_row(
+        self,
+        sample_table_row,
+        config_path,
+        recode_ambig_states_as_missing = False
+    ):
+        row = [e.strip() for e in sample_table_row.strip().split()]
+        if len(row) != 12:
+            raise Exception(
+                'sample table row has {0} columns'.format(len(row)))
+        self.taxon_name, self.locus_name = row[0:2]
+        self._ploidy_multiplier, self._mutation_rate_multiplier = row[2:4]
+        self._number_of_gene_copies = tuple(row[4:6])
+        self._kappa, self._length = row[6:8]
+        self._base_frequencies = tuple(row[8:11])
+        self.path = row[11]
+        if config_path:
+            self.path = os.path.join(
+                os.path.dirname(config_path),
+                self.path,
+            )
+        self._parse_fasta_file(self.path, recode_ambig_states_as_missing)
+
+    def _get_ploidy_multiplier(self):
+        return float(self._ploidy_multiplier)
+
+    ploidy_multiplier = property(_get_ploidy_multiplier)
+
+    def _get_mutation_rate_multiplier(self):
+        return float(self._mutation_rate_multiplier)
+
+    mutation_rate_multiplier = property(_get_mutation_rate_multiplier)
+
+    def _get_number_of_gene_copies(self):
+        return tuple(int(x) for x in self._number_of_gene_copies)
+
+    number_of_gene_copies = property(_get_number_of_gene_copies)
+
+    def _get_kappa(self):
+        return float(self._kappa)
+
+    kappa = property(_get_kappa)
+
+    def _get_length(self):
+        return int(self._length)
+
+    length = property(_get_length)
+
+    def _get_base_frequencies(self):
+        return tuple(float(x) for x in self._base_frequencies)
+
+    base_frequencies = property(_get_base_frequencies)
+
+    def get_sample_table_row_elements(self):
+        return(self.taxon_name,
+                self.locus_name,
+                self.ploidy_multiplier,
+                self.mutation_rate_multiplier,
+                self.number_of_gene_copies[0],
+                self.number_of_gene_copies[1],
+                self.kappa,
+                self.length,
+                self.base_frequencies[0],
+                self.base_frequencies[1],
+                self.base_frequencies[2],
+                self.path)
+
+    def get_sample_table_row_element_strings(self):
+        return(self.taxon_name,
+                self.locus_name,
+                self._ploidy_multiplier,
+                self._mutation_rate_multiplier,
+                self._number_of_gene_copies[0],
+                self._number_of_gene_copies[1],
+                self._kappa,
+                self._length,
+                self._base_frequencies[0],
+                self._base_frequencies[1],
+                self._base_frequencies[2],
+                self.path)
+
+    def get_sample_table_row_string(self):
+        return '\t'.join([str(e) for e in self.get_sample_table_row_element_strings()])
+
+    def equals(self, other):
+        return self.__dict__ == other.__dict__
+
+    def __str__(self):
+        return self.get_sample_table_row_string()
+
+    def _parse_fasta_file(self, path, recode_ambig_states_as_missing = False):
+        seqs = Loci.parse_fasta_file(path)
+        if not len(seqs) == sum(self.number_of_gene_copies):
+            raise Exception(
+                "Expected {0} seqs in fasta file {1}, but only found {2}".format(
+                    sum(self.number_of_gene_copies),
+                    self.path,
+                    len(seqs),
+                )
+            )
+        if recode_ambig_states_as_missing:
+            symbol_map = {}
+            for symbol, state in Loci.symbol_to_states.items():
+                if len(state) > 1:
+                    symbol_map[symbol] = '?'
+                else:
+                    symbol_map[symbol] = symbol
+            new_seqs = []
+            for label, s in seqs:
+                new_s = tuple(symbol_map[c] for c in s)
+                new_seqs.append( (label, new_s) )
+            seqs = new_seqs
+        n_pop_1_seqs = self.number_of_gene_copies[0]
+        self.sequences = tuple(seqs[0:n_pop_1_seqs]), tuple(seqs[n_pop_1_seqs:])
+        assert len(self.sequences) == 2
+        assert len(self.sequences[0]) == self.number_of_gene_copies[0]
+        assert len(self.sequences[1]) == self.number_of_gene_copies[1]
