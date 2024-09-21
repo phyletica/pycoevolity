@@ -1,0 +1,10 @@
+name: pyco 
+channels:
+  - conda-forge
+  - defaults
+  - bioconda
+dependencies:
+  - python>=3.8
+  - munkres>=1.1.1
+  - pip
+  - bpython
