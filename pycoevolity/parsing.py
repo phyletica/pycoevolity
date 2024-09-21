@@ -487,6 +487,8 @@ class Loci(object):
                 else:
                     seqs.append((seq_label, seq_chars))
             sequences = seqs
+        if self.convert_to_binary or self._remove_triallelic_sites:
+            sequences = [[label, list(s)] for label, s in sequences]
         nsites = len(sequences[0][1])
         residues = [set() for i in range(nsites)]
         for site_idx in range(nsites):
@@ -504,16 +506,9 @@ class Loci(object):
                 triallelic_site_indices.append(i)
         self._number_of_triallelic_sites += len(triallelic_site_indices)
         if self._remove_triallelic_sites:
-            seqs = []
-            for label, s in sequences:
-                seqs.append([label, list(s)])
             for site_idx in sorted(triallelic_site_indices, reverse = True):
-                for seq_idx in range(len(seqs)):
-                    seqs[seq_idx][1].pop(site_idx)
-            new_seqs = []
-            for label, s in seqs:
-                new_seqs.append( (label, tuple(s)) )
-            sequences = new_seqs
+                for seq_idx in range(len(sequences)):
+                    sequences[seq_idx][1].pop(site_idx)
 
         ######################################################################
         # Ecoevolity has option to automatically re-code triallelic sites, so
@@ -553,15 +548,12 @@ class Loci(object):
         ######################################################################
 
         if self.convert_to_binary:
-            seqs = []
-            for label, s in sequences:
-                seqs.append([label, list(s)])
             for site_idx in range(nsites):
                 seq_idx = 0
                 state0 = None
                 state1 = None
-                while (seq_idx < len(seqs)) and (state0 is None):
-                    states = self.symbol_to_states[seqs[seq_idx][1][site_idx]]
+                while (seq_idx < len(sequences)) and (state0 is None):
+                    states = self.symbol_to_states[sequences[seq_idx][1][site_idx]]
                     if not states:
                         seq_idx += 1
                         continue
@@ -570,8 +562,8 @@ class Loci(object):
                     if len(states) > 1:
                         state1 = states[1]
                     seq_idx += 1
-                while (seq_idx < len(seqs)) and (state1 is None):
-                    for s in self.symbol_to_states[seqs[seq_idx][1][site_idx]]:
+                while (seq_idx < len(sequences)) and (state1 is None):
+                    for s in self.symbol_to_states[sequences[seq_idx][1][site_idx]]:
                         if s != state0:
                             state1 = s
                             break
@@ -581,8 +573,8 @@ class Loci(object):
                 possible_states = (state0, state1)
                 if state1 is None:
                     possible_states = (state0,)
-                for seq_idx in range(len(seqs)):
-                    states = list(self.symbol_to_states[seqs[seq_idx][1][site_idx]])
+                for seq_idx in range(len(sequences)):
+                    states = list(self.symbol_to_states[sequences[seq_idx][1][site_idx]])
                     if not states:
                         continue
                     for state_idx in range(len(states)):
@@ -596,11 +588,7 @@ class Loci(object):
                         for s in states:
                             if s != state0:
                                 new_symbol += 1
-                    seqs[seq_idx][1][site_idx] = str(new_symbol)
-            new_seqs = []
-            for label, s in seqs:
-                new_seqs.append( (label, tuple(s)) )
-            sequences = new_seqs
+                    sequences[seq_idx][1][site_idx] = str(new_symbol)
 
         recorded_length = len(sequences[0][1])
         self._numbers_of_sites.append(recorded_length)
