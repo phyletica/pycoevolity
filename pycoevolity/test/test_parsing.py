@@ -724,7 +724,6 @@ class MsbayesConfigTestCase(PycoevolityTestCase):
                 line = line.strip()
                 if line == '':
                     continue
-                print(line)
                 data = line.split()
                 if len(data) == 2:
                     sequences.append(data)
@@ -811,7 +810,6 @@ class MsbayesConfigTestCase(PycoevolityTestCase):
                 line = line.strip()
                 if line == '':
                     continue
-                print(line)
                 data = line.split()
                 if len(data) == 2:
                     sequences.append(data)
@@ -913,7 +911,6 @@ class MsbayesConfigTestCase(PycoevolityTestCase):
                 line = line.strip()
                 if line == '':
                     continue
-                print(line)
                 data = line.split()
                 if len(data) == 2:
                     sequences.append(data)
@@ -1015,7 +1012,6 @@ class MsbayesConfigTestCase(PycoevolityTestCase):
                 line = line.strip()
                 if line == '':
                     continue
-                print(line)
                 data = line.split()
                 if len(data) == 2:
                     sequences.append(data)
@@ -1117,7 +1113,6 @@ class MsbayesConfigTestCase(PycoevolityTestCase):
                 line = line.strip()
                 if line == '':
                     continue
-                print(line)
                 data = line.split()
                 if len(data) == 2:
                     sequences.append(data)
@@ -1219,7 +1214,6 @@ class MsbayesConfigTestCase(PycoevolityTestCase):
                 line = line.strip()
                 if line == '':
                     continue
-                print(line)
                 data = line.split()
                 if len(data) == 2:
                     sequences.append(data)
