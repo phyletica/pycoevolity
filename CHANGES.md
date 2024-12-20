@@ -1,3 +1,15 @@
+Version 0.2.12
+==============
+
+Changes
+-------
+
+-   Updating sumevents CLI tool. Adding '--legend-in-plot' and
+    '--full-prob-axis' command line options.  The former puts the
+    prior/posterior legend inside the plot box and the latter forces the full
+    probability (y) axis of 0--1.
+
+
 Version 0.2.11
 ==============
 
