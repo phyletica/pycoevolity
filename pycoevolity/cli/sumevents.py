@@ -25,6 +25,9 @@ def main(argv = sys.argv):
     parser.add_argument('--no-legend',
             action = 'store_true',
             help = ('Do not include legend in the plot.'))
+    parser.add_argument('--legend-in-plot',
+            action = 'store_true',
+            help = ('Place legend within plot (rather than above).'))
     parser.add_argument('-p', '--prefix',
             action = 'store',
             type = str,
@@ -54,6 +57,9 @@ def main(argv = sys.argv):
             type = pycoevolity.argparse_utils.arg_is_positive_float,
             default = 7.0,
             help = ('The width of the plot. Default: 7.0.'))
+    parser.add_argument('--full-prob-axis',
+            action = 'store_true',
+            help = ('Force probability (Y) axis to range from 0-1.'))
     parser.add_argument('--use-r',
             action = 'store_true',
             help = ('Create and execute an R script for plotting with ggplot2. '
@@ -112,6 +118,9 @@ def main(argv = sys.argv):
                 'R instead.')
         args.use_r = True
 
+    add_legend = (not nevents.no_prior) and (not args.no_legend)
+    bump_bfs = add_legend and (args.legend_in_plot)
+
     if not args.use_r:
         #######################################################################
         # Using matplotlib for plotting
@@ -156,9 +165,15 @@ def main(argv = sys.argv):
                     nevents_indices,
                     x_tick_labels
                     )
+            if args.full_prob_axis:
+                ax.set_ylim(0.0, 1.0)
         else:
             y_min, y_max = ax.get_ylim()
             y_max *= 1.08
+            if args.full_prob_axis:
+                y_min = 0.0
+                if y_max < 1.0:
+                    y_max = 1.0
             ax.set_ylim(y_min, y_max)
             bar_midpoints = [x + (bar_width / 2.0) for x in nevents_indices]
             plt.xticks(
@@ -166,18 +181,30 @@ def main(argv = sys.argv):
                     x_tick_labels
                     )
             for i, x in enumerate(bar_midpoints):
+                upper_loc = 0.99
+                lower_loc = 0.94
+                if bump_bfs:
+                    upper_loc = 0.89
+                    lower_loc = 0.84
                 bf = bfs[i]
-                y = y_max * 0.99
+                y = y_max * upper_loc
                 if ((i + 1) % 2) == 0:
-                    y = y_max * 0.94 
+                    y = y_max * lower_loc
                 ax.text(x, y, bf,
                         horizontalalignment = "center",
                         verticalalignment = "top",
                         size = 8.0,
                         zorder = 300)
 
-        if not nevents.no_prior:
-            ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2)
+        if add_legend:
+            loc = 'lower center'
+            if args.legend_in_plot:
+                loc = 'upper center'
+            ax.legend(loc=loc, bbox_to_anchor=(0.5, 1.0), ncol=2)
+        else:
+            l = ax.legend()
+            if l:
+                l.remove()
         fig.tight_layout()
         plt.savefig(pdf_path)
 
