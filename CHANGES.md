@@ -1,3 +1,13 @@
+Version 0.2.13
+==============
+
+Changes
+-------
+
+-   Updating SumcoevolityNeventsTable to be more flexible when parsing output
+    file from sumceovolity.
+
+
 Version 0.2.12
 ==============
 
