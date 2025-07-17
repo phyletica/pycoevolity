@@ -888,15 +888,16 @@ class SumcoevolityNeventsTable(object):
     def _parse_sumcoevolity_table(self):
         keys = ["number_of_events",
                 "post_prob",
-                "cumulative_post_prob",
                 "prior_prob",
                 "bf"]
         data = parsing.get_dict_from_spreadsheets([self.path],
                 sep = "\t",
                 offset = 0)
-        assert sorted(keys) == sorted(data.keys()), (
-                "Unexpected header in sumcoevolity nevents file {0}".format(
-                        self.path))
+        # assert sorted(keys) == sorted(data.keys()), (
+        for k in keys:
+            assert k in data.keys(), (
+                    "Could not find header {0} in sumcoevolity nevents file {1}".format(
+                            k, self.path))
         self.number_of_elements = max(int(x) for x in data["number_of_events"])
         for k in data:
             assert len(data[k]) == self.number_of_elements, (
