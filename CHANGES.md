@@ -1,3 +1,16 @@
+Version 0.3.0
+=============
+
+Changes
+-------
+
+-   Adding pyco-multi-sumevents CLI tool, which allows for plotting multiple
+    nevents probability results for easy comparison.
+
+-   Fixing issues with pyco-sumevents CLI where command line args were being
+    ignored.
+
+
 Version 0.2.13
 ==============
 
