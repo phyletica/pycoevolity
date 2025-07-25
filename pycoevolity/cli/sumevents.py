@@ -22,12 +22,6 @@ def main(argv = sys.argv):
             type = pycoevolity.argparse_utils.arg_is_file,
             help = ('Path to the \'sumcoevolity-results-nevents.txt\' file '
                     'output by sumcoevolity.'))
-    parser.add_argument('--no-legend',
-            action = 'store_true',
-            help = ('Do not include legend in the plot.'))
-    parser.add_argument('--legend-in-plot',
-            action = 'store_true',
-            help = ('Place legend within plot (rather than above).'))
     parser.add_argument('-p', '--prefix',
             action = 'store',
             type = str,
@@ -45,13 +39,16 @@ def main(argv = sys.argv):
     parser.add_argument('-y', '--y-label',
             action = 'store',
             type = str,
-            default = "Probability",
-            help = ('Label for the Y-axis. Default: \'Probability\'.'))
+            default = None,
+            help = ('Label for the Y-axis. Default: \'Probability\' '
+                    'if there are posterior and prior probabilities to plot; '
+                    '\'Posterior probability\' if there are only posterior '
+                    'probabilities to plot.'))
     parser.add_argument('--bf-font-size',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_nonnegative_float,
-            default = 4.0,
-            help = ('Font size for the Bayes factor labels. Default: 4.0.'))
+            default = 8.0,
+            help = ('Font size for the Bayes factor labels. Default: 8.0.'))
     parser.add_argument('-w', '--width',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_positive_float,
@@ -60,6 +57,12 @@ def main(argv = sys.argv):
     parser.add_argument('--full-prob-axis',
             action = 'store_true',
             help = ('Force probability (Y) axis to range from 0-1.'))
+    parser.add_argument('--no-legend',
+            action = 'store_true',
+            help = ('Do not include legend in the plot.'))
+    parser.add_argument('--legend-in-plot',
+            action = 'store_true',
+            help = ('Place legend within plot (rather than above).'))
     parser.add_argument('--use-r',
             action = 'store_true',
             help = ('Create and execute an R script for plotting with ggplot2. '
@@ -88,6 +91,11 @@ def main(argv = sys.argv):
 
     sys.stderr.write("Parsing nevents file...\n")
     nevents = pycoevolity.posterior.SumcoevolityNeventsTable(args.nevents_path)
+
+    if args.y_label is None:
+        args.y_label = "Probability"
+        if nevents.no_prior:
+            args.y_label = "Posterior probability"
 
     max_prob = max(nevents.posterior_probs)
     prior_probs = [0.0] * nevents.number_of_elements
@@ -156,8 +164,9 @@ def main(argv = sys.argv):
                     color = prior_color,
                     label = "Prior")
 
-        ax.set_xlabel("Number of events")
-        ax.set_ylabel("Probability")
+        ax.set_xlabel(args.x_label)
+        ax.set_ylabel(args.y_label)
+
         x_tick_labels = [str(i + 1) for i in range(nevents.number_of_elements)]
         if nevents.no_prior:
             ax.set_ylabel("Posterior probability")
@@ -170,6 +179,8 @@ def main(argv = sys.argv):
         else:
             y_min, y_max = ax.get_ylim()
             y_max *= 1.08
+            if args.legend_in_plot:
+                y_max *= 1.1
             if args.full_prob_axis:
                 y_min = 0.0
                 if y_max < 1.0:
@@ -193,7 +204,7 @@ def main(argv = sys.argv):
                 ax.text(x, y, bf,
                         horizontalalignment = "center",
                         verticalalignment = "top",
-                        size = 8.0,
+                        size = args.bf_font_size,
                         zorder = 300)
 
         if add_legend:
