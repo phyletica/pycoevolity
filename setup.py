@@ -32,6 +32,7 @@ setup(
                 'msb2phy = pycoevolity.cli.msbayes2alignments:main_phylip',
                 'pyco-sumtimes = pycoevolity.cli.sumtimes:main',
                 'pyco-sumevents = pycoevolity.cli.sumevents:main',
+                'pyco-multi-sumevents = pycoevolity.cli.multisumevents:main',
                 'pyco-sumsizes = pycoevolity.cli.sumsizes:main',
                 'pyco-sumchains = pycoevolity.cli.sumchains:main',
                 'pyco-sumsims = pycoevolity.cli.sumsims:main',

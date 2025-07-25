@@ -872,6 +872,43 @@ class PosteriorSample(object):
         return self.model_summary.get_median_model_distances_from(model_tuple)
 
 
+class MultiSumcoevolityNeventsTable(object):
+    def __init__(self, sumcoevolity_nevents_table_paths):
+        if len(sumcoevolity_nevents_table_paths) < 2:
+            raise Exception("Multiple sumcoevolity nevents files required")
+        self.no_prior = True
+        self.prior_probs = None
+        self.prior_probs_annotations = None
+        self.number_of_elements = None
+        self.nevents_tables = []
+        max_probs = []
+        for i, path in enumerate(sumcoevolity_nevents_table_paths):
+            table = SumcoevolityNeventsTable(path)
+            if i == 0:
+                self.no_prior = table.no_prior
+                if self.no_prior is False:
+                    self.prior_probs = table.prior_probs
+                    self.prior_probs_annotations = table.prior_probs_annotations
+                    self.number_of_elements = table.number_of_elements
+            else:
+                # Make sure priors in each table match
+                if self.number_of_elements != table.number_of_elements:
+                    raise Exception("Multiple sumcoevolity nevents tables must have same number of elements")
+                if self.no_prior != table.no_prior:
+                    raise Exception("Priors must match among multiple sumcoevolity nevents tables")
+                if self.prior_probs_annotations != table.prior_probs_annotations:
+                    raise Exception("Priors must match among multiple sumcoevolity nevents tables")
+                if self.no_prior is False:
+                    for x, y in zip(self.prior_probs, table.prior_probs):
+                        if abs(x - y) > 0.01:
+                            raise Exception("Priors must match among multiple sumcoevolity nevents tables")
+            self.nevents_tables.append(table)
+            max_probs.append(max(table.posterior_probs))
+            if self.no_prior is False:
+                max_probs.append(max(table.prior_probs))
+        self.max_prob = max(max_probs)
+
+
 class SumcoevolityNeventsTable(object):
     def __init__(self, sumcoevolity_nevents_table_path):
         self.path = sumcoevolity_nevents_table_path
