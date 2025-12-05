@@ -38,6 +38,15 @@ def main(argv = sys.argv, write_method = "write_nexus"):
                     'are converted to binary states. Ecoevolity will accept '
                     'DNA characters and convert to binary internally; this '
                     'option is primarily for testing.'))
+    parser.add_argument('--treat-n-as-missing',
+            action = 'store_true',
+            help = (
+                'By default, ambiguity codes are treated as polymorphisms, '
+                'and symbols that encode more than two states cause an error, '
+                'because they are not biallelic. When this option is specified '
+                '\'N\'s will be treated as missing data (\'?\') and will not '
+                'trigger this error.'
+            ))
     parser.add_argument('-p', '--prefix',
             type = str,
             metavar = "SEQUENCE-LABEL-PREFIX",
@@ -100,7 +109,8 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             remove_triallelic_sites = args.remove_triallelic_sites,
             convert_to_binary = args.convert_to_binary,
             sequence_ids_to_remove = args.sample_to_delete,
-            label_change_map_path = label_change_map_path)
+            label_change_map_path = label_change_map_path,
+            treat_n_as_missing = args.treat_n_as_missing)
     if args.prefix:
         data.label_prefix = args.prefix
     if args.suffix:

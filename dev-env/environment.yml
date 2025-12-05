@@ -7,4 +7,5 @@ dependencies:
   - python>=3.8
   - munkres>=1.1.1
   - pip
+  - setuptools<72.0.0
   - bpython

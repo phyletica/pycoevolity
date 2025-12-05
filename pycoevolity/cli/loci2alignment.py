@@ -100,7 +100,8 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             remove_triallelic_sites = args.remove_triallelic_sites,
             convert_to_binary = args.convert_to_binary,
             sequence_ids_to_remove = args.sample_to_delete,
-            label_change_map_path = label_change_map_path)
+            label_change_map_path = label_change_map_path,
+            treat_n_as_missing = True)
     if args.prefix:
         data.label_prefix = args.prefix
     if args.suffix:

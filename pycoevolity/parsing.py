@@ -270,6 +270,21 @@ class Loci(object):
             'D': ('A', 'G', 'T'),
             'B': ('C', 'G', 'T'),
             'N': ('A', 'C', 'G', 'T'),
+            'a': ('A',),
+            'c': ('C',),
+            'g': ('G',),
+            't': ('T',),
+            'r': ('A', 'G'),
+            'y': ('C', 'T'),
+            'k': ('G', 'T'),
+            'm': ('A', 'C'),
+            's': ('C', 'G'),
+            'w': ('A', 'T'),
+            'v': ('A', 'C', 'G'),
+            'h': ('A', 'C', 'T'),
+            'd': ('A', 'G', 'T'),
+            'b': ('C', 'G', 'T'),
+            'n': ('A', 'C', 'G', 'T'),
             '?': tuple(),
             '-': tuple(),
             }
@@ -308,6 +323,7 @@ class Loci(object):
         self._label_prefix = None
         self._sample_indices = None
         self._label_change_dict = {}
+        self._treat_n_as_missing = False
 
     def clone(self):
         o = self.__class__()
@@ -333,8 +349,10 @@ class Loci(object):
             remove_triallelic_sites = False,
             convert_to_binary = False,
             sequence_ids_to_remove = [],
-            label_change_map_path = None):
+            label_change_map_path = None,
+            treat_n_as_missing = True):
         data = cls()
+        data._treat_n_as_missing = treat_n_as_missing
         data._remove_triallelic_sites = remove_triallelic_sites
         data._convert_to_binary = convert_to_binary
         data._paths = [loci_path]
@@ -353,8 +371,10 @@ class Loci(object):
             remove_triallelic_sites = False,
             convert_to_binary = False,
             sequence_ids_to_remove = [],
-            label_change_map_path = None):
+            label_change_map_path = None,
+            treat_n_as_missing = False):
         data = cls()
+        data._treat_n_as_missing = treat_n_as_missing
         data._remove_triallelic_sites = remove_triallelic_sites
         data._convert_to_binary = convert_to_binary
         data._paths = paths
@@ -479,6 +499,8 @@ class Loci(object):
         self._populations = sorted(self._population_to_labels.keys())
 
     def _process_locus(self, sequences):
+        if self._treat_n_as_missing:
+            sequences = ((l, s.replace("N", "?").replace("n", "?")) for l, s in sequences)
         if self._sequences_removed:
             seqs = []
             for seq_label, seq_chars in sequences:
@@ -606,7 +628,8 @@ class Loci(object):
                 assert recorded_length == expected_length
                 l = self._label_change_dict.get(label, label)
                 self._labels.add(l)
-                out.write("{0}\t{1}\n".format(l, "".join(seq)))
+                seq_str = "".join(seq)
+                out.write("{0}\t{1}\n".format(l, seq_str.upper()))
 
     def _parse_loci_file(self):
         with ReadFile(self._paths[0]) as stream:
@@ -625,7 +648,9 @@ class Loci(object):
                 if label in self._sequences_removed:
                     self._sequences_removed[label] += 1
                     continue
-                seq = seq.replace("N", "?")
+                # Treating "N" as "?" is now handled in _process_locus method
+                # below according to the _treat_n_as_missing class attribute
+                # seq = seq.replace("N", "?")
                 seqs.append([label, [c for c in seq]])
         if seqs:
             self._process_locus(seqs)
