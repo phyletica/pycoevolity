@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 __project__ = "pycoevolity"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __author__ = "Jamie Oaks"
 __description__ = "Package for summarizing output of ecoevolity",
 __copyright__ = "Copyright 2017 Jamie Oaks."

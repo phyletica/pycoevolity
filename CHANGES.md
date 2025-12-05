@@ -1,3 +1,18 @@
+Version 0.3.1
+=============
+
+Bug fixes
+---------
+
+-   Lower case nucleotide character codes were causing errors. Fixing that bug
+    to accommodate lower case character codes.
+
+Changes
+-------
+
+-   Adding option to treat "N" characters as missing data.
+
+
 Version 0.3.0
 =============
 
