@@ -8,18 +8,6 @@ BASE_DIR = os.path.dirname(PACKAGE_DIR)
 
 __project__ = "pycoevolity"
 
-__version__ = "unknown version"
-__license__ = "unknown license"
-__description__ = "Package for summarizing output of ecoevolity"
-try:
-    import importlib.metadata
-    __version__ = importlib.metadata.version(__project__)
-    pkg_metadata = importlib.metadata.metadata(__project__)
-    __license__ = pkg_metadata.get("License", __license__)
-    __description__ = pkg_metadata.get("Description", __description__)
-except:
-    pass
-
 # NOTE: Imports to populate the namespace can break the scripts' control of the
 # logging level, because imported modules will initiate their loggers before
 # the CLI scripts can update LoggingControl.
@@ -31,50 +19,79 @@ import pycoevolity.argparse_utils
 import pycoevolity.partition
 
 def _get_git_data(repo_path):
-    try:
-        import subprocess
-        import datetime
+    version = "unknown"
+    branch = "unknown"
+    commit = "unknown"
+    commit_time = "unknown"
+    if repo_path is not None:
+        try:
+            import subprocess
+            import datetime
 
-        p = subprocess.Popen(
-                ["git", "rev-parse", "HEAD"],
-                shell = False,
-                cwd = repo_path,
-                stdin = subprocess.PIPE,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                universal_newlines = True)
-        stdout, stderr = p.communicate()
-        exit_code = p.wait()
-        commit = stdout.strip()[0:7]
+            try:
+                p = subprocess.Popen(
+                        ["git", "rev-parse", "HEAD"],
+                        shell = False,
+                        cwd = repo_path,
+                        stdin = subprocess.PIPE,
+                        stdout = subprocess.PIPE,
+                        stderr = subprocess.PIPE,
+                        universal_newlines = True)
+                stdout, stderr = p.communicate()
+                exit_code = p.wait()
+                commit = stdout.strip()[0:7]
+            except:
+                pass
 
-        p = subprocess.Popen(
-                ["git", "name-rev", "--name-only", "HEAD"],
-                shell = False,
-                cwd = repo_path,
-                stdin = subprocess.PIPE,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                universal_newlines = True)
-        stdout, stderr = p.communicate()
-        exit_code = p.wait()
-        branch = stdout.strip()
+            try:
+                p = subprocess.Popen(
+                        ["git", "name-rev", "--name-only", "HEAD"],
+                        shell = False,
+                        cwd = repo_path,
+                        stdin = subprocess.PIPE,
+                        stdout = subprocess.PIPE,
+                        stderr = subprocess.PIPE,
+                        universal_newlines = True)
+                stdout, stderr = p.communicate()
+                exit_code = p.wait()
+                branch = stdout.strip()
+            except:
+                pass
 
-        p = subprocess.Popen(
-                ["git", "show", "--quiet", "--pretty=format:'%at'", "HEAD"],
-                shell = False,
-                cwd = repo_path,
-                stdin = subprocess.PIPE,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                universal_newlines = True)
-        stdout, stderr = p.communicate()
-        exit_code = p.wait()
-        t = stdout.strip().replace("'", "").replace('"', '')
-        commit_time = datetime.datetime.fromtimestamp(float(t))
+            try:
+                p = subprocess.Popen(
+                        ["git", "show", "--quiet", "--pretty=format:'%at'", "HEAD"],
+                        shell = False,
+                        cwd = repo_path,
+                        stdin = subprocess.PIPE,
+                        stdout = subprocess.PIPE,
+                        stderr = subprocess.PIPE,
+                        universal_newlines = True)
+                stdout, stderr = p.communicate()
+                exit_code = p.wait()
+                t = stdout.strip().replace("'", "").replace('"', '')
+                commit_time = datetime.datetime.fromtimestamp(float(t))
+            except:
+                pass
 
-        return branch, commit, commit_time
-    except:
-        return None, None, None
+            try:
+                p = subprocess.Popen(
+                        ["git", "describe", "--abbrev=0"],
+                        shell = False,
+                        cwd = repo_path,
+                        stdin = subprocess.PIPE,
+                        stdout = subprocess.PIPE,
+                        stderr = subprocess.PIPE,
+                        universal_newlines = True)
+                stdout, stderr = p.communicate()
+                exit_code = p.wait()
+                version = stdout.strip()
+            except:
+                pass
+        except:
+            pass
+
+    return version, branch, commit, commit_time
 
 __homedir__ = None
 try:
@@ -87,7 +104,20 @@ try:
 except:
     pass
 
-__branch__, __commit__, __committime__ = _get_git_data(__homedir__)
+# Get version and git data by calling git
+__version__, __branch__, __commit__, __committime__ = _get_git_data(__homedir__)
+
+# If importlib is available, use it to get the version and other metadata
+__license__ = "unknown"
+__description__ = "Package for summarizing output of ecoevolity"
+try:
+    import importlib.metadata
+    __version__ = importlib.metadata.version(__project__)
+    pkg_metadata = importlib.metadata.metadata(__project__)
+    __license__ = pkg_metadata.get("License", __license__)
+    __description__ = pkg_metadata.get("Description", __description__)
+except:
+    pass
 
 def get_description():
     d = "{0} version {1}".format(__project__, __version__)
