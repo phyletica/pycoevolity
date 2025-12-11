@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=7.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycoevolity"
+authors = [
+    {name = "Phyletica Lab", email = "phyletica@gmail.com"},
+    ]
+description = "Package for summarizing output of ecoevolity"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "GNU GPL V3"
+license-files = ["LICENSE.txt"]
+classifiers = [
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    ]
+# Munkres >= 1.1.1 supports Python3; Munkres <= 1.0.12 supports Python 2
+dependencies = [
+    "munkres >= 1.1.1",
+    ]
+# Using setuptools_scm to determine version based on git tags and commits
+dynamic = ["version"]
+
+[tool.setuptools.packages.find]
+inlcude = ["pycoevolity"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest >=6.0",
+    "pytest-cov >=3.0.0",
+    "pylint >=2.14.0",
+    ]
+
+[project.scripts]
+loci2nex                = "pycoevolity.cli.loci2alignment:main_nexus"
+loci2phy                = "pycoevolity.cli.loci2alignment:main_phylip"
+fastas2nex              = "pycoevolity.cli.fastas2alignment:main_nexus"
+fastas2phy              = "pycoevolity.cli.fastas2alignment:main_phylip"
+loci2dppmsbayes         = "pycoevolity.cli.loci2dppmsbayes:main"
+fastas2fastas           = "pycoevolity.cli.fastas2fastas:main"
+msb2nex                 = "pycoevolity.cli.msbayes2alignments:main_nexus"
+msb2phy                 = "pycoevolity.cli.msbayes2alignments:main_phylip"
+pyco-sumtimes           = "pycoevolity.cli.sumtimes:main"
+pyco-sumevents          = "pycoevolity.cli.sumevents:main"
+pyco-multi-sumevents    = "pycoevolity.cli.multisumevents:main"
+pyco-sumsizes           = "pycoevolity.cli.sumsizes:main"
+pyco-sumchains          = "pycoevolity.cli.sumchains:main"
+pyco-sumsims            = "pycoevolity.cli.sumsims:main"
+pyco-dummy-data         = "pycoevolity.cli.dummy_data:main"
+
+[project.urls]
+homepage = "https://github.com/phyletica/pycoevolity" 
+repository = "https://github.com/phyletica/pycoevolity.git"
+
+[tool.coverage.run]
+source = ["pycoevolity"]
+
+[tool.pytest.ini_options]
+addopts = "--cov --doctest-modules"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.setuptools]
+include-package-data = true

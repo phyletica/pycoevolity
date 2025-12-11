@@ -3,11 +3,22 @@
 import sys
 import os
 
-from pycoevolity import metadata
-
-
 PACKAGE_DIR = os.path.abspath(__file__)
 BASE_DIR = os.path.dirname(PACKAGE_DIR)
+
+__project__ = "pycoevolity"
+
+__version__ = "unknown version"
+__license__ = "unknown license"
+__description__ = "Package for summarizing output of ecoevolity"
+try:
+    import importlib.metadata
+    __version__ = importlib.metadata.version(__project__)
+    pkg_metadata = importlib.metadata.metadata(__project__)
+    __license__ = pkg_metadata.get("License", __license__)
+    __description__ = pkg_metadata.get("Description", __description__)
+except:
+    pass
 
 # NOTE: Imports to populate the namespace can break the scripts' control of the
 # logging level, because imported modules will initiate their loggers before
@@ -76,25 +87,15 @@ try:
 except:
     pass
 
-__gitinfo__ = ""
-
 __branch__, __commit__, __committime__ = _get_git_data(__homedir__)
 
 def get_description():
-    d = "{0} version {1}".format(metadata.__project__,
-            metadata.__version__)
-    if __branch__:
-        d += " {0}".format(__branch__)
-    if __commit__:
-        d += " {0}".format(__commit__)
-    if __committime__:
-        d += " {0}".format(__committime__)
-    return d
+    d = "{0} version {1}".format(__project__, __version__)
 
 def write_splash(stream, console_width = 72):
     w = console_width
     stream.write("{0}\n".format("=" * w))
-    stream.write("{0:^{1}}\n".format(metadata.__project__.capitalize(), w))
+    stream.write("{0:^{1}}\n".format(__project__.capitalize(), w))
     stream.write("{0:^{1}}\n\n".format(
             "Summarizing evolutionary coevality",
             w))
@@ -102,17 +103,12 @@ def write_splash(stream, console_width = 72):
             "A Python package for analyzing the output of Ecoevolity",
             w))
     stream.write("{0:^{1}}\n\n".format(
-            "Version {v} ({b} {c}: {t})".format(
-                    v = metadata.__version__,
-                    b = __branch__,
-                    c = __commit__,
-                    t = __committime__),
+            "Version {v}".format(
+                    v = __version__),
             w))
     stream.write("{0:^{1}}\n".format(
-            "License: {}".format(metadata.__license_short__),
+            "License: {}".format(__license__),
             w))
-    # for line in __license__.strip().split("\n"):
-    #     stream.write("{0:^{1}}\n".format(line, w))
     stream.write("{0}\n".format("=" * w))
 
 def write_dummy_biallelic_data_file(
