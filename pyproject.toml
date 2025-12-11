@@ -10,7 +10,7 @@ authors = [
 description = "Package for summarizing output of ecoevolity"
 readme = "README.md"
 requires-python = ">=3.8"
-license = "GNU GPL V3"
+license = "GPL-3.0-or-later"
 license-files = ["LICENSE.txt"]
 classifiers = [
     "Natural Language :: English",
@@ -25,7 +25,7 @@ dependencies = [
 dynamic = ["version"]
 
 [tool.setuptools.packages.find]
-inlcude = ["pycoevolity"]
+include = ["pycoevolity"]
 
 [project.optional-dependencies]
 dev = [

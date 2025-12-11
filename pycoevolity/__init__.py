@@ -114,13 +114,13 @@ try:
     import importlib.metadata
     __version__ = importlib.metadata.version(__project__)
     pkg_metadata = importlib.metadata.metadata(__project__)
-    __license__ = pkg_metadata.get("License", __license__)
-    __description__ = pkg_metadata.get("Description", __description__)
+    __license__ = pkg_metadata.get("License-Expression", __license__)
+    __description__ = pkg_metadata.get("Summary", __description__)
 except:
     pass
 
 def get_description():
-    d = "{0} version {1}".format(__project__, __version__)
+    return "{0} version {1}".format(__project__, __version__)
 
 def write_splash(stream, console_width = 72):
     w = console_width

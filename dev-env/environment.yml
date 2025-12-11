@@ -5,8 +5,10 @@ channels:
   - bioconda
 dependencies:
   - python>=3.8
-  - munkres>=1.1.1
   - pip
+  - setuptools>=61.0
+  - setuptools_scm>=7.0.0
+  - munkres>=1.1.1
   - bpython
   - pytest>=6.0
   - pytest-cov>=3.0.0
