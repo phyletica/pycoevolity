@@ -66,3 +66,6 @@ python_functions = ["test_*"]
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools_scm]
+# This section must exist, even if empty
