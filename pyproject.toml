@@ -19,7 +19,7 @@ classifiers = [
     ]
 # Munkres >= 1.1.1 supports Python3; Munkres <= 1.0.12 supports Python 2
 dependencies = [
-    "munkres >= 1.1.1",
+    "munkres >=1.1.1",
     ]
 # Using setuptools_scm to determine version based on git tags and commits
 dynamic = ["version"]
@@ -31,7 +31,6 @@ inlcude = ["pycoevolity"]
 dev = [
     "pytest >=6.0",
     "pytest-cov >=3.0.0",
-    "pylint >=2.14.0",
     ]
 
 [project.scripts]
