@@ -59,10 +59,6 @@ source = ["pycoevolity"]
 
 [tool.pytest.ini_options]
 addopts = "--cov --doctest-modules"
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 
 [tool.setuptools]
 include-package-data = true
