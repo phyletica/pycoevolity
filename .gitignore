@@ -6,3 +6,6 @@ build
 setuptools*.egg
 setuptools*.zip
 .eggs
+.coverage
+.pytest_cache
+__pycache__
