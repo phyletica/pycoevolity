@@ -41,7 +41,7 @@ class TestLevel:
         raise ValueError('TestLevel {0} unrecognized'.format(l))
 
     @classmethod
-    def test_skip_msg(cls, log, module_name, level, message=None):
+    def skip_msg(cls, log, module_name, level, message=None):
         if message is None:
             message = "tests skipped"
         log.warning(
@@ -65,11 +65,11 @@ class TestLevel:
         return cls.FAST
     
     @classmethod
-    def test_enabled(cls, level, log=None, module_name="", message=None):
+    def enabled(cls, level, log=None, module_name="", message=None):
         tl = cls.get_current_level()
         if level > tl:
             if log:
-                cls.test_skip_msg(log, module_name, level, message)
+                cls.skip_msg(log, module_name, level, message)
             return False
         return True
 

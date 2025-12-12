@@ -322,7 +322,7 @@ class IntervalTestCase(unittest.TestCase):
         self.exp_samples = [GLOBAL_RNG.expovariate(1) for i in range(100000)]
 
     def test_standard_normal_hpd(self):
-        if not TestLevel.test_enabled(
+        if not TestLevel.enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -333,7 +333,7 @@ class IntervalTestCase(unittest.TestCase):
         self.assertAlmostEqual(hpdi[1], 1.96, places=1)
 
     def test_standard_normal_quantile(self):
-        if not TestLevel.test_enabled(
+        if not TestLevel.enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -348,7 +348,7 @@ class IntervalTestCase(unittest.TestCase):
         self.assertAlmostEqual(quants[1], 1.96, places=1)
 
     def test_exp_hpd(self):
-        if not TestLevel.test_enabled(
+        if not TestLevel.enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -359,7 +359,7 @@ class IntervalTestCase(unittest.TestCase):
         self.assertAlmostEqual(hpdi[1], 2.9957, places=1)
 
     def test_exp_quantile(self):
-        if not TestLevel.test_enabled(
+        if not TestLevel.enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
@@ -378,7 +378,7 @@ class GetSummaryTestCase(unittest.TestCase):
         self.samples = [GLOBAL_RNG.normalvariate(0, 1) for i in range(100000)]
 
     def test_standard_normal(self):
-        if not TestLevel.test_enabled(
+        if not TestLevel.enabled(
                 level = TestLevel.EXHAUSTIVE,
                 log = _LOG,
                 module_name = '.'.join([self.__class__.__name__,
