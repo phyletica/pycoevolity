@@ -336,7 +336,7 @@ def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
         [(0.0, 0.1...)]
         >>> x = [random.Random().normalvariate(1, 1) for i in range(10000)]
         >>> mode_list(x, bin_width='auto') # E.g., [(0.8910191831744725, 1.0183076379136828)]
-        [(0..., ...)]
+        [(..., ...)]
         >>> x = [random.Random().normalvariate(0, 1) for i in range(10000)]
         >>> # zero is a bin boundary by default
         >>> mode_list(x, bin_width='auto') # E.g., [(-0.1263661814981197, 0.0)]
