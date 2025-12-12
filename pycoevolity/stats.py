@@ -319,7 +319,7 @@ def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
 
     Some examples:
         >>> from pycoevolity.stats import mode_list
-        >>> x = range(10) + [2]
+        >>> x = list(range(10)) + [2]
         >>> mode_list(x)  # treat values as discrete by default
         [2]
         >>> x += [6]
@@ -332,18 +332,18 @@ def mode_list(samples, bin_width = 'auto', zero_value = 'boundary'):
         >>> import random
         >>> x = [random.Random().expovariate(1) for i in range(10000)]
         >>> # specify bin width for continuous values
-        >>> mode_list(x, bin_width='auto')
-        [(0.0, 0.10405355148832289)]
+        >>> mode_list(x, bin_width='auto') # E.g., [(0.0, 0.10405355148832289)]
+        [(0.0, 0.1...)]
         >>> x = [random.Random().normalvariate(1, 1) for i in range(10000)]
-        >>> mode_list(x, bin_width='auto')
-        [(0.8910191831744725, 1.0183076379136828)]
+        >>> mode_list(x, bin_width='auto') # E.g., [(0.8910191831744725, 1.0183076379136828)]
+        [(0..., ...)]
         >>> x = [random.Random().normalvariate(0, 1) for i in range(10000)]
         >>> # zero is a bin boundary by default
-        >>> mode_list(x, bin_width='auto') 
-        [(-0.1263661814981197, 0.0)]
+        >>> mode_list(x, bin_width='auto') # E.g., [(-0.1263661814981197, 0.0)]
+        [(..., ...)]
         >>> # specify zero_value as bin center to get mode that spans zero
-        >>> mode_list(x, bin_width='auto', zero_value='center')
-        [(-0.06318309074905985, 0.06318309074905985)]
+        >>> mode_list(x, bin_width='auto', zero_value='center') # E.g., [(-0.06318309074905985, 0.06318309074905985)]
+        [(..., ...)]
 
     The beginnings of this function were based on the mode function in DendroPy
     (Copyright Jeet Sukumaran and Mark T. Holder; licensed under BSD License;

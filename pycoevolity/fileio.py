@@ -27,6 +27,7 @@ def is_gzipped(file_path):
     False
 
     Returns False if regular file is empty:
+    >>> import tempfile
     >>> fd, temp_path = tempfile.mkstemp()
     >>> os.close(fd)
     >>> is_gzipped(temp_path)
@@ -42,6 +43,7 @@ def is_gzipped(file_path):
     >>> os.remove(temp_path)
 
     Returns False if gzipped file is empty:
+    >>> import tempfile
     >>> fd, temp_path = tempfile.mkstemp()
     >>> f = gzip.open(temp_path, mode = "wt", compresslevel = 9)
     >>> f.write("")
