@@ -54,16 +54,12 @@ If that is not an option, you can download and install manually:
 
     git clone https://github.com/phyletica/pycoevolity.git
     cd pycoevolity
-    python setup.py install
+    pip install .
 
-If the last command fails with a "permission denied" error, and you have admin
-privileges on your computer, try:
+If the last command fails with a "permission denied" error, you can install
+within your home directory using:
 
-    sudo python setup.py install
-
-If you don't have admin privileges, try:
-
-    python setup.py install --user
+    pip install . --user
 
 If you use the last command, pycoevolity will be installed in a directory
 within your home directory.
