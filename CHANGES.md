@@ -1,3 +1,12 @@
+Version 0.4
+===========
+
+Changes
+-------
+
+-   Updating package management from setup.py to pyproject.toml
+
+
 Version 0.3.1
 =============
 
