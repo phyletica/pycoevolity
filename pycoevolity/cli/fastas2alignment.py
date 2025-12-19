@@ -7,6 +7,7 @@ CLI program for converting fasta files to concatenated nexus format.
 import os
 import sys
 import argparse
+import random
 
 import pycoevolity
 

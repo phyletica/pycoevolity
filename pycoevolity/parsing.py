@@ -5,9 +5,11 @@ import os
 import logging
 import re
 import math
+import multiprocessing
 
 from pycoevolity.fileio import ReadFile
 from pycoevolity import tempfs
+from pycoevolity import seq
 
 _LOG = logging.getLogger(__name__)
 
@@ -342,6 +344,7 @@ class Loci(object):
         o._label_prefix = self._label_prefix
         o._sample_indices = self._sample_indices
         o._label_change_dict = self._label_change_dict
+        o._treat_n_as_missing = treat_n_as_missing
         return o
 
     @classmethod
@@ -500,7 +503,12 @@ class Loci(object):
 
     def _process_locus(self, sequences):
         if self._treat_n_as_missing:
-            sequences = ((l, s.replace("N", "?").replace("n", "?")) for l, s in sequences)
+            seqs = []
+            for seq_label, seq_chars in sequences:
+                seq_str = "".join(seq_chars)
+                seq_str = seq_str.replace("N", "?").replace("n", "?")
+                seqs.append((seq_label, tuple(seq_str)))
+            sequences = seqs
         if self._sequences_removed:
             seqs = []
             for seq_label, seq_chars in sequences:
@@ -511,6 +519,7 @@ class Loci(object):
             sequences = seqs
         if self.convert_to_binary or self._remove_triallelic_sites:
             sequences = [[label, list(s)] for label, s in sequences]
+        sequences = list(sequences)
         nsites = len(sequences[0][1])
         residues = [set() for i in range(nsites)]
         for site_idx in range(nsites):
@@ -783,7 +792,8 @@ class Loci(object):
             total_n_sites += n
         stream.write("END;\n")
 
-    def _parse_tmp_locus_file(self, path):
+    @staticmethod
+    def _parse_tmp_locus_file(path):
         seqs = {}
         with ReadFile(path) as stream:
             for line in stream:
@@ -791,7 +801,8 @@ class Loci(object):
                 seqs[label] = seq
         return seqs
 
-    def _parse_tmp_locus_file_as_list(self, path):
+    @staticmethod
+    def _parse_tmp_locus_file_as_list(path):
         seqs = []
         with ReadFile(path) as stream:
             for line in stream:
@@ -809,6 +820,99 @@ class Loci(object):
         if self._label_suffix:
             mx += len(self._label_suffix)
         return mx + 4
+
+    @staticmethod
+    def _get_locus_pairwise_sample_overlap(
+        locus_path,
+        sample_labels,
+        missing_symbols = ("?", "-", "N", "n"),
+    ):
+        seqs = Loci._parse_tmp_locus_file(locus_path)
+        labels = list(sample_labels)
+        data = {}
+        for i in range(0, len(labels) - 1):
+            for j in range(i + 1, len(labels)): 
+                key = (labels[i], labels[j])
+                p_overlap = 0.0
+                p_diff = None
+                if (labels[i] in seqs.keys()) and (labels[j] in seqs.keys()):
+                    p_overlap, p_diff = seq.get_overlap_and_diff(
+                        seqs[labels[i]],
+                        seqs[labels[j]])
+                data[key] = (p_overlap, p_diff)
+        return data
+
+    def _get_pairwise_sample_overlap(
+        self,
+        num_processes = 1,
+        missing_symbols = ("?", "-", "N", "n"),
+    ):
+        if len(self._tmp_locus_paths) < 1:
+            raise Exception(
+                "Calling _get_pairwise_sample_overlap with no locus data")
+        data = {}
+        labels = self._get_labels()
+        for i in range(0, len(labels) - 1):
+            for j in range(i + 1, len(labels)): 
+                key = (labels[i], labels[j])
+                data[key] = []
+        # for pth in self._tmp_locus_paths:
+        #     d = self._get_locus_pairwise_sample_overlap(pth, labels, missing_symbols)
+        #     for key, value in d.items():
+        #         data[key].append(value)
+        num_processes = min(num_processes, len(self._tmp_locus_paths))
+        with multiprocessing.Pool(num_processes) as pool:
+            workers = [
+                pool.apply_async(
+                    Loci._get_locus_pairwise_sample_overlap,
+                    args = (pth, labels, missing_symbols))
+                for pth in self._tmp_locus_paths
+            ]
+            locus_data = tuple(w.get() for w in workers)
+        for d in locus_data:
+            for key, value in d.items():
+                data[key].append(value)
+        return data
+
+    def get_pairwise_sample_overlap_and_div(
+        self,
+        min_overlap = 0.5,
+        num_processes = 1,
+        missing_symbols = ("?", "-", "N", "n"),
+    ):
+        assert min_overlap > 0.0
+        assert min_overlap <= 1.0
+        pairwise_summary = {}
+        sample_num_shared = { l : [] for l in self._get_labels() }
+        num_samples = len(sample_num_shared.keys())
+        overlap_data = self._get_pairwise_sample_overlap(
+            num_processes = num_processes,
+            missing_symbols = missing_symbols)
+        num_loci = len(self._tmp_locus_paths)
+        for sample_pair, olap_div_tups in overlap_data.items():
+            assert len(olap_div_tups) == num_loci
+            assert len(sample_pair) == 2
+            num_loci_shared = 0
+            div_sum = 0.0
+            for olap, div in olap_div_tups:
+                if olap < min_overlap:
+                    continue
+                num_loci_shared += 1
+                div_sum += div
+            div_mean = None
+            if num_loci_shared > 0:
+                div_mean = div_sum / num_loci_shared
+            pairwise_summary[sample_pair] = (num_loci_shared, div_mean)
+            sample_num_shared[sample_pair[0]].append(num_loci_shared)
+            sample_num_shared[sample_pair[1]].append(num_loci_shared)
+
+        sample_shared_mean = {}
+        for label, pairwise_num_shared in sample_num_shared.items():
+            assert len(pairwise_num_shared) == num_samples - 1
+            mean_num_shared = sum(pairwise_num_shared) / float(len(pairwise_num_shared))
+            sample_shared_mean[label] = mean_num_shared
+
+        return overlap_data, pairwise_summary, sample_shared_mean
 
     def write_interleaved_sequences(self, stream = None, indent = "",
             use_names_at_interleaves = True):
