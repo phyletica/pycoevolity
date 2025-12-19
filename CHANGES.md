@@ -1,3 +1,14 @@
+Version 0.4.1
+=============
+
+Bug fixes
+---------
+
+-   Adding tests and fixing bugs in parsing and converting sequence files
+    introduced in Version 0.3.1. 
+    -   All of these bugs caused crashes (not incorrect output).
+
+
 Version 0.4
 ===========
 
