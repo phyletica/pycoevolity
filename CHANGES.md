@@ -1,3 +1,14 @@
+Version 0.5
+===========
+
+Changes
+-------
+
+-   Adding pyco-sumloci command-line tool to summarize locus overlap among
+    samples.
+-   Adding several tests of old and new functionality.
+
+
 Version 0.4.1
 =============
 

@@ -13,8 +13,44 @@ import logging
 from pycoevolity import parsing
 from pycoevolity.test.support.pycoevolity_test_case import PycoevolityTestCase
 from pycoevolity.test.support import package_paths
+from pycoevolity.test import test_utils 
 
 _LOG = logging.getLogger(__name__)
+
+class LociMissingDataMatrixTestCase(PycoevolityTestCase):
+
+    def setUp(self):
+        self.set_up()
+
+    def tearDown(self):
+        self.tear_down()
+
+    def test_all_sals_loci(self):
+        ipyrad_loci_path = package_paths.data_path('all-sals.loci')
+
+        loci = parsing.Loci.from_pyrad(ipyrad_loci_path)
+        loci.populate_missing_data_proportions_matrix(
+            missing_symbols = ("?", "-", "N", "n"),
+        )
+
+        expected_matrix = test_utils.get_expected_missing_data_proportions(
+            ipyrad_loci_path,
+            missing = ("?", "-", "N", "n"),
+        )
+
+        self.assertEqual(expected_matrix, loci._missing_data_proportions)
+
+        loci.populate_missing_data_proportions_matrix(
+            missing_symbols = ("?",),
+        )
+        new_expected_matrix = test_utils.get_expected_missing_data_proportions(
+            ipyrad_loci_path,
+            missing = ("?",),
+        )
+
+        self.assertEqual(new_expected_matrix, loci._missing_data_proportions)
+        self.assertNotEqual(loci._missing_data_proportions, expected_matrix)
+
 
 class GetDictFromSpreadsheetTestCase(PycoevolityTestCase):
 

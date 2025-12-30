@@ -6,6 +6,8 @@ import logging
 import re
 import math
 import multiprocessing
+import time
+import json
 
 from pycoevolity.fileio import ReadFile
 from pycoevolity import tempfs
@@ -97,6 +99,23 @@ def get_dict_from_spreadsheets(spreadsheets, sep = '\t', header = None, offset =
     for row_dict in ss_iter:
         for k in row_dict.keys():
             d[k].append(row_dict[k])
+    return d
+
+def parse_json(json_path):
+    with open(json_path, "r") as in_stream:
+        data = json.load(in_stream)
+    return data
+
+def parse_sample_stat_from_ipyrad_json(
+    json_path,
+    stat_key = "reads_passed_filter"
+):
+    js = parse_json(json_path)
+    labels = js["assembly"]["samples"]
+    d = {}
+    for label in labels:
+        sample_stat = js["samples"][label]["stats"][stat_key]
+        d[label] = sample_stat
     return d
 
 
@@ -316,6 +335,7 @@ class Loci(object):
         self._numbers_of_sites = []
         self._tempfs = tempfs.TempFileSystem()
         self._tmp_locus_paths = []
+        self._missing_data_proportions = None
         self._remove_triallelic_sites = False
         self._convert_to_binary = False
         self._number_of_triallelic_sites = 0
@@ -505,9 +525,8 @@ class Loci(object):
         if self._treat_n_as_missing:
             seqs = []
             for seq_label, seq_chars in sequences:
-                seq_str = "".join(seq_chars)
-                seq_str = seq_str.replace("N", "?").replace("n", "?")
-                seqs.append((seq_label, tuple(seq_str)))
+                seq = ["?" if c in ("N", "n") else c for c in seq_chars]
+                seqs.append((seq_label, tuple(seq)))
             sequences = seqs
         if self._sequences_removed:
             seqs = []
@@ -628,13 +647,13 @@ class Loci(object):
         expected_length = nsites
         if self._remove_triallelic_sites:
             expected_length -= len(triallelic_site_indices) 
+        assert recorded_length == expected_length
         with open(tmp_path, "w") as out:
             for label, seq in sequences:
                 assert len(seq) == expected_length, (
                         "Seq length of {0}; expecting {1}".format(
                                 len(seq),
                                 expected_length))
-                assert recorded_length == expected_length
                 l = self._label_change_dict.get(label, label)
                 self._labels.add(l)
                 seq_str = "".join(seq)
@@ -822,6 +841,22 @@ class Loci(object):
         return mx + 4
 
     @staticmethod
+    def _get_missing_data_proportions(
+        sequences,
+        sample_labels,
+        missing_symbols = ("?", "-", "N", "n"),
+    ):
+        missing_proportions = []
+        for label in sample_labels:
+            missing_prop = 1.0
+            if label in sequences:
+                seq = sequences[label]
+                seq_missing = [c for c in seq if c in missing_symbols]
+                missing_prop = len(seq_missing) / float(len(seq))
+            missing_proportions.append(missing_prop)
+        return missing_proportions
+
+    @staticmethod
     def _get_locus_pairwise_sample_overlap(
         locus_path,
         sample_labels,
@@ -829,7 +864,7 @@ class Loci(object):
     ):
         seqs = Loci._parse_tmp_locus_file(locus_path)
         labels = list(sample_labels)
-        data = {}
+        overlap_div_data = {}
         for i in range(0, len(labels) - 1):
             for j in range(i + 1, len(labels)): 
                 key = (labels[i], labels[j])
@@ -839,80 +874,118 @@ class Loci(object):
                     p_overlap, p_diff = seq.get_overlap_and_diff(
                         seqs[labels[i]],
                         seqs[labels[j]])
-                data[key] = (p_overlap, p_diff)
-        return data
+                overlap_div_data[key] = (p_overlap, p_diff)
+        return overlap_div_data, locus_path
 
-    def _get_pairwise_sample_overlap(
+    def populate_missing_data_proportions_matrix(
         self,
-        num_processes = 1,
         missing_symbols = ("?", "-", "N", "n"),
     ):
-        if len(self._tmp_locus_paths) < 1:
-            raise Exception(
-                "Calling _get_pairwise_sample_overlap with no locus data")
-        data = {}
-        labels = self._get_labels()
-        for i in range(0, len(labels) - 1):
-            for j in range(i + 1, len(labels)): 
-                key = (labels[i], labels[j])
-                data[key] = []
-        # for pth in self._tmp_locus_paths:
-        #     d = self._get_locus_pairwise_sample_overlap(pth, labels, missing_symbols)
-        #     for key, value in d.items():
-        #         data[key].append(value)
-        num_processes = min(num_processes, len(self._tmp_locus_paths))
-        with multiprocessing.Pool(num_processes) as pool:
-            workers = [
-                pool.apply_async(
-                    Loci._get_locus_pairwise_sample_overlap,
-                    args = (pth, labels, missing_symbols))
-                for pth in self._tmp_locus_paths
-            ]
-            locus_data = tuple(w.get() for w in workers)
-        for d in locus_data:
-            for key, value in d.items():
-                data[key].append(value)
-        return data
+        self._missing_data_proportions = []
+        sample_labels = self.labels
+        for locus_path in self._tmp_locus_paths:
+            seqs = Loci._parse_tmp_locus_file(locus_path)
+            locus_missing_props = self._get_missing_data_proportions(
+                sequences = seqs,
+                sample_labels = sample_labels,
+                missing_symbols = missing_symbols,
+            )
+            self._missing_data_proportions.append(locus_missing_props)
+        return
+    
+    def get_num_samples_with_data_per_locus(
+        self,
+        max_missing_prop = 0.9,
+    ):
+        if not self._missing_data_proportions:
+            raise Exception("Missing data proportions matrix is empty")
+        num_samples_with_data = []
+        for missing_props in self._missing_data_proportions:
+            n = sum(p <= max_missing_prop for p in missing_props)
+            num_samples_with_data.append(n)
+        return num_samples_with_data
 
     def get_pairwise_sample_overlap_and_div(
         self,
         min_overlap = 0.5,
         num_processes = 1,
+        num_loci_per_batch = 100,
         missing_symbols = ("?", "-", "N", "n"),
     ):
-        assert min_overlap > 0.0
-        assert min_overlap <= 1.0
-        pairwise_summary = {}
-        sample_num_shared = { l : [] for l in self._get_labels() }
-        num_samples = len(sample_num_shared.keys())
-        overlap_data = self._get_pairwise_sample_overlap(
-            num_processes = num_processes,
-            missing_symbols = missing_symbols)
         num_loci = len(self._tmp_locus_paths)
-        for sample_pair, olap_div_tups in overlap_data.items():
-            assert len(olap_div_tups) == num_loci
-            assert len(sample_pair) == 2
-            num_loci_shared = 0
-            div_sum = 0.0
-            for olap, div in olap_div_tups:
-                if olap < min_overlap:
-                    continue
-                num_loci_shared += 1
-                div_sum += div
+        if num_loci < 1:
+            raise Exception(
+                "Calling _get_pairwise_sample_overlap with no locus data")
+        labels = self._get_labels()
+        num_samples = len(labels)
+        num_loci_per_batch = min(num_loci_per_batch, num_loci)
+        num_processes = min(num_processes, num_loci_per_batch)
+
+        # Prepare dict to temporally store sums of number of loci shared and
+        # divergence
+        pairwise_num_shared_div_sum = {}
+        for i in range(0, len(labels) - 1):
+            for j in range(i + 1, len(labels)): 
+                key = (labels[i], labels[j])
+                pairwise_num_shared_div_sum[key] = [0, 0.0]
+
+        batch_start_idx = 0
+        batch_end_idx = min(batch_start_idx + num_loci_per_batch, num_loci)
+        num_loci_processed = 0
+        while True:
+            with multiprocessing.Pool(num_processes) as pool:
+                workers = [
+                    pool.apply_async(
+                        Loci._get_locus_pairwise_sample_overlap,
+                        args = (
+                            self._tmp_locus_paths[locus_idx],
+                            labels,
+                            missing_symbols))
+                    for locus_idx in range(batch_start_idx, batch_end_idx)
+                ]
+
+                # Loop over data returned for each locus and keep sums for the number
+                # of loci for each pair and the divergence between the pair
+                for overlap_div_data, locus_path in (w.get() for w in workers):
+                    num_loci_processed += 1
+                    for sample_pair, (p_overlap, p_div) in overlap_div_data.items():
+                        if p_overlap < min_overlap:
+                            continue
+                        pairwise_num_shared_div_sum[sample_pair][0] += 1
+                        # p_div is None if there is no overlapping sequence between the
+                        # pair
+                        if p_div is not None:
+                            pairwise_num_shared_div_sum[sample_pair][1] += p_div
+
+            sys.stderr.write(
+                f"Processed {num_loci_processed} of {num_loci} loci\n"
+            )
+            if batch_end_idx == num_loci:
+                break
+            batch_start_idx = batch_end_idx
+            batch_end_idx = min(batch_start_idx + num_loci_per_batch, num_loci)
+
+        assert num_loci_processed == num_loci
+
+        pairwise_num_shared_div = {}
+        per_sample_counts = { l : [0, 0] for l in self._get_labels() }
+        for sample_pair, (n_shared, div_sum) in pairwise_num_shared_div_sum.items():
             div_mean = None
-            if num_loci_shared > 0:
-                div_mean = div_sum / num_loci_shared
-            pairwise_summary[sample_pair] = (num_loci_shared, div_mean)
-            sample_num_shared[sample_pair[0]].append(num_loci_shared)
-            sample_num_shared[sample_pair[1]].append(num_loci_shared)
+            if n_shared > 0:
+                div_mean = div_sum / n_shared
+            pairwise_num_shared_div[sample_pair] = (n_shared, div_mean)
+            per_sample_counts[sample_pair[0]][0] += n_shared
+            per_sample_counts[sample_pair[1]][0] += n_shared
+            per_sample_counts[sample_pair[0]][1] += 1 
+            per_sample_counts[sample_pair[1]][1] += 1
 
-        sample_shared_mean = {}
-        for label, pairwise_num_shared in sample_num_shared.items():
-            assert len(pairwise_num_shared) == num_samples - 1
-            mean_num_shared = sum(pairwise_num_shared) / float(len(pairwise_num_shared))
-            sample_shared_mean[label] = mean_num_shared
+        per_sample_shared_mean = {}
+        for label, (shared_sum, count) in per_sample_counts.items():
+            assert count == num_samples - 1
+            mean_num_shared = shared_sum / float(count)
+            per_sample_shared_mean[label] = mean_num_shared
 
-        return overlap_data, pairwise_summary, sample_shared_mean
+        return pairwise_num_shared_div, per_sample_shared_mean
 
     def write_interleaved_sequences(self, stream = None, indent = "",
             use_names_at_interleaves = True):
