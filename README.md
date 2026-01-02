@@ -18,7 +18,8 @@ Installation
 Prerequisites
 -------------
 
-For some of the plots that pycoevolity produces, it uses the
+For some of the plots that pycoevolity produces, there is the option of using
+the
 [R](https://www.r-project.org/)
 packages
 [ggplot2](http://ggplot2.tidyverse.org/)
@@ -36,13 +37,16 @@ prompt using:
 
     install.packages(c("ggplot2", "ggridges"))
 
+However, there are python (matplotlib) options for plotting, so the R packages
+are not required.
+
 Installing pycoevolity with pip
 -------------------------------
 
 If you have the Python package manager [pip](https://pypi.org/project/pip/)
 installed, you should be able to install pycoevolity using:
 
-    pip install git+git://github.com/phyletica/pycoevolity.git
+    pip install git+https://github.com/phyletica/pycoevolity.git@master
 
 
 Manual install
@@ -69,8 +73,8 @@ You will probably have to add this directory to your PATH for your shell to
 find and run the pycoevolity tools.
 
 
-Usage
-=====
+Example usage
+=============
 
     pyco-sumtimes --help
 
