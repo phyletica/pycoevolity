@@ -76,3 +76,47 @@ def arg_is_nonnegative_float(i):
         msg = '{0!r} is not a non-negative real number'.format(i)
         raise argparse.ArgumentTypeError(msg)
     return float(i)
+
+def arg_is_dir_or_new_dir(path):
+    """
+    Returns the passed string if it is a valid path to a directory, or its
+    parent is a valid directory. Otherwise raises an `ArgumentTypeError`.
+
+    Examples
+    --------
+    >>> d = os.path.abspath(os.path.dirname(__file__))
+    >>> returned = arg_is_dir_or_new_dir(d)
+    >>> returned == d
+    True
+    >>> new_dir = os.path.join(d, "probably-not-a-dir-in-this-dir")
+    >>> returned = arg_is_dir_or_new_dir(new_dir)
+    >>> returned == new_dir
+    True
+    """
+    if os.path.isdir(path):
+        return path
+    elif os.path.exists(path):
+        msg = 'path {0!r} exists but is not a directory'.format(path)
+    elif os.path.sep not in path:
+        # just dir name which can be created in working dir with mkdir
+        return path
+    elif os.path.isdir(os.path.dirname(path)):
+        # path doesn't exist, but is in an existing parent directory
+        return path
+    else:
+        msg = '{0!r} is not a directory nor is its parent'.format(path)
+    raise argparse.ArgumentTypeError(msg)
+
+def process_output_dir_arg(output_dir):
+    if not output_dir:
+        output_dir = os.curdir
+    else:
+        if not os.path.exists(output_dir):
+            try:
+                os.mkdir(output_dir)
+            except Exception as e:
+                sys.stderr.write(
+                    f"ERROR: Could not create output directory '{output_dir}'\n"
+                )
+                raise e
+    return output_dir
