@@ -31,6 +31,10 @@ include = ["pycoevolity"]
 dev = [
     "pytest >=6.0",
     "pytest-cov >=3.0.0",
+    "matplotlib >=3.7",
+    "scipy >=1.16",
+    "numpy >=2.0",
+    "seaborn >=0.13",
     ]
 
 [project.scripts]

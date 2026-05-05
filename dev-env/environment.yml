@@ -15,5 +15,7 @@ dependencies:
   - mypy
   - bpython
   - ruff
-  - matplotlib
-  - scipy
+  - matplotlib>=3.7
+  - scipy>=1.16
+  - numpy>=2.0
+  - seaborn>=0.13
