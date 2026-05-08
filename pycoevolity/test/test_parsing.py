@@ -79,6 +79,28 @@ class GetDictFromSpreadsheetTestCase(PycoevolityTestCase):
         ret = parsing.get_dict_from_spreadsheets([s1_path, s2_path], sep = sep)
         self.assertEqual(d, ret)
 
+    def test_tab_with_offset_and_step(self):
+        sep = '\t'
+        header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
+        col_1 = ['1','5','3', '2', '6']
+        col_2 = ['0.2', '0.12', '0.11', '0.33', '0.29']
+        col_3 = ['0.001', '0.0043', '0.0002', '0.0', '0.0036']
+        offset = 1
+        step = 2
+        full_d = dict(zip(header, [col_1, col_2, col_3]))
+        exp_d = dict(zip(header, [
+            col_1[offset::step],
+            col_2[offset::step],
+            col_3[offset::step],
+        ]))
+        s1_path = self.get_test_path()
+        with open(s1_path, 'w') as s1:
+            s1.write('{0}\n'.format(sep.join(header)))
+            for i in range(len(list(full_d.values())[0])):
+                s1.write('{0}\n'.format(sep.join([full_d[h][i] for h in header])))
+        ret = parsing.get_dict_from_spreadsheets([s1_path], sep = sep, offset = offset, step = step)
+        self.assertEqual(exp_d, ret)
+
     def test_tab_without_head(self):
         sep = '\t'
         header = ['PRI.Psi', 'pi.net.1', 'pi.net.2']
