@@ -508,13 +508,15 @@ class PosteriorSample(object):
 
         if include_time_in_coal_units:
             for i in range(n):
-                for label in self.height_labels:
-                    ht_key = "root_height_{0}".format(label)
-                    sz_key = "pop_size_{0}".format(label)
+                for comp_idx in range(self.number_of_comparisons):
+                    comp_label = self.height_labels[comp_idx]
+                    ht_key = f"root_height_{comp_label}"
+                    sz_keys = [f"pop_size_{l}" for l in self.tip_labels[comp_idx]]
                     t = self.parameter_samples[ht_key][i]
-                    n = self.parameter_samples[sz_key][i]
+                    pop_sizes = [self.parameter_samples[k][i] for k in sz_keys]
+                    n = sum(pop_sizes) / len(pop_sizes)
                     t_coal = t / (2.0 * n)
-                    coal_key = "coal_root_height_{0}".format(label)
+                    coal_key = "coal_root_height_{0}".format(comp_label)
                     if coal_key in self.parameter_samples:
                         self.parameter_samples[coal_key].append(t_coal)
                     else:

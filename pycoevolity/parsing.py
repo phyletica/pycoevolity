@@ -11,7 +11,7 @@ import json
 
 from pycoevolity.fileio import ReadFile
 from pycoevolity import tempfs
-from pycoevolity import seq
+import pycoevolity
 
 _LOG = logging.getLogger(__name__)
 
@@ -871,7 +871,7 @@ class Loci(object):
                 p_overlap = 0.0
                 p_diff = None
                 if (labels[i] in seqs.keys()) and (labels[j] in seqs.keys()):
-                    p_overlap, p_diff = seq.get_overlap_and_diff(
+                    p_overlap, p_diff = pycoevolity.seq.get_overlap_and_diff(
                         seqs[labels[i]],
                         seqs[labels[j]])
                 overlap_div_data[key] = (p_overlap, p_diff)
@@ -1611,3 +1611,17 @@ class MsbayesAlignment(object):
         assert len(self.sequences) == 2
         assert len(self.sequences[0]) == self.number_of_gene_copies[0]
         assert len(self.sequences[1]) == self.number_of_gene_copies[1]
+
+def parse_config_label_yaml(path):
+    d = pycoevolity.fileio.load_yaml(path)
+    is_valid = all(isinstance(k, str) and isinstance(v, str) for k, v in d.items())
+    if not is_valid:
+        raise Exception(
+            f"Yaml file '{path}' is not a simple map of file names to labels"
+        )
+    for k in d.keys():
+        if k != os.path.basename(k):
+            raise Exception(
+                f"Keys in config label yaml file should be file names (not paths): {k}"
+            )
+    return d

@@ -20,6 +20,10 @@ classifiers = [
 # Munkres >= 1.1.1 supports Python3; Munkres <= 1.0.12 supports Python 2
 dependencies = [
     "munkres >=1.1.1",
+    "matplotlib >=3.7",
+    "scipy >=1.16",
+    "numpy >=2.0",
+    "seaborn >=0.13",
     ]
 # Using setuptools_scm to determine version based on git tags and commits
 dynamic = ["version"]
@@ -31,10 +35,6 @@ include = ["pycoevolity"]
 dev = [
     "pytest >=6.0",
     "pytest-cov >=3.0.0",
-    "matplotlib >=3.7",
-    "scipy >=1.16",
-    "numpy >=2.0",
-    "seaborn >=0.13",
     ]
 
 [project.scripts]
@@ -51,9 +51,13 @@ pyco-sumevents          = "pycoevolity.cli.sumevents:main"
 pyco-multi-sumevents    = "pycoevolity.cli.multisumevents:main"
 pyco-sumsizes           = "pycoevolity.cli.sumsizes:main"
 pyco-sumchains          = "pycoevolity.cli.sumchains:main"
-pyco-sumsims            = "pycoevolity.cli.sumsims:main"
+# pyco-sumsims            = "pycoevolity.cli.sumsims:main"
 pyco-dummy-data         = "pycoevolity.cli.dummy_data:main"
 pyco-sumloci            = "pycoevolity.cli.sum_locus_overlap:main"
+pyco-eco-prep-sims      = "pycoevolity.cli.ecoevolity_prepare_sims:main_cli"
+pyco-eco-analyze-sims   = "pycoevolity.cli.ecoevolity_analyze_sims:main_cli"
+pyco-eco-sum-sims       = "pycoevolity.cli.ecoevolity_sum_sims:main_cli"
+pyco-eco-viz-sims       = "pycoevolity.cli.ecoevolity_viz_sims:main_cli"
 
 [project.urls]
 homepage = "https://github.com/phyletica/pycoevolity" 

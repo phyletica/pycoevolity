@@ -3,8 +3,53 @@
 import os
 import sys
 import io
+import shutil
 import gzip
 import errno
+import json
+import yaml
+
+
+def file_names_are_unique(file_paths):
+    file_names = [os.path.basename(p) for p in file_paths]
+    return len(file_names) == len(set(file_names))
+
+def load_yaml(path):
+    with open(path, 'r') as stream:
+        data = yaml.safe_load(stream)
+    return data
+
+def write_yaml(data, path):
+    with open(path, 'w') as stream:
+        yaml.safe_dump(data, stream)
+
+def load_json(path):
+    with open(path, 'r') as in_stream:
+        return json.load(in_stream)
+
+def write_json(data, path, indent = 4):
+    with open(path, "w") as out_stream:
+        json.dump(data, out_stream, indent = indent)
+
+def compress_file(path, compressed_path):
+    with open(path, 'rb') as in_stream:
+        with gzip.open(compressed_path, 'wb') as out_stream:
+            shutil.copyfileobj(in_stream, out_stream)
+
+def decompress_file(compressed_path, path):
+    with gzip.open(compressed_path, 'rb') as in_stream:
+        with open(path, 'wb') as out_stream:
+            shutil.copyfileobj(in_stream, out_stream)
+
+def compress_output_path(path, output_dir = None):
+    if not output_dir:
+        output_dir = os.path.dirname(path)
+    gz_path = os.path.join(
+        output_dir,
+        f"{os.path.basename(path)}.gz",
+    )
+    compress_file(path, gz_path)
+    return gz_path
 
 def make_directory(path):
     """

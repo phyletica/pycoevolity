@@ -17,6 +17,14 @@ import pycoevolity.parsing
 import pycoevolity.posterior
 import pycoevolity.argparse_utils
 import pycoevolity.partition
+import pycoevolity.fileio
+import pycoevolity.math_utils
+import pycoevolity.rng_utils
+import pycoevolity.interop
+import pycoevolity.ecoevolity
+import pycoevolity.ecoevolity_config
+import pycoevolity.seq
+import pycoevolity.plotting
 
 def _get_git_data(repo_path):
     version = "unknown"
