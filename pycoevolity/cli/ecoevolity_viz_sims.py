@@ -154,4 +154,5 @@ def main_cli():
     grid.savefig(plot_path)
 
 if __name__ == "__main__":
+    sns.set_theme(context = "talk", style = "ticks", palette = "colorblind")
     main_cli()

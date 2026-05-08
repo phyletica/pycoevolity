@@ -146,6 +146,7 @@ def run_ecoevolity(
         # the prior analysis didn't finish and needs to be re-run
         clean_up_ecoevolity_output(state_log_path)
 
+    result = None
     for attempt_idx in range(max_num_attempts):
         try:
             result = pycoevolity.interop.run_cmd(
@@ -390,6 +391,9 @@ def collect_prior_samples(
     timeout = 300,
     max_num_attempts = 2,
 ):
+    seeds = tuple(seeds)
+    if len(seeds) < number_of_procs:
+        number_of_procs = len(seeds)
     log_paths = []
     with multiprocessing.Pool(number_of_procs) as pool:
         workers = [
@@ -406,17 +410,29 @@ def collect_prior_samples(
                     False,  # relax_missing_sites
                     False,  # relax_triallelic_sites
                     timeout,
-                    False,  # compress_log_path
                     max_num_attempts,
+                    False,  # compress_log_path
+                    [],     # extra returns
                 )
             )
             for seed in seeds
         ]
+        num_workers = len(workers)
         sys.stdout.write(
-            f"Loaded {len(workers)} ecoevolity workers for {number_of_procs} processors\n"
+            f"Loaded {num_workers} ecoevolity workers for {number_of_procs} processors\n"
         )
+        reporting_freq = max(num_workers // 10, 1)
+        count = 0
         for run_time, num_var_sites, state_log_path in (w.get() for w in workers):
             log_paths.append(state_log_path)
+            count += 1
+            if (count < num_workers) and (count % reporting_freq == 0):
+                sys.stdout.write(
+                    f"{count} of {num_workers} ecoevolity workers finished\n"
+                )
+        sys.stdout.write(
+            f"{count} of {num_workers} ecoevolity workers finished\n"
+        )
     return log_paths
 
 def run_sumcoevolity(

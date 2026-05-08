@@ -58,6 +58,7 @@ pyco-eco-prep-sims      = "pycoevolity.cli.ecoevolity_prepare_sims:main_cli"
 pyco-eco-analyze-sims   = "pycoevolity.cli.ecoevolity_analyze_sims:main_cli"
 pyco-eco-sum-sims       = "pycoevolity.cli.ecoevolity_sum_sims:main_cli"
 pyco-eco-viz-sims       = "pycoevolity.cli.ecoevolity_viz_sims:main_cli"
+pyco-eco-vet-prior      = "pycoevolity.cli.ecoevolity_vet_prior_sampling:main_cli"
 
 [project.urls]
 homepage = "https://github.com/phyletica/pycoevolity" 
