@@ -127,7 +127,7 @@ class PosteriorModelSummary(object):
 
 
 class PosteriorSummary(object):
-    def __init__(self, paths, burnin = 0):
+    def __init__(self, paths, burnin = 0, step = 1):
         self.paths = tuple(paths)
         self.parameter_summaries = {}
         self.model_summary = None
@@ -135,12 +135,17 @@ class PosteriorSummary(object):
         self.height_labels = None
         self.header = None
         self.burnin = burnin
+        self.step = step
         self.number_of_samples = 0
         self._parse_posterior_paths()
     
     def _parse_posterior_paths(self):
         self.header = tuple(parsing.parse_header_from_path(self.paths[0]))
-        d = parsing.get_dict_from_spreadsheets(self.paths, offset = self.burnin)
+        d = parsing.get_dict_from_spreadsheets(
+            self.paths,
+            offset = self.burnin,
+            step = self.step,
+        )
         n = len(d[self.header[0]])
         for k, v in d.items():
             if (k.startswith('generation') or 
@@ -334,7 +339,13 @@ class ChainConvergenceSummary(object):
         
 
 class PosteriorSample(object):
-    def __init__(self, paths, burnin = 0, include_time_in_coal_units = False):
+    def __init__(
+        self,
+        paths,
+        burnin = 0,
+        step = 1,
+        include_time_in_coal_units = False,
+    ):
         self.paths = list(paths)
         self.parameter_samples = {}
         self.model_summary = None
@@ -351,6 +362,7 @@ class PosteriorSample(object):
         self.number_of_comparisons = None
         self.header = None
         self.burnin = burnin
+        self.step = step
         self.number_of_samples = 0
         self._parse_posterior_paths(include_time_in_coal_units)
 
@@ -372,7 +384,11 @@ class PosteriorSample(object):
 
     def _parse_posterior_paths(self, include_time_in_coal_units = False):
         self.header = tuple(parsing.parse_header_from_path(self.paths[0]))
-        d = parsing.get_dict_from_spreadsheets(self.paths, offset = self.burnin)
+        d = parsing.get_dict_from_spreadsheets(
+            self.paths,
+            offset = self.burnin,
+            step = self.step,
+        )
         n = len(d[self.header[0]])
         for k, v in d.items():
             if (k.startswith('generation') or 
