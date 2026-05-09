@@ -98,6 +98,27 @@ def main_cli():
     )
     grid.savefig(plot_path)
 
+    grid = pycoevolity.plotting.plot_abs_error_grid(
+        df,
+        error_col = "map_num_events_distance",
+        error_lower_col = "hpdi_95_lower_num_events_distance",
+        error_upper_col = "hpdi_95_upper_num_events_distance",
+        true_val_col = "true_num_events",
+        sim_config_col = "simulation_config",
+        inference_config_col = "inference_config",
+        ordered_labels = ordered_labels,
+        height = 4.5,
+    )
+    grid.set_axis_labels(
+        "Simulation replicate",
+        "Number of events error",
+    )
+    plot_path = os.path.join(
+        plot_dir,
+        "nevents-abs-error-grid.pdf",
+    )
+    grid.savefig(plot_path)
+
     grid = pycoevolity.plotting.process_error_scatter_grid(
         df,
         parameters = ["concentration"],

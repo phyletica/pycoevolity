@@ -731,3 +731,156 @@ def ax_qq(ax, samples, prob_dist):
         ylabel = "Sample quantiles",
     )
     return line
+
+def plot_abs_error_scatter(
+    data,
+    error_col,
+    error_lower_col,
+    error_upper_col,
+    true_val_col,
+    true_val_annot_pos = None,
+    true_val_annot_vert_aln = "bottom",
+    **kwargs,
+):
+    df = data.copy()
+    df["x"] = range(1, len(df) + 1)
+    ax = plt.gca()
+    shared_args = {
+        'elinewidth' : 1.0,
+        'capsize' : 1.5,
+        'barsabove' : False,
+        'marker' : 'o',
+        'linestyle' : '',
+        'markeredgewidth' : 0.0,
+        'markersize' : 6.5,
+        'rasterized' : False,
+        'alpha' : 0.5,
+    }
+    shared_args.update(kwargs)
+    line = ax.errorbar(
+        x = df["x"],
+        y = df[error_col],
+        yerr = get_errors(df[error_col], df[error_lower_col], df[error_upper_col]),
+        ecolor = 'C0',
+        markerfacecolor = 'C0',
+        markeredgecolor = 'C0',
+        zorder = 100,
+        **shared_args,
+    )
+    ax.axhline(
+        y = 0.0,
+        color = "0.8",
+        linestyle = "-",
+        linewidth = 1.0,
+        zorder = 0,
+    )
+    # ax.xaxis.set_visible(False)
+    ax.set_xticks([])
+    uniq_true_values = df[true_val_col].unique()
+    if len(uniq_true_values) < 30:
+        annot_args = {
+            "horizontalalignment" : "center",
+            "verticalalignment" : true_val_annot_vert_aln,
+            "zorder" : 200,
+            "fontsize" : 'small',
+            # "bbox" : {
+            #     'facecolor': 'white',
+            #     'edgecolor': 'white',
+            #     'pad': 2,
+            # },
+        }
+        prev_x_sep = 1.0
+        prev_true_val = uniq_true_values[0]
+        y_pos = true_val_annot_pos
+        for i, true_val in enumerate(uniq_true_values[1:]):
+            first_row = df.loc[df[true_val_col] == true_val].iloc[0]
+            x_sep = first_row["x"] + 0.5
+            ax.axvline(
+                x = x_sep,
+                color = "0.8",
+                linestyle = "-",
+                linewidth = 1.0,
+                zorder = 0,
+            )
+            annot_str = f"{prev_true_val}"
+            x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
+            ax.text(
+                x_pos, y_pos,
+                annot_str,
+                **annot_args,
+            )
+            prev_x_sep = x_sep
+            prev_true_val = true_val
+        x_sep = len(df) + 0.0
+        annot_str = f"{prev_true_val}"
+        x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
+        ax.text(
+            x_pos, y_pos,
+            annot_str,
+            **annot_args,
+        )
+
+def plot_abs_error_grid(
+    data_frame,
+    error_col,
+    error_lower_col,
+    error_upper_col,
+    true_val_col,
+    sim_config_col = "simulation_config",
+    inference_config_col = "inference_config",
+    ordered_labels = None,
+    height = 6.5,
+    **kwargs,
+):
+    col_order = None
+    row_order = None
+    if ordered_labels:
+        sim_labels = data_frame[sim_config_col].unique()
+        inf_labels = data_frame[inference_config_col].unique()
+        row_order = [l for l in ordered_labels if l in sim_labels]
+        col_order = [l for l in ordered_labels if l in inf_labels]
+    df = data_frame[[
+        sim_config_col,
+        inference_config_col,
+        true_val_col,
+        error_col,
+        error_lower_col,
+        error_upper_col,
+    ]].copy()
+
+    df.sort_values(
+        by = ["true_num_events", "map_num_events_distance"],
+        ascending = [True, True],
+        inplace = True,
+    )
+
+    max_y = max(df[error_upper_col])
+    grid = sns.FacetGrid(
+        df,
+        row = sim_config_col,
+        col = inference_config_col,
+        margin_titles = True,
+        height = height,
+        row_order = row_order,
+        col_order = col_order,
+        sharey = True,
+        sharex = True,
+    )
+    grid.map_dataframe(
+        plot_abs_error_scatter,
+        error_col = error_col,
+        error_lower_col = error_lower_col,
+        error_upper_col = error_upper_col,
+        true_val_col = true_val_col,
+        true_val_annot_pos = max_y,
+        true_val_annot_vert_aln = "bottom",
+    )
+    grid.set_axis_labels(
+        "Simulation replicate",
+        "Absolute error")
+    grid.set_titles(
+        col_template = "{col_name}",
+        row_template = "{row_name}",
+    )
+    # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
+    return grid
