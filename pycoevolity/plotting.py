@@ -828,6 +828,7 @@ def plot_abs_error_grid(
     true_val_col,
     sim_config_col = "simulation_config",
     inference_config_col = "inference_config",
+    sim_id_col = "simulation_id",
     ordered_labels = None,
     height = 6.5,
     **kwargs,
@@ -846,10 +847,11 @@ def plot_abs_error_grid(
         error_col,
         error_lower_col,
         error_upper_col,
+        sim_id_col,
     ]].copy()
 
     df.sort_values(
-        by = ["true_num_events", "map_num_events_distance"],
+        by = ["true_num_events", "simulation_id"],
         ascending = [True, True],
         inplace = True,
     )
@@ -884,3 +886,111 @@ def plot_abs_error_grid(
     )
     # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
     return grid
+
+def plot_violin_grid(
+    data,
+    value_col,
+    sim_config_col = "simulation_config",
+    inference_config_col = "inference_config",
+    spaghettify_col = "simulation_id",
+    value_label = None,
+    inference_label = "Inference model",
+    sim_label_template = "True model = {col_name}",
+    ordered_labels = None,
+    height = 6.5,
+    violin_kwargs = {},
+    spaghetti_kwargs = {},
+):
+    sim_order = None
+    inf_order = None
+    if ordered_labels:
+        sim_labels = data[sim_config_col].unique()
+        inf_labels = data[inference_config_col].unique()
+        sim_order = [l for l in ordered_labels if l in sim_labels]
+        inf_order = [l for l in ordered_labels if l in inf_labels]
+    grid = sns.FacetGrid(
+        data,
+        row = None,
+        col = sim_config_col,
+        margin_titles = True,
+        height = height,
+        row_order = None,
+        col_order = sim_order,
+        sharey = True,
+        sharex = True,
+    )
+    grid.map_dataframe(
+        plot_violin,
+        value_col = value_col,
+        categorical_col = inference_config_col,
+        spaghettify_col = spaghettify_col,
+        ordered_labels = ordered_labels,
+        spaghetti_kwargs = spaghetti_kwargs,
+        **violin_kwargs,
+    )
+    if value_label is not None:
+        grid.set_ylabels(value_label)
+    if inference_label is not None:
+        grid.set_xlabels(inference_label)
+    if sim_label_template is not None:
+        grid.set_titles(
+            col_template = sim_label_template,
+        )
+    # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
+    return grid
+
+def plot_violin(
+    data,
+    value_col,
+    categorical_col,
+    spaghettify_col = "simulation_id",
+    ordered_labels = None,
+    spaghetti_kwargs = {},
+    **violin_kwargs,
+):
+    df = data.copy()
+    vio_kwargs = {
+        'inner' : 'point',
+        # 'inner' : None,
+    }
+    vio_kwargs.update(violin_kwargs)
+    cat_labels = tuple(df[categorical_col].unique())
+    cat_order = sorted(cat_labels)
+    if ordered_labels:
+        cat_order = [l for l in ordered_labels if l in cat_labels]
+    vio_kwargs['order'] = cat_order
+    ax = sns.violinplot(
+        data = df,
+        x = categorical_col,
+        y = value_col,
+        hue = None,
+        **vio_kwargs,
+    )
+    if spaghettify_col:
+        spag_kwargs = {
+            'color' : '0.8',
+            'marker' : '',
+            'linestyle' : '-',
+            'linewidth' : 1.0,
+            'zorder' : 100,
+            'alpha' : 0.5,
+        }
+        spag_kwargs.update(spaghetti_kwargs)
+
+        x_positions = tuple(range(len(cat_labels)))
+
+        shared_units = tuple(df[spaghettify_col].unique())
+        for u in shared_units:
+            sub_df = df[df[spaghettify_col] == u].copy()
+            y_positions = []
+            for cat in cat_order:
+               ss_df = sub_df[sub_df[categorical_col] == cat]
+               y_positions.append(ss_df[value_col])
+            line, = ax.plot(
+                x_positions,
+                y_positions,
+            )
+            plt.setp(
+                line,
+                **spag_kwargs,
+            )

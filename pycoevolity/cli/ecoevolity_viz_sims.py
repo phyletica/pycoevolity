@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import pandas as pd
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 import pycoevolity
@@ -58,6 +59,14 @@ def parse_cli_args():
         help = (
             'The character used to separate config labels in the '
             '\'-o\'/\'--config-label-order\' argument.'
+        ),
+    )
+    parser.add_argument(
+        '--use-median-model-distance',
+        action = 'store_true',
+        help = (
+            'Use the posterior median model distance. Default: Use posterior '
+            'mean model distance.'
         ),
     )
 
@@ -173,6 +182,32 @@ def main_cli():
         "div-time-scatter-grid.pdf",
     )
     grid.savefig(plot_path)
+
+    model_dist = "mean_model_distance"
+    model_dist_label = "Mean model distance"
+    if args.use_median_model_distance:
+        model_dist = "median_model_distance"
+        model_dist_label = "Median model distance"
+    grid = pycoevolity.plotting.plot_violin_grid(
+        data = df,
+        value_col = model_dist,
+        sim_config_col = "simulation_config",
+        inference_config_col = "inference_config",
+        spaghettify_col = "simulation_id",
+        value_label = model_dist_label,
+        inference_label = "Inference model",
+        sim_label_template = "True model = {col_name}",
+        ordered_labels = ordered_labels,
+        height = 6.5,
+        violin_kwargs = {},
+        spaghetti_kwargs = {},
+    )
+    plot_path = os.path.join(
+        plot_dir,
+        "model-error-grid.pdf",
+    )
+    grid.savefig(plot_path)
+
 
 if __name__ == "__main__":
     sns.set_theme(context = "talk", style = "ticks", palette = "colorblind")
