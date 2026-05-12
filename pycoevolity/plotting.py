@@ -13,10 +13,16 @@ import pandas as pd
 import pycoevolity
 
 
-def get_errors(values, lowers, uppers):
+def get_errors(values, lowers = None, uppers = None):
     values = tuple(values)
-    lowers = tuple(lowers)
-    uppers = tuple(uppers)
+    if lowers is None:
+        lowers = tuple(values)
+    else:
+        lowers = tuple(lowers)
+    if uppers is None:
+        uppers = tuple(values)
+    else:
+        uppers = tuple(uppers)
     n = len(values)
     assert(n == len(lowers))
     assert(n == len(uppers))
@@ -134,7 +140,7 @@ def process_error_scatter_grid(
     psrf_max = 1.2,
     bad_sampling_color = "C1",
     ordered_labels = None,
-    height = 6.5,
+    height = 4.5,
     annotate_stats = True,
     stat_label = None,
     annot_x_position = 0.02,
@@ -168,7 +174,7 @@ def process_error_scatter_grid(
         est_error_upper_col = f"hpdi_95_upper_{parameter}"
     ess_col = f"ess_{parameter}"
     psrf_col = f"psrf_{parameter}"
-    grid = plot_error_scatter_grid(
+    grid = plot_scatter_grid(
         data_frame = df,
         true_col = true_col,
         est_col = est_col,
@@ -195,12 +201,12 @@ def process_error_scatter_grid(
     )
     return grid
 
-def plot_error_scatter_grid(
+def plot_scatter_grid(
     data_frame,
     true_col,
     est_col,
-    est_error_lower_col,
-    est_error_upper_col,
+    est_error_lower_col = None,
+    est_error_upper_col = None,
     sim_config_col = "simulation_config",
     inference_config_col = "inference_config",
     true_val_rank_col = None,
@@ -212,7 +218,7 @@ def plot_error_scatter_grid(
     psrf_max = 1.2,
     bad_sampling_color = "C1",
     ordered_labels = None,
-    height = 6.5,
+    height = 4.5,
     annotate_stats = True,
     stat_label = None,
     annot_x_position = 0.02,
@@ -239,7 +245,7 @@ def plot_error_scatter_grid(
         sharex = True,
     )
     grid.map_dataframe(
-        plot_error_scatter,
+        plot_scatter,
         x = true_col,
         y = est_col,
         y_error_lower = est_error_lower_col,
@@ -257,13 +263,13 @@ def plot_error_scatter_grid(
             ax = ax,
             mn = mn, 
             mx = mx,
-            color = "0.8",
+            color = "0.7",
             linestyle = "-",
             linewidth = 1.0,
         )
     if annotate_stats:
         grid.map_dataframe(
-            annotate_error_scatter,
+            annotate_scatter,
             x = true_col,
             y = est_col,
             y_error_lower = est_error_lower_col,
@@ -284,12 +290,12 @@ def plot_error_scatter_grid(
     )
     return grid
 
-def annotate_error_scatter(
+def annotate_scatter(
     data,
     x,
     y,
-    y_error_lower,
-    y_error_upper,
+    y_error_lower = None,
+    y_error_upper = None,
     x_position = 0.02,
     y_position = 0.98,
     cred_level = 0.95,
@@ -297,11 +303,6 @@ def annotate_error_scatter(
     **kwargs,
 ):
     ax = plt.gca()
-    num_within_ci = (
-        (data[x] >= data[y_error_lower])
-        & (data[x] <= data[y_error_upper])
-    ).sum()
-    prop_within_ci = num_within_ci / len(data[x])
     prop_est_under = (
         sum(data[x] > data[y])
         / len(data[x])
@@ -314,16 +315,31 @@ def annotate_error_scatter(
     annot_str = (
         r"$p(\hat{{{stat_label}}} < {stat_label}) = {prop_under:.2g}$"
         "\n"
-        r"$p({stat_label} \in {cred_level:.2f}\,\text{{CI}}) = {coverage:.2g}$"
-        "\n"
         r"$\text{{RMSE}} = {rmse:.2g}$".format(
             stat_label = stat_label,
             prop_under = prop_est_under,
-            cred_level = cred_level,
-            coverage = prop_within_ci,
             rmse = root_mean_sq_err,
         )
     )
+    if y_error_lower and y_error_upper:
+        num_within_ci = (
+            (data[x] >= data[y_error_lower])
+            & (data[x] <= data[y_error_upper])
+        ).sum()
+        prop_within_ci = num_within_ci / len(data[x])
+        annot_str = (
+            r"$p(\hat{{{stat_label}}} < {stat_label}) = {prop_under:.2g}$"
+            "\n"
+            r"$p({stat_label} \in {cred_level:.2f}\,\text{{CI}}) = {coverage:.2g}$"
+            "\n"
+            r"$\text{{RMSE}} = {rmse:.2g}$".format(
+                stat_label = stat_label,
+                prop_under = prop_est_under,
+                cred_level = cred_level,
+                coverage = prop_within_ci,
+                rmse = root_mean_sq_err,
+            )
+        )
     default_args = {
         'horizontalalignment' : "left",
         'verticalalignment' : "top",
@@ -347,12 +363,12 @@ def annotate_error_scatter(
         **default_args,
     )
 
-def plot_error_scatter(
+def plot_scatter(
     data,
     x,
     y,
-    y_error_lower,
-    y_error_upper,
+    y_error_lower = None,
+    y_error_upper = None,
     ess_col = None,
     psrf_col = None,
     ess_min = 200,
@@ -383,10 +399,13 @@ def plot_error_scatter(
         'alpha' : 0.5,
     }
     shared_args.update(kwargs)
+    yerr = get_errors(df[y])
+    if y_error_lower and y_error_upper:
+        yerr = get_errors(df[y], df[y_error_lower], df[y_error_upper])
     line = ax.errorbar(
         x = df[x],
         y = df[y],
-        yerr = get_errors(df[y], df[y_error_lower], df[y_error_upper]),
+        yerr = yerr,
         ecolor = 'C0',
         markerfacecolor = 'C0',
         markeredgecolor = 'C0',
@@ -395,11 +414,14 @@ def plot_error_scatter(
     )
     if "Poor MCMC sampling" in df.columns:
         d = df[df["Poor MCMC sampling"]].copy()
+        bad_yerr = get_errors(d[y])
+        if y_error_lower and y_error_upper:
+            bad_yerr = get_errors(d[y], d[y_error_lower], d[y_error_upper])
         if len(d) > 0:
             bad_line = ax.errorbar(
                 x = d[x],
                 y = d[y],
-                yerr = get_errors(d[y], d[y_error_lower], d[y_error_upper]),
+                yerr = bad_yerr,
                 ecolor = bad_sampling_color,
                 markerfacecolor = bad_sampling_color,
                 markeredgecolor = bad_sampling_color,
@@ -412,7 +434,7 @@ def plot_nevents_heatmap_grid(
     sim_config_col = "simulation_config",
     inference_config_col = "inference_config",
     ordered_labels = None,
-    height = 6.5,
+    height = 4.5,
     annotate_counts = True,
     include_cbar = True,
     outline_identity = True,
@@ -573,7 +595,7 @@ def ax_id_line(
     ax,
     mn,
     mx,
-    color = "0.8",
+    color = "0.7",
     linestyle = "-",
     linewidth = 1.0,
 ):
@@ -734,16 +756,22 @@ def ax_qq(ax, samples, prob_dist):
 
 def plot_abs_error_scatter(
     data,
-    error_col,
-    error_lower_col,
-    error_upper_col,
     true_val_col,
-    true_val_annot_pos = None,
-    true_val_annot_vert_aln = "bottom",
+    est_col,
+    est_lower_col = None,
+    est_upper_col = None,
     **kwargs,
 ):
     df = data.copy()
     df["x"] = range(1, len(df) + 1)
+    error_col = f"{est_col}_distance"
+    df[error_col] = df[est_col].values - df[true_val_col].values
+    # Errors will be all zeros
+    yerr = get_errors(df[est_col])
+
+    if est_lower_col and est_upper_col:
+        yerr = get_errors(df[est_col], df[est_lower_col], df[est_upper_col])
+
     ax = plt.gca()
     shared_args = {
         'elinewidth' : 1.0,
@@ -760,7 +788,7 @@ def plot_abs_error_scatter(
     line = ax.errorbar(
         x = df["x"],
         y = df[error_col],
-        yerr = get_errors(df[error_col], df[error_lower_col], df[error_upper_col]),
+        yerr = yerr,
         ecolor = 'C0',
         markerfacecolor = 'C0',
         markeredgecolor = 'C0',
@@ -769,35 +797,47 @@ def plot_abs_error_scatter(
     )
     ax.axhline(
         y = 0.0,
-        color = "0.8",
+        color = "0.7",
         linestyle = "-",
         linewidth = 1.0,
         zorder = 0,
     )
     # ax.xaxis.set_visible(False)
     ax.set_xticks([])
+
+def annotate_abs_error_scatter(
+    data,
+    true_val_col,
+    annot_y_position,
+    **kwargs,
+):
+    df = data.copy()
+    df["x"] = range(1, len(df) + 1)
+    ax = plt.gca()
     uniq_true_values = df[true_val_col].unique()
     if len(uniq_true_values) < 30:
         annot_args = {
             "horizontalalignment" : "center",
-            "verticalalignment" : true_val_annot_vert_aln,
+            "verticalalignment" : "bottom",
             "zorder" : 200,
-            "fontsize" : 'small',
+            "fontsize" : "small",
+            # "transform" : ax.transAxes,
             # "bbox" : {
             #     'facecolor': 'white',
             #     'edgecolor': 'white',
             #     'pad': 2,
             # },
         }
+        annot_args.update(kwargs)
+        annot_args["color"] = "black"
         prev_x_sep = 1.0
         prev_true_val = uniq_true_values[0]
-        y_pos = true_val_annot_pos
         for i, true_val in enumerate(uniq_true_values[1:]):
             first_row = df.loc[df[true_val_col] == true_val].iloc[0]
             x_sep = first_row["x"] + 0.5
             ax.axvline(
                 x = x_sep,
-                color = "0.8",
+                color = "0.7",
                 linestyle = "-",
                 linewidth = 1.0,
                 zorder = 0,
@@ -805,7 +845,7 @@ def plot_abs_error_scatter(
             annot_str = f"{prev_true_val}"
             x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
             ax.text(
-                x_pos, y_pos,
+                x_pos, annot_y_position,
                 annot_str,
                 **annot_args,
             )
@@ -815,23 +855,25 @@ def plot_abs_error_scatter(
         annot_str = f"{prev_true_val}"
         x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
         ax.text(
-            x_pos, y_pos,
+            x_pos, annot_y_position,
             annot_str,
             **annot_args,
         )
 
 def plot_abs_error_grid(
     data_frame,
-    error_col,
-    error_lower_col,
-    error_upper_col,
     true_val_col,
+    est_col,
+    est_lower_col,
+    est_upper_col,
     sim_config_col = "simulation_config",
     inference_config_col = "inference_config",
     sim_id_col = "simulation_id",
     ordered_labels = None,
-    height = 6.5,
-    **kwargs,
+    annotate_true_values = False,
+    height = 4.5,
+    scatter_kwargs = {},
+    annotate_kwargs = {},
 ):
     col_order = None
     row_order = None
@@ -844,9 +886,9 @@ def plot_abs_error_grid(
         sim_config_col,
         inference_config_col,
         true_val_col,
-        error_col,
-        error_lower_col,
-        error_upper_col,
+        est_col,
+        est_lower_col,
+        est_upper_col,
         sim_id_col,
     ]].copy()
 
@@ -856,7 +898,6 @@ def plot_abs_error_grid(
         inplace = True,
     )
 
-    max_y = max(df[error_upper_col])
     grid = sns.FacetGrid(
         df,
         row = sim_config_col,
@@ -870,16 +911,23 @@ def plot_abs_error_grid(
     )
     grid.map_dataframe(
         plot_abs_error_scatter,
-        error_col = error_col,
-        error_lower_col = error_lower_col,
-        error_upper_col = error_upper_col,
         true_val_col = true_val_col,
-        true_val_annot_pos = max_y,
-        true_val_annot_vert_aln = "bottom",
+        est_col = est_col,
+        est_lower_col = est_lower_col,
+        est_upper_col = est_upper_col,
+        **scatter_kwargs
     )
-    grid.set_axis_labels(
-        "Simulation replicate",
-        "Absolute error")
+    grid.set_ylabels("Error")
+    grid.set_xlabels("Simulation replicate")
+    if annotate_true_values:
+        annot_y_position = grid.axes.flat[0].get_ylim()[0]
+        grid.map_dataframe(
+            annotate_abs_error_scatter,
+            true_val_col = true_val_col,
+            annot_y_position = annot_y_position,
+            **annotate_kwargs,
+        )
+        grid.set_xlabels("True value")
     grid.set_titles(
         col_template = "{col_name}",
         row_template = "{row_name}",
@@ -893,11 +941,14 @@ def plot_violin_grid(
     sim_config_col = "simulation_config",
     inference_config_col = "inference_config",
     spaghettify_col = "simulation_id",
+    spaghettify = True,
     value_label = None,
     inference_label = "Inference model",
     sim_label_template = "True model = {col_name}",
     ordered_labels = None,
-    height = 6.5,
+    comparisons = None,
+    height = 4.5,
+    inference_label_size = None,
     violin_kwargs = {},
     spaghetti_kwargs = {},
 ):
@@ -919,12 +970,17 @@ def plot_violin_grid(
         sharey = True,
         sharex = True,
     )
+    min_max_values = (min(data[value_col]), max(data[value_col]))
     grid.map_dataframe(
         plot_violin,
         value_col = value_col,
         categorical_col = inference_config_col,
         spaghettify_col = spaghettify_col,
+        spaghettify = spaghettify,
         ordered_labels = ordered_labels,
+        comparisons = comparisons,
+        min_max_values = min_max_values,
+        inference_label_size = inference_label_size,
         spaghetti_kwargs = spaghetti_kwargs,
         **violin_kwargs,
     )
@@ -939,12 +995,25 @@ def plot_violin_grid(
     # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
     return grid
 
+def get_bracket_level(end_points, existing_end_points):
+    level = 0
+    p1, p2 = sorted(end_points)
+    for ends in existing_end_points:
+        e1, e2 = sorted(ends)
+        if max(p1, e1) <= min(p2, e2):
+            level += 1
+    return level
+
 def plot_violin(
     data,
     value_col,
     categorical_col,
     spaghettify_col = "simulation_id",
+    spaghettify = True,
     ordered_labels = None,
+    comparisons = None,
+    min_max_values = None,
+    inference_label_size = None,
     spaghetti_kwargs = {},
     **violin_kwargs,
 ):
@@ -966,9 +1035,92 @@ def plot_violin(
         hue = None,
         **vio_kwargs,
     )
-    if spaghettify_col:
+    if inference_label_size is not None:
+        ax.tick_params(
+            axis = 'x',
+            labelsize = inference_label_size,
+        )
+    
+    x_positions = tuple(range(len(cat_labels)))
+    if comparisons:
+        if not spaghettify_col:
+            sys.stderr.write(
+                f"WARNING: Wilcoxon tests between comparisons requested "
+                f"without the spaghettify column.\n"
+            )
+        else:
+            bracket_kwargs = {
+                'color' : '0.0',
+                'marker' : '',
+                'linestyle' : '-',
+                'linewidth' : 1.0,
+                'zorder' : 200,
+                'alpha' : 1.0,
+            }
+            bracket_label_args = {
+                'horizontalalignment' : "center",
+                'verticalalignment' : "bottom",
+                'zorder' : 200,
+                'fontsize' : 'small',
+            }
+            if min_max_values:
+                limits = min_max_values
+            else:
+                limits = (min(df[value_col]), max(df[value_col]))
+            bracket_depth = (abs(limits[1] - limits[0]) * 0.01)
+            dodge =  (abs(limits[1] - limits[0]) * 0.04)
+            bracket_bottom = limits[1] + dodge
+            bracket_top = bracket_bottom + bracket_depth
+            existing_end_points = []
+            for cat1, cat2 in comparisons:
+                if cat1 not in cat_labels:
+                    sys.stderr.write(
+                        f"WARNING: category '{cat1}' not present; skipping "
+                        f"Wilcoxon test of '{cat1}' vs '{cat2}'.\n"
+                    )
+                    continue
+                if cat2 not in cat_labels:
+                    sys.stderr.write(
+                        f"WARNING: category '{cat2}' not present; skipping "
+                        f"Wilcoxon test of '{cat1}' vs '{cat2}'.\n"
+                    )
+                    continue
+                df1 = df[df[categorical_col] == cat1].sort_values(by = spaghettify_col)
+                df2 = df[df[categorical_col] == cat2].sort_values(by = spaghettify_col)
+                assert tuple(df1[spaghettify_col]) == tuple(df2[spaghettify_col])
+                val_diff = df1[value_col].values - df2[value_col].values
+                wtest = st.wilcoxon(val_diff)
+                x1 = cat_order.index(cat1)
+                x2 = cat_order.index(cat2)
+                level = get_bracket_level((x1, x2), existing_end_points)
+                existing_end_points.append((x1, x2))
+                level_bump = level * (2.0 * dodge)
+                bracket_y_pos = [
+                    bracket_bottom + level_bump,
+                    bracket_top + level_bump,
+                    bracket_top + level_bump,
+                    bracket_bottom + level_bump,
+                ]
+                bracket_x_pos = [x1, x1, x2, x2]
+                bracket, = ax.plot(
+                    bracket_x_pos,
+                    bracket_y_pos,
+                )
+                plt.setp(
+                    bracket,
+                    **bracket_kwargs,
+                )
+                bracket_label_y = bracket_top + level_bump + bracket_depth
+                bracket_label_x = sum((x1, x2)) / 2.0
+                bracket_label = f"$p = {wtest.pvalue:.2g}$"
+                ax.text(
+                    bracket_label_x, bracket_label_y,
+                    bracket_label,
+                    **bracket_label_args,
+                )
+    if spaghettify and spaghettify_col:
         spag_kwargs = {
-            'color' : '0.8',
+            'color' : '0.7',
             'marker' : '',
             'linestyle' : '-',
             'linewidth' : 1.0,
@@ -976,8 +1128,6 @@ def plot_violin(
             'alpha' : 0.5,
         }
         spag_kwargs.update(spaghetti_kwargs)
-
-        x_positions = tuple(range(len(cat_labels)))
 
         shared_units = tuple(df[spaghettify_col].unique())
         for u in shared_units:

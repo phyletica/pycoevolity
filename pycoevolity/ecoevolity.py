@@ -938,9 +938,6 @@ def parse_sim_rep_results(
     hpdi_upper_nevents = max(nevents_cred_set)
     results["hpdi_95_lower_num_events"] = hpdi_lower_nevents
     results["hpdi_95_upper_num_events"] = hpdi_upper_nevents
-    results["map_num_events_distance"] = map_nevents - true_nevents
-    results["hpdi_95_lower_num_events_distance"] = hpdi_lower_nevents - true_nevents
-    results["hpdi_95_upper_num_events_distance"] = hpdi_upper_nevents - true_nevents
     
     sum_of_abs_mean_error_root_height = 0.0
     sum_of_abs_mean_error_pop_size_root = 0.0
