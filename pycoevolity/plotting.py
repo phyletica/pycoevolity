@@ -31,20 +31,20 @@ def get_errors(values, lowers = None, uppers = None):
 
 def get_true_v_map_nevents_data_frame(
     data_frame,
-    sim_config_col = "simulation_config",
-    inference_config_col = "inference_config",
+    row_col = "simulation_config",
+    column_col = "inference_config",
 ):
     num_comparisons = len(data_frame["map_model"][0].split(","))
     nevent_labels = tuple(range(1, num_comparisons + 1))
-    sim_configs = data_frame[sim_config_col].unique()
-    inf_configs = data_frame[inference_config_col].unique()
+    row_labels = data_frame[row_col].unique()
+    col_labels = data_frame[column_col].unique()
     rows = []
-    for sim_conf in sim_configs:
-        for inf_conf in inf_configs:
+    for row_label in row_labels:
+        for col_label in col_labels:
             counts = [ [0 for i in range(num_comparisons)] for j in range(num_comparisons) ]
             sub_df = data_frame.loc[
-                (data_frame[sim_config_col] == sim_conf)
-                & (data_frame[inference_config_col] == inf_conf)
+                (data_frame[row_col] == row_label)
+                & (data_frame[column_col] == col_label)
             ]
             for true_n, map_n in zip(
                 sub_df["true_num_events"],
@@ -55,8 +55,8 @@ def get_true_v_map_nevents_data_frame(
                 for map_idx in range(num_comparisons):
                     count = counts[true_idx][map_idx]
                     rows.append({
-                        'simulation_config' : sim_conf,
-                        'inference_config' : inf_conf,
+                        row_col : row_label,
+                        column_col : col_label,
                         'true_num_events' : true_idx + 1,
                         'map_num_events' : map_idx + 1,
                         'count' : count,
@@ -180,8 +180,8 @@ def process_error_scatter_grid(
         est_col = est_col,
         est_error_lower_col = est_error_lower_col,
         est_error_upper_col = est_error_upper_col,
-        sim_config_col = "simulation_config",
-        inference_config_col = "inference_config",
+        row_col = "simulation_config",
+        column_col = "inference_config",
         true_val_rank_col = true_val_rank_col,
         xlabel = xlabel,
         ylabel = ylabel,
@@ -207,8 +207,8 @@ def plot_scatter_grid(
     est_col,
     est_error_lower_col = None,
     est_error_upper_col = None,
-    sim_config_col = "simulation_config",
-    inference_config_col = "inference_config",
+    row_col = "simulation_config",
+    column_col = "inference_config",
     true_val_rank_col = None,
     xlabel = None,
     ylabel = None,
@@ -229,14 +229,14 @@ def plot_scatter_grid(
     col_order = None
     row_order = None
     if ordered_labels:
-        sim_labels = data_frame[sim_config_col].unique()
-        inf_labels = data_frame[inference_config_col].unique()
-        row_order = [l for l in ordered_labels if l in sim_labels]
-        col_order = [l for l in ordered_labels if l in inf_labels]
+        row_labels = data_frame[row_col].unique()
+        col_labels = data_frame[column_col].unique()
+        row_order = [l for l in ordered_labels if l in row_labels]
+        col_order = [l for l in ordered_labels if l in col_labels]
     grid = sns.FacetGrid(
         data_frame,
-        row = sim_config_col,
-        col = inference_config_col,
+        row = row_col,
+        col = column_col,
         margin_titles = True,
         height = height,
         row_order = row_order,
@@ -431,8 +431,8 @@ def plot_scatter(
 
 def plot_nevents_heatmap_grid(
     data_frame,
-    sim_config_col = "simulation_config",
-    inference_config_col = "inference_config",
+    row_col = "simulation_config",
+    column_col = "inference_config",
     ordered_labels = None,
     height = 4.5,
     annotate_counts = True,
@@ -447,14 +447,14 @@ def plot_nevents_heatmap_grid(
     col_order = None
     row_order = None
     if ordered_labels:
-        sim_labels = data_frame[sim_config_col].unique()
-        inf_labels = data_frame[inference_config_col].unique()
-        row_order = [l for l in ordered_labels if l in sim_labels]
-        col_order = [l for l in ordered_labels if l in inf_labels]
+        row_labels = data_frame[row_col].unique()
+        col_labels = data_frame[column_col].unique()
+        row_order = [l for l in ordered_labels if l in row_labels]
+        col_order = [l for l in ordered_labels if l in col_labels]
     grid = sns.FacetGrid(
         data,
-        row = sim_config_col,
-        col = inference_config_col,
+        row = row_col,
+        col = column_col,
         margin_titles = True,
         height = height,
         row_order = row_order,
@@ -485,8 +485,8 @@ def plot_nevents_heatmap_grid(
         grid.map_dataframe(
             annotate_heatmap,
             full_data = data_frame,
-            sim_config_col = sim_config_col,
-            inference_config_col = inference_config_col,
+            row_col = row_col,
+            column_col = column_col,
             true_val_col = "true_num_events",
             est_val_col = "map_num_events",
             true_val_cred_col = 'true_num_events_cred_level',
@@ -508,8 +508,8 @@ def plot_nevents_heatmap_grid(
 def annotate_heatmap(
     data,
     full_data,
-    sim_config_col,
-    inference_config_col,
+    row_col,
+    column_col,
     true_val_col,
     est_val_col,
     true_val_cred_col,
@@ -520,15 +520,15 @@ def annotate_heatmap(
     **kwargs,
 ):
     ax = plt.gca()
-    sim_configs = data[sim_config_col].unique()
-    assert len(sim_configs) == 1
-    sim_config = sim_configs[0]
-    inf_configs = data[inference_config_col].unique()
-    assert len(inf_configs) == 1
-    inf_config = inf_configs[0]
+    row_labels = data[row_col].unique()
+    assert len(row_labels) == 1
+    row_label = row_labels[0]
+    col_labels = data[column_col].unique()
+    assert len(col_labels) == 1
+    col_label = col_labels[0]
     df = full_data.loc[
-        (full_data[sim_config_col] == sim_config)
-        & (full_data[inference_config_col] == inf_config)
+        (full_data[row_col] == row_label)
+        & (full_data[column_col] == col_label)
     ]
     num_within_cs = (
         (df[true_val_cred_col] <= cred_level)
@@ -866,9 +866,9 @@ def plot_abs_error_grid(
     est_col,
     est_lower_col,
     est_upper_col,
-    sim_config_col = "simulation_config",
-    inference_config_col = "inference_config",
-    sim_id_col = "simulation_id",
+    row_col = "simulation_config",
+    column_col = "inference_config",
+    id_col = "simulation_id",
     ordered_labels = None,
     annotate_true_values = False,
     height = 4.5,
@@ -878,30 +878,30 @@ def plot_abs_error_grid(
     col_order = None
     row_order = None
     if ordered_labels:
-        sim_labels = data_frame[sim_config_col].unique()
-        inf_labels = data_frame[inference_config_col].unique()
-        row_order = [l for l in ordered_labels if l in sim_labels]
-        col_order = [l for l in ordered_labels if l in inf_labels]
+        row_labels = data_frame[row_col].unique()
+        col_labels = data_frame[column_col].unique()
+        row_order = [l for l in ordered_labels if l in row_labels]
+        col_order = [l for l in ordered_labels if l in col_labels]
     df = data_frame[[
-        sim_config_col,
-        inference_config_col,
+        row_col,
+        column_col,
         true_val_col,
         est_col,
         est_lower_col,
         est_upper_col,
-        sim_id_col,
+        id_col,
     ]].copy()
 
     df.sort_values(
-        by = ["true_num_events", "simulation_id"],
+        by = [true_val_col, id_col],
         ascending = [True, True],
         inplace = True,
     )
 
     grid = sns.FacetGrid(
         df,
-        row = sim_config_col,
-        col = inference_config_col,
+        row = row_col,
+        col = column_col,
         margin_titles = True,
         height = height,
         row_order = row_order,
@@ -918,7 +918,7 @@ def plot_abs_error_grid(
         **scatter_kwargs
     )
     grid.set_ylabels("Error")
-    grid.set_xlabels("Simulation replicate")
+    grid.set_xlabels("")
     if annotate_true_values:
         annot_y_position = grid.axes.flat[0].get_ylim()[0]
         grid.map_dataframe(
@@ -938,35 +938,35 @@ def plot_abs_error_grid(
 def plot_violin_grid(
     data,
     value_col,
-    sim_config_col = "simulation_config",
-    inference_config_col = "inference_config",
+    plot_col = "simulation_config",
+    categorical_col = "inference_config",
     spaghettify_col = "simulation_id",
     spaghettify = True,
     value_label = None,
-    inference_label = "Inference model",
-    sim_label_template = "True model = {col_name}",
+    categorical_label = "Inference model",
+    plot_label_template = "True model = {col_name}",
     ordered_labels = None,
     comparisons = None,
     height = 4.5,
-    inference_label_size = None,
+    categorical_label_size = None,
     violin_kwargs = {},
     spaghetti_kwargs = {},
 ):
-    sim_order = None
-    inf_order = None
+    plot_order = None
+    cat_order = None
     if ordered_labels:
-        sim_labels = data[sim_config_col].unique()
-        inf_labels = data[inference_config_col].unique()
-        sim_order = [l for l in ordered_labels if l in sim_labels]
-        inf_order = [l for l in ordered_labels if l in inf_labels]
+        plot_labels = data[plot_col].unique()
+        cat_labels = data[categorical_col].unique()
+        plot_order = [l for l in ordered_labels if l in plot_labels]
+        cat_order = [l for l in ordered_labels if l in cat_labels]
     grid = sns.FacetGrid(
         data,
         row = None,
-        col = sim_config_col,
+        col = plot_col,
         margin_titles = True,
         height = height,
         row_order = None,
-        col_order = sim_order,
+        col_order = plot_order,
         sharey = True,
         sharex = True,
     )
@@ -974,23 +974,23 @@ def plot_violin_grid(
     grid.map_dataframe(
         plot_violin,
         value_col = value_col,
-        categorical_col = inference_config_col,
+        categorical_col = categorical_col,
         spaghettify_col = spaghettify_col,
         spaghettify = spaghettify,
         ordered_labels = ordered_labels,
         comparisons = comparisons,
         min_max_values = min_max_values,
-        inference_label_size = inference_label_size,
+        categorical_label_size = categorical_label_size,
         spaghetti_kwargs = spaghetti_kwargs,
         **violin_kwargs,
     )
     if value_label is not None:
         grid.set_ylabels(value_label)
-    if inference_label is not None:
-        grid.set_xlabels(inference_label)
-    if sim_label_template is not None:
+    if categorical_label is not None:
+        grid.set_xlabels(categorical_label)
+    if plot_label_template is not None:
         grid.set_titles(
-            col_template = sim_label_template,
+            col_template = plot_label_template,
         )
     # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
     return grid
@@ -1013,7 +1013,7 @@ def plot_violin(
     ordered_labels = None,
     comparisons = None,
     min_max_values = None,
-    inference_label_size = None,
+    categorical_label_size = None,
     spaghetti_kwargs = {},
     **violin_kwargs,
 ):
@@ -1035,10 +1035,10 @@ def plot_violin(
         hue = None,
         **vio_kwargs,
     )
-    if inference_label_size is not None:
+    if categorical_label_size is not None:
         ax.tick_params(
             axis = 'x',
-            labelsize = inference_label_size,
+            labelsize = categorical_label_size,
         )
     
     x_positions = tuple(range(len(cat_labels)))
@@ -1094,7 +1094,7 @@ def plot_violin(
                 x2 = cat_order.index(cat2)
                 level = get_bracket_level((x1, x2), existing_end_points)
                 existing_end_points.append((x1, x2))
-                level_bump = level * (2.0 * dodge)
+                level_bump = level * (2.5 * dodge)
                 bracket_y_pos = [
                     bracket_bottom + level_bump,
                     bracket_top + level_bump,
