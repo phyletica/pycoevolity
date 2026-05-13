@@ -10,13 +10,21 @@ import seaborn as sns
 import pycoevolity
 
 
+class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    def _split_lines(self, text, width):
+        if text.startswith('RAW|'):
+            return text[4:].splitlines()
+        return argparse.ArgumentDefaultsHelpFormatter._split_lines(
+            self, text, width)
+
 def parse_config_label_order_arg(arg, sep):
     labels = [x.strip() for x in arg.split(sep)]
     return tuple(labels)
 
 def parse_cli_args():
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class = SmartFormatter,
+    )
 
     parser.add_argument(
         'results_summary_path',
@@ -178,12 +186,74 @@ def parse_cli_args():
             'for more info.'
         ),
     )
+    parser.add_argument(
+        '--output-dir',
+        type = pycoevolity.argparse_utils.arg_is_dir_or_new_dir,
+        help = (
+            'The directory to which to write output files. By default, the '
+            'directory of the results summary input file will be used.'
+        ),
+    )
+    parser.add_argument(
+        '--prefix',
+        type = str,
+        help = (
+            'Prefix to add to the file name of every output file.'
+        ),
+    )
+    parser.add_argument(
+        '--force',
+        action = 'store_true',
+        help = (
+            'Overwrite output files if they already exist.'
+        ),
+    )
+    parser.add_argument(
+        '-f', '--parameter-file',
+        action = 'store',
+        type = pycoevolity.argparse_utils.arg_is_file,
+        help = (
+            'RAW|'
+            'Path to a YAML-formatted file that contains information about '
+            'parameters to plot. '
+            'The general format should be:\n'
+            '    ---\n'
+            '    parameter_name:\n'
+            '        symbol: \'x\'\n'
+            '        label: \"text to use for axis labels\"\n'
+            'A specific example:\n'
+            '    ---\n'
+            '    time_prior_parameter_0:\n'
+            '        symbol: \'\mu\'\n'
+            '        label: \"time prior mean\"\n'
+        ),
+    )
     args = parser.parse_args()
     return args
+
+def write_existing_path_warning(path, out_stream = sys.stderr):
+    out_stream.write(
+        f"\n"
+        f"WARNING: Skipping plotting of '{path}' because it "
+        f"already exists. If you wish to overwrite this file, please "
+        f"use the '--force' option.\n\n"
+    )
+
+def parse_parameter_yaml(path):
+    d = pycoevolity.fileio.load_yaml(path)
+    ret = {k : {} for k in d}
+    for key in d:
+        for sub_key in ('label', 'symbol'):
+            ret[key][sub_key] = d[key].get(sub_key, None)
+    return ret
 
 def main_cli(args = None):
     if args is None:
         args = parse_cli_args()
+
+    parameters_to_plot = {}
+    if args.parameter_file:
+        parameters_to_plot = parse_parameter_yaml(args.parameter_file)
 
     df = pd.read_csv(
         args.results_summary_path,
@@ -197,151 +267,220 @@ def main_cli(args = None):
             args.label_sep,
         )
     plot_dir = os.path.dirname(args.results_summary_path)
+    if args.output_dir:
+        plot_dir = pycoevolity.argparse_utils.process_output_dir_arg(args.output_dir)
+
+    prefix = ''
+    if args.prefix:
+        prefix = args.prefix
+    plot_prefix = os.path.join(
+        plot_dir,
+        prefix,
+    )
 
     ##################################################################
     # Plot number of events heat maps
     ##################################################################
-    grid = pycoevolity.plotting.plot_nevents_heatmap_grid(
-        df,
-        row_col = "simulation_config",
-        column_col = "inference_config",
-        ordered_labels = ordered_labels,
-        height = args.plot_height,
-        annotate_counts = False,
-        include_cbar = True,
-        outline_identity = True,
-        annotate_stats = True,
-        cred_level = 0.95,
-    )
-    plot_path = os.path.join(
-        plot_dir,
-        "nevents-heatmap-grid.pdf",
-    )
-    grid.savefig(plot_path)
+    plot_path = f"{plot_prefix}nevents-heatmap-grid.pdf"
+
+    if (not args.force) and os.path.exists(plot_path):
+        write_existing_path_warning(plot_path, sys.stderr)
+    else:
+        grid = pycoevolity.plotting.plot_nevents_heatmap_grid(
+            df,
+            row_col = "simulation_config",
+            column_col = "inference_config",
+            ordered_labels = ordered_labels,
+            height = args.plot_height,
+            annotate_counts = False,
+            include_cbar = True,
+            outline_identity = True,
+            annotate_stats = True,
+            cred_level = 0.95,
+        )
+        grid.savefig(plot_path)
 
     ##################################################################
-    # Plot absolute number of events error
+    # Plot anumber of events error scatter
     ##################################################################
+    plot_path = f"{plot_prefix}nevents-error-scatter-grid.pdf"
 
-    grid = pycoevolity.plotting.plot_abs_error_grid(
-        df,
-        true_val_col = "true_num_events",
-        est_col = "map_num_events",
-        est_lower_col = "hpdi_95_lower_num_events",
-        est_upper_col = "hpdi_95_upper_num_events",
-        row_col = "simulation_config",
-        column_col = "inference_config",
-        ordered_labels = ordered_labels,
-        annotate_true_values = True,
-        height = args.plot_height,
-        scatter_kwargs = {},
-        annotate_kwargs = {},
-    )
-    grid.set_axis_labels(
-        "True number of events",
-        "Number of events error",
-    )
-    plot_path = os.path.join(
-        plot_dir,
-        "nevents-abs-error-grid.pdf",
-    )
-    grid.savefig(plot_path)
+    if (not args.force) and os.path.exists(plot_path):
+        write_existing_path_warning(plot_path, sys.stderr)
+    else:
+        grid = pycoevolity.plotting.plot_error_scatter_grid(
+            df,
+            true_val_col = "true_num_events",
+            est_col = "map_num_events",
+            row_col = "simulation_config",
+            column_col = "inference_config",
+            est_lower_col = "hpdi_95_lower_num_events",
+            est_upper_col = "hpdi_95_upper_num_events",
+            id_col = "simulation_id",
+            ess_col = None,
+            psrf_max = None,
+            ordered_labels = ordered_labels,
+            annotate_true_values = True,
+            annotate_stats = False,
+            height = args.plot_height,
+            scatter_kwargs = {},
+            annot_true_vals_kwargs = {},
+        )
+        grid.set_axis_labels(
+            "True number of events",
+            "Number of events error",
+        )
+        grid.savefig(plot_path)
+
+    ##################################################################
+    # Plot event model error
+    ##################################################################
+    plot_path = f"{plot_prefix}model-error-grid.pdf"
+
+    if (not args.force) and os.path.exists(plot_path):
+        write_existing_path_warning(plot_path, sys.stderr)
+    else:
+        model_dist = "mean_model_distance"
+        model_dist_label = "Mean model distance"
+        if args.use_median_model_distance:
+            model_dist = "median_model_distance"
+            model_dist_label = "Median model distance"
+        grid = pycoevolity.plotting.plot_violin_grid(
+            data = df,
+            value_col = model_dist,
+            plot_col = "simulation_config",
+            categorical_col = "inference_config",
+            spaghettify_col = "simulation_id",
+            spaghettify = True,
+            value_label = model_dist_label,
+            categorical_label = "Inference model",
+            plot_label_template = "True model = {col_name}",
+            ordered_labels = ordered_labels,
+            comparisons = args.comparison,
+            height = args.violin_plot_height,
+            categorical_label_size = args.violin_label_size,
+            violin_kwargs = {},
+            spaghetti_kwargs = {},
+        )
+        grid.savefig(plot_path)
 
     ##################################################################
     # Parameter scatter plots
     ##################################################################
 
-    # scatter_params = (
-    #     (
-    #         "concentration",
-    #         r"\alpha",
-    #         "concentration",
-    #     ),
-    #     (
-    #         "root_height",
+    scatter_params = {
+        "concentration" : {
+            "symbol" : r"\alpha",
+            "label" : "concentration",
+        },
+        "root_height" : {
+            "symbol" : r"\tau",
+            "label" : "divergence time",
+        },
+        "pop_size_root" : {
+            "symbol" : r"N_e",
+            "label" : "ancestral $N_e$",
+        },
+        "time_prior_parameter_0" : {
+            "symbol" : None,
+            "label" : "time prior parameter 0",
+        },
+        "time_prior_parameter_1" : {
+            "symbol" : None,
+            "label" : "time prior parameter 0",
+        },
+    }
+    scatter_params.update(parameters_to_plot)
 
-    grid = pycoevolity.plotting.process_error_scatter_grid(
-        df,
-        parameters = ["concentration"],
-        parameter_root = None,
-        use_mean = True,
-        use_hpdi = True,
-        xlabel = "True concentration",
-        ylabel = "Mean concentration",
-        ess_min = 200,
-        psrf_max = 1.2,
-        bad_sampling_color = "C1",
-        ordered_labels = ordered_labels,
-        height = args.plot_height,
-        annotate_stats = True,
-        stat_label = r"\alpha",
-        annot_x_position = 0.02,
-        annot_y_position = 0.98,
-        cred_level = 0.95,
-    )
-    plot_path = os.path.join(
-        plot_dir,
-        "concentration-scatter-grid.pdf",
-    )
-    grid.savefig(plot_path)
+    for param_key, param_info in scatter_params.items():
+        parameter_root = param_key
+        parameters = pycoevolity.plotting.get_all_comparison_parameters(
+            parameter_prefix = param_key,
+            column_headers = df.columns,
+        )
+        if not parameters:
+            # param_key was not a prefix for comparison parameters, so check to
+            # see if it's a global parameter
+            if f"mean_{param_key}" in df.columns:
+                parameters = [param_key]
+                parameter_root = None
+            else:
+                # This parameter is not in the data frame; we don't throw an
+                # error, because some parameters don't end up in the summary
+                # table if they were constrained/fixed
+                continue
+        xlabel = None
+        ylabel = None
+        stat_label = None
+        if param_info['label']:
+            xlabel = f"True {param_info['label']}"
+            ylabel = f"Mean {param_info['label']}"
+        if param_info['symbol']:
+            stat_label = param_info['symbol']
+        plot_path = f"{plot_prefix}{param_key}-scatter-grid.pdf"
+        if (not args.force) and os.path.exists(plot_path):
+            write_existing_path_warning(plot_path, sys.stderr)
+        else:
+            grid = pycoevolity.plotting.process_scatter_grid(
+                df,
+                parameters = parameters,
+                row_col = "simulation_config",
+                column_col = "inference_config",
+                parameter_root = parameter_root,
+                use_mean = True,
+                use_hpdi = True,
+                xlabel = xlabel,
+                ylabel = ylabel,
+                ess_min = 200,
+                psrf_max = 1.2,
+                bad_sampling_color = "C1",
+                ordered_labels = ordered_labels,
+                height = args.plot_height,
+                annotate_stats = True,
+                stat_label = stat_label,
+                annot_position = (0.02, 0.98),
+                cred_level = 0.95,
+                scatter_kwargs = {},
+                annotate_kwargs = {},
+            )
+            if grid:
+                grid.savefig(plot_path)
 
-    parameter_root = "root_height"
-    parameters = pycoevolity.plotting.get_all_parameters(
-        parameter_prefix = parameter_root,
-        column_headers = df.columns,
-    )
-    grid = pycoevolity.plotting.process_error_scatter_grid(
-        df,
-        parameters = parameters,
-        parameter_root = parameter_root,
-        use_mean = True,
-        use_hpdi = True,
-        xlabel = "True divergence time",
-        ylabel = "Mean divergence time",
-        ess_min = 200,
-        psrf_max = 1.2,
-        bad_sampling_color = "C1",
-        ordered_labels = ordered_labels,
-        height = args.plot_height,
-        annotate_stats = True,
-        stat_label = r"\tau",
-        annot_x_position = 0.02,
-        annot_y_position = 0.98,
-        cred_level = 0.95,
-    )
-    plot_path = os.path.join(
-        plot_dir,
-        "div-time-scatter-grid.pdf",
-    )
-    grid.savefig(plot_path)
-
-    model_dist = "mean_model_distance"
-    model_dist_label = "Mean model distance"
-    if args.use_median_model_distance:
-        model_dist = "median_model_distance"
-        model_dist_label = "Median model distance"
-    grid = pycoevolity.plotting.plot_violin_grid(
-        data = df,
-        value_col = model_dist,
-        plot_col = "simulation_config",
-        categorical_col = "inference_config",
-        spaghettify_col = "simulation_id",
-        spaghettify = True,
-        value_label = model_dist_label,
-        categorical_label = "Inference model",
-        plot_label_template = "True model = {col_name}",
-        ordered_labels = ordered_labels,
-        comparisons = args.comparison,
-        height = args.violin_plot_height,
-        categorical_label_size = args.violin_label_size,
-        violin_kwargs = {},
-        spaghetti_kwargs = {},
-    )
-    plot_path = os.path.join(
-        plot_dir,
-        "model-error-grid.pdf",
-    )
-    grid.savefig(plot_path)
+        plot_path = f"{plot_prefix}{param_key}-error-scatter-grid.pdf"
+        if (not args.force) and os.path.exists(plot_path):
+            write_existing_path_warning(plot_path, sys.stderr)
+        else:
+            grid = pycoevolity.plotting.process_error_scatter_grid(
+                df,
+                parameters = parameters,
+                row_col = "simulation_config",
+                column_col = "inference_config",
+                id_col = "simulation_id",
+                parameter_root = parameter_root,
+                use_mean = True,
+                use_hpdi = True,
+                ess_min = 200,
+                psrf_max = 1.2,
+                bad_sampling_color = "C1",
+                ordered_labels = ordered_labels,
+                annotate_true_values = False,
+                annotate_stats = True,
+                stat_label = stat_label,
+                annot_stats_position = (0.02, 0.98),
+                cred_level = 0.95,
+                height = 4.5,
+                scatter_kwargs = {},
+                annot_true_vals_kwargs = {},
+                annot_stats_kwargs = {},
+            )
+            if grid:
+                if param_info['label']:
+                    label_list = param_info['label'].split()
+                    label_list[0] = label_list[0].capitalize()
+                    label_list.append("error")
+                    ylabel = " ".join(label_list)
+                    grid.set_ylabels(ylabel)
+                grid.savefig(plot_path)
 
 
 if __name__ == "__main__":

@@ -31,8 +31,8 @@ def get_errors(values, lowers = None, uppers = None):
 
 def get_true_v_map_nevents_data_frame(
     data_frame,
-    row_col = "simulation_config",
-    column_col = "inference_config",
+    row_col,
+    column_col,
 ):
     num_comparisons = len(data_frame["map_model"][0].split(","))
     nevent_labels = tuple(range(1, num_comparisons + 1))
@@ -86,14 +86,19 @@ def get_comparison_labels(column_headers):
     assert len(comp_labels) == len(set(comp_labels))
     return tuple(comp_labels)
 
-def get_all_parameters(parameter_prefix, column_headers):
+def get_all_comparison_parameters(parameter_prefix, column_headers):
     pop_labels = get_all_population_labels(column_headers)
     prefix = parameter_prefix.rstrip("_")
     possible_params = [f"{prefix}_{l}" for l in pop_labels]
     params = [p for p in possible_params if f"mean_{p}" in column_headers]
     return tuple(params)
 
-def get_stacked_parameter_data_frame(data_frame, parameters, parameter_root):
+def get_stacked_parameter_data_frame(
+    data_frame,
+    parameters,
+    parameter_root,
+    extra_cols_to_keep = [],
+):
     param_root = parameter_root.rstrip("_")
     param_keys = [
         f"psrf_{param_root}",
@@ -109,17 +114,13 @@ def get_stacked_parameter_data_frame(data_frame, parameters, parameter_root):
         f"ess_{param_root}",
         f"ess_sum_{param_root}",
     ]
-    config_keys = [
-        "simulation_config",
-        "inference_config",
-    ]
-    columns = {k : [] for k in param_keys + config_keys}
+    columns = {k : [] for k in param_keys + extra_cols_to_keep}
     for param in parameters:
         for k in param_keys:
             param_label = k.replace(param_root, param)
             columns[k].extend(data_frame[param_label])
-        for conf_key in config_keys:
-            columns[conf_key].extend(data_frame[conf_key])
+        for col_key in extra_cols_to_keep:
+            columns[col_key].extend(data_frame[col_key])
     n = None
     for k, vals in columns.items():
         if n is None:
@@ -128,9 +129,11 @@ def get_stacked_parameter_data_frame(data_frame, parameters, parameter_root):
             assert len(vals) == n
     return pd.DataFrame(columns)
 
-def process_error_scatter_grid(
+def process_scatter_grid(
     data_frame,
     parameters,
+    row_col,
+    column_col,
     parameter_root = None,
     use_mean = True,
     use_hpdi = True,
@@ -143,10 +146,10 @@ def process_error_scatter_grid(
     height = 4.5,
     annotate_stats = True,
     stat_label = None,
-    annot_x_position = 0.02,
-    annot_y_position = 0.98,
+    annot_position = (0.02, 0.98),
     cred_level = 0.95,
-    **kwargs,
+    scatter_kwargs = {},
+    annotate_kwargs = {},
 ):
     if not parameters:
         raise Exception(
@@ -157,58 +160,77 @@ def process_error_scatter_grid(
             raise Exception(
                 "parameter_root is required when processing multiple parameters"
             )
-        df = get_stacked_parameter_data_frame(data_frame, parameters, parameter_root)
+        df = get_stacked_parameter_data_frame(
+            data_frame,
+            parameters,
+            parameter_root,
+            extra_cols_to_keep = [row_col, column_col],
+        )
         parameter = parameter_root
     else:
         df = data_frame
         parameter = parameters[0]
+    # Remove rows for which the parameter was not estimated (standard deviation
+    # is zero)
+    std_dev_col = f"stddev_{parameter}"
+    if std_dev_col in df.columns:
+        df = df[df[std_dev_col] > 0.0]
     true_col = f"true_{parameter}"
     true_val_rank_col = f"true_{parameter}_rank"
     est_col = f"median_{parameter}"
     if use_mean:
         est_col = f"mean_{parameter}"
-    est_error_lower_col = f"eti_95_lower_{parameter}"
-    est_error_upper_col = f"eti_95_upper_{parameter}"
+    est_lower_col = None
+    est_upper_col = None
     if use_hpdi:
-        est_error_lower_col = f"hpdi_95_lower_{parameter}"
-        est_error_upper_col = f"hpdi_95_upper_{parameter}"
+        if f"hpdi_95_lower_{parameter}" in df.columns:
+            est_lower_col = f"hpdi_95_lower_{parameter}"
+        if f"hpdi_95_upper_{parameter}" in df.columns:
+            est_upper_col = f"hpdi_95_upper_{parameter}"
+    else:
+        if f"eti_95_lower_{parameter}" in df.columns:
+            est_lower_col = f"eti_95_lower_{parameter}"
+        if f"eti_95_upper_{parameter}" in df.columns:
+            est_upper_col = f"eti_95_upper_{parameter}"
     ess_col = f"ess_{parameter}"
     psrf_col = f"psrf_{parameter}"
-    grid = plot_scatter_grid(
-        data_frame = df,
-        true_col = true_col,
-        est_col = est_col,
-        est_error_lower_col = est_error_lower_col,
-        est_error_upper_col = est_error_upper_col,
-        row_col = "simulation_config",
-        column_col = "inference_config",
-        true_val_rank_col = true_val_rank_col,
-        xlabel = xlabel,
-        ylabel = ylabel,
-        ess_col = ess_col,
-        psrf_col = ess_col,
-        ess_min = ess_min,
-        psrf_max = psrf_max,
-        bad_sampling_color = bad_sampling_color,
-        ordered_labels = ordered_labels,
-        height = height,
-        annotate_stats = annotate_stats,
-        stat_label = stat_label,
-        annot_x_position = annot_x_position,
-        annot_y_position = annot_y_position,
-        cred_level = cred_level,
-        **kwargs,
-    )
+    grid = None
+    if len(df) > 0:
+        grid = plot_scatter_grid(
+            data_frame = df,
+            true_col = true_col,
+            est_col = est_col,
+            row_col = row_col,
+            column_col = column_col,
+            est_lower_col = est_lower_col,
+            est_upper_col = est_upper_col,
+            true_val_rank_col = true_val_rank_col,
+            xlabel = xlabel,
+            ylabel = ylabel,
+            ess_col = ess_col,
+            psrf_col = psrf_col,
+            ess_min = ess_min,
+            psrf_max = psrf_max,
+            bad_sampling_color = bad_sampling_color,
+            ordered_labels = ordered_labels,
+            height = height,
+            annotate_stats = annotate_stats,
+            stat_label = stat_label,
+            annot_position = annot_position,
+            cred_level = cred_level,
+            scatter_kwargs = scatter_kwargs,
+            annotate_kwargs = annotate_kwargs,
+        )
     return grid
 
 def plot_scatter_grid(
     data_frame,
     true_col,
     est_col,
-    est_error_lower_col = None,
-    est_error_upper_col = None,
-    row_col = "simulation_config",
-    column_col = "inference_config",
+    row_col,
+    column_col,
+    est_lower_col = None,
+    est_upper_col = None,
     true_val_rank_col = None,
     xlabel = None,
     ylabel = None,
@@ -221,10 +243,10 @@ def plot_scatter_grid(
     height = 4.5,
     annotate_stats = True,
     stat_label = None,
-    annot_x_position = 0.02,
-    annot_y_position = 0.98,
+    annot_position = (0.02, 0.98),
     cred_level = 0.95,
-    **kwargs,
+    scatter_kwargs = {},
+    annotate_kwargs = {},
 ):
     col_order = None
     row_order = None
@@ -248,16 +270,20 @@ def plot_scatter_grid(
         plot_scatter,
         x = true_col,
         y = est_col,
-        y_error_lower = est_error_lower_col,
-        y_error_upper = est_error_upper_col,
+        y_error_lower = est_lower_col,
+        y_error_upper = est_upper_col,
         ess_col = ess_col,
         psrf_col = psrf_col,
         ess_min = ess_min,
         psrf_max = psrf_max,
-        **kwargs,
+        **scatter_kwargs,
     )
-    mn = min(min(data_frame[true_col]), min(data_frame[est_col]))
-    mx = max(max(data_frame[true_col]), max(data_frame[est_col]))
+    y_limits = grid.axes.flat[0].get_ylim()
+    x_limits = grid.axes.flat[0].get_xlim()
+    mn = min(min(y_limits), min(x_limits))
+    mx = max(max(y_limits), max(x_limits))
+    # mn = min(min(data_frame[true_col]), min(data_frame[est_col]))
+    # mx = max(max(data_frame[true_col]), max(data_frame[est_col]))
     for ax in grid.axes_dict.values():
         ax_id_line(
             ax = ax,
@@ -272,13 +298,12 @@ def plot_scatter_grid(
             annotate_scatter,
             x = true_col,
             y = est_col,
-            y_error_lower = est_error_lower_col,
-            y_error_upper = est_error_upper_col,
-            x_position = annot_x_position,
-            y_position = annot_y_position,
+            y_error_lower = est_lower_col,
+            y_error_upper = est_upper_col,
+            position = annot_position,
             cred_level = cred_level,
             stat_label = stat_label,
-            **kwargs,
+            **annotate_kwargs,
         )
     if xlabel:
         grid.set_xlabels(xlabel)
@@ -296,8 +321,7 @@ def annotate_scatter(
     y,
     y_error_lower = None,
     y_error_upper = None,
-    x_position = 0.02,
-    y_position = 0.98,
+    position = (0.02, 0.98),
     cred_level = 0.95,
     stat_label = None,
     **kwargs,
@@ -307,17 +331,19 @@ def annotate_scatter(
         sum(data[x] > data[y])
         / len(data[x])
     )
-    sum_sq_err = ((data[x] - data[y]) ** 2).sum()
+    sum_sq_err = ((data[x].values - data[y].values) ** 2).sum()
     mean_sq_err = sum_sq_err / len(data)
     root_mean_sq_err = math.sqrt(mean_sq_err)
     if not stat_label:
         stat_label = "x"
+    wtest = st.wilcoxon(data[x].values - data[y].values)
     annot_str = (
-        r"$p(\hat{{{stat_label}}} < {stat_label}) = {prop_under:.2g}$"
+        r"$p(\hat{{{stat_label}}} < {stat_label}) = {prop_under:.2g}$; $p = {pval:.2g}$"
         "\n"
         r"$\text{{RMSE}} = {rmse:.2g}$".format(
             stat_label = stat_label,
             prop_under = prop_est_under,
+            pval = wtest.pvalue,
             rmse = root_mean_sq_err,
         )
     )
@@ -328,13 +354,14 @@ def annotate_scatter(
         ).sum()
         prop_within_ci = num_within_ci / len(data[x])
         annot_str = (
-            r"$p(\hat{{{stat_label}}} < {stat_label}) = {prop_under:.2g}$"
+            r"$p(\hat{{{stat_label}}} < {stat_label}) = {prop_under:.2g}$; $p = {pval:.2g}$"
             "\n"
             r"$p({stat_label} \in {cred_level:.2f}\,\text{{CI}}) = {coverage:.2g}$"
             "\n"
             r"$\text{{RMSE}} = {rmse:.2g}$".format(
                 stat_label = stat_label,
                 prop_under = prop_est_under,
+                pval = wtest.pvalue,
                 cred_level = cred_level,
                 coverage = prop_within_ci,
                 rmse = root_mean_sq_err,
@@ -358,7 +385,7 @@ def annotate_scatter(
     # plotting points; overriding that here
     default_args["color"] = "black"
     ax.text(
-        x_position, y_position,
+        position[0], position[1],
         annot_str,
         **default_args,
     )
@@ -386,6 +413,10 @@ def plot_scatter(
         df["Poor MCMC sampling"] = df[ess_col] < ess_min
     elif psrf_col:
         df["Poor MCMC sampling"] = df[psrf_col] > psrf_max
+    d = df
+    if "Poor MCMC sampling" in df.columns:
+        d = df[df["Poor MCMC sampling"] == False].copy()
+
     ax = plt.gca()
     shared_args = {
         'elinewidth' : 1.0,
@@ -399,12 +430,12 @@ def plot_scatter(
         'alpha' : 0.5,
     }
     shared_args.update(kwargs)
-    yerr = get_errors(df[y])
+    yerr = get_errors(d[y])
     if y_error_lower and y_error_upper:
-        yerr = get_errors(df[y], df[y_error_lower], df[y_error_upper])
+        yerr = get_errors(d[y], d[y_error_lower], d[y_error_upper])
     line = ax.errorbar(
-        x = df[x],
-        y = df[y],
+        x = d[x],
+        y = d[y],
         yerr = yerr,
         ecolor = 'C0',
         markerfacecolor = 'C0',
@@ -431,8 +462,8 @@ def plot_scatter(
 
 def plot_nevents_heatmap_grid(
     data_frame,
-    row_col = "simulation_config",
-    column_col = "inference_config",
+    row_col,
+    column_col,
     ordered_labels = None,
     height = 4.5,
     annotate_counts = True,
@@ -441,7 +472,7 @@ def plot_nevents_heatmap_grid(
     annotate_stats = True,
     cred_level = 0.95,
 ):
-    data = get_true_v_map_nevents_data_frame(data_frame)
+    data = get_true_v_map_nevents_data_frame(data_frame, row_col, column_col)
     vmin = min(data["count"])
     vmax = max(data["count"])
     col_order = None
@@ -515,8 +546,7 @@ def annotate_heatmap(
     true_val_cred_col,
     true_val_prob_col,
     cred_level = 0.95,
-    x_position = 0.02,
-    y_position = 0.98,
+    position = (0.02, 0.98),
     **kwargs,
 ):
     ax = plt.gca()
@@ -552,7 +582,7 @@ def annotate_heatmap(
         )
     )
     ax.text(
-        x_position, y_position,
+        position[0], position[1],
         annot_str,
         horizontalalignment = "left",
         verticalalignment = "top",
@@ -754,23 +784,41 @@ def ax_qq(ax, samples, prob_dist):
     )
     return line
 
-def plot_abs_error_scatter(
+def plot_error_scatter(
     data,
     true_val_col,
     est_col,
     est_lower_col = None,
     est_upper_col = None,
+    ess_col = None,
+    psrf_col = None,
+    ess_min = 200,
+    psrf_max = 1.2,
+    bad_sampling_color = "C1",
     **kwargs,
 ):
     df = data.copy()
     df["x"] = range(1, len(df) + 1)
     error_col = f"{est_col}_distance"
     df[error_col] = df[est_col].values - df[true_val_col].values
+    if ess_col and psrf_col:
+        df["Poor MCMC sampling"] = (
+            (df[ess_col] < ess_min)
+            & (df[psrf_col] > psrf_max)
+        )
+    elif ess_col:
+        df["Poor MCMC sampling"] = df[ess_col] < ess_min
+    elif psrf_col:
+        df["Poor MCMC sampling"] = df[psrf_col] > psrf_max
+    d = df
+    if "Poor MCMC sampling" in df.columns:
+        d = df[df["Poor MCMC sampling"] == False].copy()
+
     # Errors will be all zeros
-    yerr = get_errors(df[est_col])
+    yerr = get_errors(d[est_col])
 
     if est_lower_col and est_upper_col:
-        yerr = get_errors(df[est_col], df[est_lower_col], df[est_upper_col])
+        yerr = get_errors(d[est_col], d[est_lower_col], d[est_upper_col])
 
     ax = plt.gca()
     shared_args = {
@@ -786,8 +834,8 @@ def plot_abs_error_scatter(
     }
     shared_args.update(kwargs)
     line = ax.errorbar(
-        x = df["x"],
-        y = df[error_col],
+        x = d["x"],
+        y = d[error_col],
         yerr = yerr,
         ecolor = 'C0',
         markerfacecolor = 'C0',
@@ -804,8 +852,24 @@ def plot_abs_error_scatter(
     )
     # ax.xaxis.set_visible(False)
     ax.set_xticks([])
+    if "Poor MCMC sampling" in df.columns:
+        d = df[df["Poor MCMC sampling"]].copy()
+        bad_yerr = get_errors(d[est_col])
+        if est_lower_col and est_upper_col:
+            bad_yerr = get_errors(d[est_col], d[est_lower_col], d[est_upper_col])
+        if len(d) > 0:
+            bad_line = ax.errorbar(
+                x = d["x"],
+                y = d[error_col],
+                yerr = bad_yerr,
+                ecolor = bad_sampling_color,
+                markerfacecolor = bad_sampling_color,
+                markeredgecolor = bad_sampling_color,
+                zorder = 200,
+                **shared_args,
+            )
 
-def annotate_abs_error_scatter(
+def annotate_true_values_on_error_scatter(
     data,
     true_val_col,
     annot_y_position,
@@ -860,20 +924,30 @@ def annotate_abs_error_scatter(
             **annot_args,
         )
 
-def plot_abs_error_grid(
+def plot_error_scatter_grid(
     data_frame,
     true_val_col,
     est_col,
-    est_lower_col,
-    est_upper_col,
-    row_col = "simulation_config",
-    column_col = "inference_config",
-    id_col = "simulation_id",
+    row_col,
+    column_col,
+    id_col,
+    est_lower_col = None,
+    est_upper_col = None,
+    ess_col = None,
+    psrf_col = None,
+    ess_min = 200,
+    psrf_max = 1.2,
+    bad_sampling_color = "C1",
     ordered_labels = None,
     annotate_true_values = False,
+    annotate_stats = True,
+    stat_label = None,
+    annot_stats_position = (0.02, 0.98),
+    cred_level = 0.95,
     height = 4.5,
     scatter_kwargs = {},
-    annotate_kwargs = {},
+    annot_true_vals_kwargs = {},
+    annot_stats_kwargs = {},
 ):
     col_order = None
     row_order = None
@@ -882,15 +956,22 @@ def plot_abs_error_grid(
         col_labels = data_frame[column_col].unique()
         row_order = [l for l in ordered_labels if l in row_labels]
         col_order = [l for l in ordered_labels if l in col_labels]
-    df = data_frame[[
+    cols_to_keep = [
         row_col,
         column_col,
         true_val_col,
         est_col,
-        est_lower_col,
-        est_upper_col,
         id_col,
-    ]].copy()
+    ]
+    if ess_col:
+        cols_to_keep.append(ess_col)
+    if psrf_col:
+        cols_to_keep.append(psrf_col)
+    if est_lower_col:
+        cols_to_keep.append(est_lower_col)
+    if est_upper_col:
+        cols_to_keep.append(est_upper_col)
+    df = data_frame[cols_to_keep].copy()
 
     df.sort_values(
         by = [true_val_col, id_col],
@@ -910,22 +991,39 @@ def plot_abs_error_grid(
         sharex = True,
     )
     grid.map_dataframe(
-        plot_abs_error_scatter,
+        plot_error_scatter,
         true_val_col = true_val_col,
         est_col = est_col,
         est_lower_col = est_lower_col,
         est_upper_col = est_upper_col,
+        ess_col = ess_col,
+        psrf_col = psrf_col,
+        ess_min = ess_min,
+        psrf_max = psrf_max,
+        bad_sampling_color = bad_sampling_color,
         **scatter_kwargs
     )
+    if annotate_stats:
+        grid.map_dataframe(
+            annotate_scatter,
+            x = true_val_col,
+            y = est_col,
+            y_error_lower = est_lower_col,
+            y_error_upper = est_upper_col,
+            position = annot_stats_position,
+            cred_level = cred_level,
+            stat_label = stat_label,
+            **annot_stats_kwargs,
+        )
     grid.set_ylabels("Error")
     grid.set_xlabels("")
     if annotate_true_values:
         annot_y_position = grid.axes.flat[0].get_ylim()[0]
         grid.map_dataframe(
-            annotate_abs_error_scatter,
+            annotate_true_values_on_error_scatter,
             true_val_col = true_val_col,
             annot_y_position = annot_y_position,
-            **annotate_kwargs,
+            **annot_true_vals_kwargs,
         )
         grid.set_xlabels("True value")
     grid.set_titles(
@@ -935,16 +1033,111 @@ def plot_abs_error_grid(
     # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
     return grid
 
+def process_error_scatter_grid(
+    data_frame,
+    parameters,
+    row_col,
+    column_col,
+    id_col,
+    parameter_root = None,
+    use_mean = True,
+    use_hpdi = True,
+    ess_min = 200,
+    psrf_max = 1.2,
+    bad_sampling_color = "C1",
+    ordered_labels = None,
+    annotate_true_values = False,
+    annotate_stats = True,
+    stat_label = None,
+    annot_stats_position = (0.02, 0.98),
+    cred_level = 0.95,
+    height = 4.5,
+    scatter_kwargs = {},
+    annot_true_vals_kwargs = {},
+    annot_stats_kwargs = {},
+):
+    if not parameters:
+        raise Exception(
+            "parameters are empty"
+        )
+    elif len(parameters) > 1:
+        if not parameter_root:
+            raise Exception(
+                "parameter_root is required when processing multiple parameters"
+            )
+        df = get_stacked_parameter_data_frame(
+            data_frame,
+            parameters,
+            parameter_root,
+            extra_cols_to_keep = [row_col, column_col, id_col],
+        )
+        parameter = parameter_root
+    else:
+        df = data_frame
+        parameter = parameters[0]
+    # Remove rows for which the parameter was not estimated (standard deviation
+    # is zero)
+    std_dev_col = f"stddev_{parameter}"
+    if std_dev_col in df.columns:
+        df = df[df[std_dev_col] > 0.0]
+    true_col = f"true_{parameter}"
+    true_val_rank_col = f"true_{parameter}_rank"
+    est_col = f"median_{parameter}"
+    if use_mean:
+        est_col = f"mean_{parameter}"
+    est_lower_col = None
+    est_upper_col = None
+    if use_hpdi:
+        if f"hpdi_95_lower_{parameter}" in df.columns:
+            est_lower_col = f"hpdi_95_lower_{parameter}"
+        if f"hpdi_95_upper_{parameter}" in df.columns:
+            est_upper_col = f"hpdi_95_upper_{parameter}"
+    else:
+        if f"eti_95_lower_{parameter}" in df.columns:
+            est_lower_col = f"eti_95_lower_{parameter}"
+        if f"eti_95_upper_{parameter}" in df.columns:
+            est_upper_col = f"eti_95_upper_{parameter}"
+    ess_col = f"ess_{parameter}"
+    psrf_col = f"psrf_{parameter}"
+    grid = None
+    if len(df) > 0:
+        grid = plot_error_scatter_grid(
+            data_frame = df,
+            true_val_col = true_col,
+            est_col = est_col,
+            row_col = row_col,
+            column_col = column_col,
+            id_col = id_col,
+            est_lower_col = est_lower_col,
+            est_upper_col = est_upper_col,
+            ess_col = ess_col,
+            psrf_col = psrf_col,
+            ess_min = ess_min,
+            psrf_max = psrf_max,
+            bad_sampling_color = bad_sampling_color,
+            ordered_labels = ordered_labels,
+            annotate_true_values = annotate_true_values,
+            annotate_stats = annotate_stats,
+            stat_label = stat_label,
+            annot_stats_position = annot_stats_position,
+            cred_level = cred_level,
+            height = height,
+            scatter_kwargs = scatter_kwargs,
+            annot_true_vals_kwargs = annot_true_vals_kwargs,
+            annot_stats_kwargs = annot_stats_kwargs,
+        )
+    return grid
+
 def plot_violin_grid(
     data,
     value_col,
-    plot_col = "simulation_config",
-    categorical_col = "inference_config",
-    spaghettify_col = "simulation_id",
+    plot_col,
+    categorical_col,
+    spaghettify_col,
     spaghettify = True,
     value_label = None,
-    categorical_label = "Inference model",
-    plot_label_template = "True model = {col_name}",
+    categorical_label = "Model",
+    plot_label_template = "Model = {col_name}",
     ordered_labels = None,
     comparisons = None,
     height = 4.5,
@@ -1008,7 +1201,7 @@ def plot_violin(
     data,
     value_col,
     categorical_col,
-    spaghettify_col = "simulation_id",
+    spaghettify_col,
     spaghettify = True,
     ordered_labels = None,
     comparisons = None,
