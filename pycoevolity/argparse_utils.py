@@ -3,16 +3,36 @@
 import os
 import argparse
 
+
 class SmartHelpFormatter(argparse.HelpFormatter):
     '''
-    A class to allow customizable line breaks for an argument help message
-    on a per argument basis.
+    A class to allow customizable line breaks for an argument help message on a
+    per argument basis.
     '''
 
     def _split_lines(self, text, width):
-        if text.startswith('r|'):
-            return text[2:].splitlines()
-        return argparse.HelpFormatter._split_lines(self, text, width)
+        ret = split_arg_help_lines(text)
+        if ret is None:
+            return argparse.HelpFormatter._split_lines(self, text, width)
+        return ret
+
+
+class SmartDefaultsHelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    '''
+    A class to allow customizable line breaks for an argument help message on a
+    per argument basis, and to include argument defaults in the message.
+    '''
+
+    def _split_lines(self, text, width):
+        ret = split_arg_help_lines(text)
+        if ret is None:
+            return argparse.ArgumentDefaultsHelpFormatter._split_lines(self, text, width)
+        return ret
+
+def split_arg_help_lines(text):
+    if text.startswith('RAW|'):
+        return text[4:].splitlines()
+    return None
 
 def arg_is_path(path):
     try:

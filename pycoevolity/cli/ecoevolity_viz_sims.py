@@ -10,20 +10,13 @@ import seaborn as sns
 import pycoevolity
 
 
-class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
-    def _split_lines(self, text, width):
-        if text.startswith('RAW|'):
-            return text[4:].splitlines()
-        return argparse.ArgumentDefaultsHelpFormatter._split_lines(
-            self, text, width)
-
 def parse_config_label_order_arg(arg, sep):
     labels = [x.strip() for x in arg.split(sep)]
     return tuple(labels)
 
 def parse_cli_args():
     parser = argparse.ArgumentParser(
-        formatter_class = SmartFormatter,
+        formatter_class = pycoevolity.argparse_utils.SmartDefaultsHelpFormatter,
     )
 
     parser.add_argument(
@@ -215,7 +208,7 @@ def parse_cli_args():
         help = (
             'RAW|'
             'Path to a YAML-formatted file that contains information about '
-            'parameters to plot. '
+            'parameters to plot.\n'
             'The general format should be:\n'
             '    ---\n'
             '    parameter_name:\n'
