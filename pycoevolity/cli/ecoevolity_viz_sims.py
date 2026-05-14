@@ -224,7 +224,7 @@ def parse_cli_args():
             'A specific example:\n'
             '    ---\n'
             '    time_prior_parameter_0:\n'
-            '        symbol: \'\mu\'\n'
+            '        symbol: \'\\mu\'\n'
             '        label: \"time prior mean\"\n'
         ),
     )
