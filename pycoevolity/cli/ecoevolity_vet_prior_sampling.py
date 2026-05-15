@@ -5,12 +5,14 @@ import sys
 import random
 import argparse
 import tempfile
+import glob
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 import pycoevolity
 import pycoevolity.ecoevolity_config as eco_config
+from .ecoevolity_viz_sims import write_existing_path_warning
 
 
 def plot_cdf_comparison(
@@ -74,6 +76,8 @@ def process_parameter(
     posterior_samples,
     output_prefix,
     numpy_rng,
+    label = None,
+    force = False,
 ):
     if not eco_config.parameter_is_estimated(parameter_settings):
         is_valid, expected_val, val = eco_config.fixed_param_values_are_valid(
@@ -90,12 +94,17 @@ Skipping plotting of '{parameter_name}'.
             )
     else:
         plot_path = f"{output_prefix}prior-cdf-comparison-{parameter_name}.svg"
+        if (not force) and os.path.exists(plot_path):
+            write_existing_path_warning(plot_path, sys.stderr)
+            return
+        if label is None:
+            label = parameter_name
         fig, ax, eline, mline = plot_cdf_comparison(
             prior_settings = parameter_settings["prior"],
             posterior_samples = posterior_samples,
             numpy_rng = numpy_rng,
         )
-        ax.set(xlabel = f"{parameter_name}")
+        ax.set(xlabel = f"{label}")
         fig.savefig(plot_path, bbox_inches = "tight")
         plt.close(fig)
     
@@ -105,7 +114,7 @@ Skipping plotting of '{parameter_name}'.
             posterior_samples = posterior_samples,
             numpy_rng = numpy_rng,
         )
-        ax.set(title = f"{parameter_name}")
+        ax.set(title = f"{label}")
         fig.savefig(plot_path, bbox_inches = "tight")
         plt.close(fig)
 
@@ -115,10 +124,15 @@ def process_event_model_prior(
     number_of_comparisons,
     output_prefix,
     numpy_rng,
+    force = False
 ):
     assert len(settings) == 1
     model_prior_name = list(settings.keys())[0]
     if model_prior_name == "fixed":
+        return
+    plot_path = f"{output_prefix}prior-cmf-comparison-nevents.svg"
+    if (not force) and os.path.exists(plot_path):
+        write_existing_path_warning(plot_path, sys.stderr)
         return
     elif model_prior_name == "pitman_yor_process":
         model_prior_parameters = settings[model_prior_name][
@@ -147,7 +161,6 @@ Skipping plotting of the number of events.
 """
         )
         return
-    plot_path = f"{output_prefix}prior-cmf-comparison-nevents.svg"
     fig = matplotlib.figure.Figure()
     gs = fig.add_gridspec(nrows = 1, ncols = 1,
             wspace = 0.0,
@@ -164,7 +177,7 @@ Skipping plotting of the number of events.
     fig.savefig(plot_path, bbox_inches = "tight")
     plt.close(fig)
 
-def main_cli():
+def parse_cli_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -245,8 +258,23 @@ def main_cli():
     parser.add_argument(
         '-o', '--output-dir',
         action = 'store',
+        default = os.curdir,
         type = pycoevolity.argparse_utils.arg_is_dir_or_new_dir,
         help = ('The directory in which to put all output files.'),
+    )
+    parser.add_argument(
+        '--prefix',
+        type = str,
+        help = (
+            'Prefix to add to the file name of every output file.'
+        ),
+    )
+    parser.add_argument(
+        '--force',
+        action = 'store_true',
+        help = (
+            'Overwrite output files if they already exist.'
+        ),
     )
     parser.add_argument(
         '--seed',
@@ -254,9 +282,96 @@ def main_cli():
         type = pycoevolity.argparse_utils.arg_is_positive_int,
         help = ('Seed for random number generator.'),
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        '--context',
+        type = str,
+        default = 'notebook',
+        help = (
+            'Value of \'context\' arguement passed to seaborn.sea_theme. '
+            'See '
+            'https://seaborn.pydata.org/generated/seaborn.set_theme.html '
+            'for more info.'
+        ),
+    )
+    parser.add_argument(
+        '--style',
+        type = str,
+        default = 'ticks',
+        help = (
+            'Value of \'style\' arguement passed to seaborn.sea_theme. '
+            'See '
+            'https://seaborn.pydata.org/generated/seaborn.set_theme.html '
+            'for more info.'
+        ),
+    )
+    parser.add_argument(
+        '--palette',
+        type = str,
+        default = 'colorblind',
+        help = (
+            'Value of \'palette\' arguement passed to seaborn.sea_theme. '
+            'See '
+            'https://seaborn.pydata.org/generated/seaborn.set_theme.html '
+            'for more info.'
+        ),
+    )
+    parser.add_argument(
+        '--font',
+        type = str,
+        default = 'sans-serif',
+        help = (
+            'Value of \'font\' arguement passed to seaborn.sea_theme. '
+            'See '
+            'https://seaborn.pydata.org/generated/seaborn.set_theme.html '
+            'for more info.'
+        ),
+    )
+    parser.add_argument(
+        '--font-scale',
+        type = pycoevolity.argparse_utils.arg_is_positive_float,
+        default = 1.0,
+        help = (
+            'Value of \'font-scale\' arguement passed to seaborn.sea_theme. '
+            'See '
+            'https://seaborn.pydata.org/generated/seaborn.set_theme.html '
+            'for more info.'
+        ),
+    )
+    return parser.parse_args()
+
+def check_for_existing_outputs(output_prefix):
+    output_pattern = f"{output_prefix}prior-*.svg"
+    output_files = glob.glob(output_pattern)
+    if output_files:
+        msg = (
+            "ERROR: The following existing files would be overwritten.\n"
+            "If you wish to overwrite them, please use the \'--force\' "
+            "option.\n\t{0}\n".format(
+                "\n\t".join(output_files)
+            )
+        )
+        sys.stderr.write(msg)
+        sys.exit(1)
+
+def main_cli():
+    args = parse_cli_args()
+
+    sns.set_theme(
+        context = args.context,
+        style = args.style,
+        palette = args.palette,
+        font = args.font,
+        font_scale = args.font_scale,
+    )
 
     output_dir = pycoevolity.argparse_utils.process_output_dir_arg(args.output_dir)
+    prefix = ''
+    if args.prefix:
+        prefix = args.prefix
+    output_prefix = os.path.join(
+        output_dir,
+        prefix,
+    )
 
     eco_exe_dir = pycoevolity.ecoevolity.get_ecoevolity_dir(
         dir_to_check = args.ecoevolity_dir)
@@ -273,10 +388,10 @@ def main_cli():
     np_rng = pycoevolity.rng_utils.get_numpy_rng(seed)
 
     config_name = os.path.splitext(os.path.basename(args.config_path))[0]
-    output_prefix = os.path.join(
-        output_dir,
-        f"{config_name}-",
-    )
+    output_prefix = f"{output_prefix}{config_name}-"
+
+    if not args.force:
+        check_for_existing_outputs(output_prefix)
 
     seeds = pycoevolity.rng_utils.get_safe_seeds(rng, n = args.number_of_runs)
 
@@ -324,6 +439,7 @@ def main_cli():
         number_of_comparisons = number_of_comparisons,
         output_prefix = output_prefix,
         numpy_rng = np_rng,
+        force = args.force,
     )
 
     model_prior_name = list(model_prior_settings.keys())[0]
@@ -332,12 +448,19 @@ def main_cli():
                 "parameters"]
         for parameter_name, parameter_settings in model_prior_parameters.items():
             values = posterior_sample.parameter_samples[parameter_name]
+            label = parameter_name
+            if model_prior_name == "dirichlet_process":
+                label = f"Dirichlet process {parameter_name}"
+            elif model_prior_name == "pitman_yor_process":
+                label = f"Pitman Yor process {parameter_name}"
             process_parameter(
                 parameter_name = parameter_name,
                 parameter_settings = parameter_settings,
                 posterior_samples = values,
                 output_prefix = output_prefix,
                 numpy_rng = np_rng,
+                label = label,
+                force = args.force,
             )
 
     event_time_prior = config["event_time_prior"]
@@ -351,6 +474,11 @@ def main_cli():
     num_prior_parameters = len(event_time_prior_parameters)
     for parameter, settings in event_time_prior_parameters.items():
         if eco_config.parameter_is_estimated(settings):
+            # TODO: This is a brittle hack to guess the header for this
+            # parameter in the ecoevolity state log output. The risk of
+            # guessing wrong is low, because if we get it wrong the prior
+            # sampling will look very wrong (i.e., guessing wrong will never
+            # mask a real problem with MCMC sampling).
             param_key_idx = 0
             if (
                 (num_prior_parameters > 1) and
@@ -359,12 +487,15 @@ def main_cli():
                 param_key_idx = 1
             param_key = f"time_prior_parameter_{param_key_idx}"
             values = posterior_sample.parameter_samples[param_key]
+            label = f"Time prior {parameter}"
             process_parameter(
                 parameter_name = parameter,
                 parameter_settings = settings,
                 posterior_samples = values,
                 output_prefix = output_prefix,
                 numpy_rng = np_rng,
+                label = label,
+                force = args.force,
             )
 
     event_time_settings = {
@@ -386,6 +517,7 @@ def main_cli():
             posterior_samples = values,
             output_prefix = output_prefix,
             numpy_rng = np_rng,
+            force = args.force,
         )
 
     ##########################################################################
@@ -423,6 +555,7 @@ def main_cli():
                 posterior_samples = values,
                 output_prefix = output_prefix,
                 numpy_rng = np_rng,
+                force = args.force,
             )
     # Handle root population size parameters
     for comp_idx, comp in enumerate(comps_to_plot):
@@ -477,9 +610,8 @@ from Sample {sample_idx + 1} are not equal:
                     posterior_samples = values,
                     output_prefix = output_prefix,
                     numpy_rng = np_rng,
+                    force = args.force
                 )
 
 if __name__ == "__main__":
-    sns.set_theme(context = "talk", style = "ticks", palette = "colorblind")
-
     main_cli()

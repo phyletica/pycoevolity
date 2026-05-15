@@ -127,7 +127,7 @@ def parse_cli_args():
     parser.add_argument(
         '--context',
         type = str,
-        default = 'talk',
+        default = 'notebook',
         help = (
             'Value of \'context\' arguement passed to seaborn.sea_theme. '
             'See '
@@ -240,9 +240,16 @@ def parse_parameter_yaml(path):
             ret[key][sub_key] = d[key].get(sub_key, None)
     return ret
 
-def main_cli(args = None):
-    if args is None:
-        args = parse_cli_args()
+def main_cli():
+    args = parse_cli_args()
+
+    sns.set_theme(
+        context = args.context,
+        style = args.style,
+        palette = args.palette,
+        font = args.font,
+        font_scale = args.font_scale,
+    )
 
     parameters_to_plot = {}
     if args.parameter_file:
@@ -477,16 +484,4 @@ def main_cli(args = None):
 
 
 if __name__ == "__main__":
-    # Calling sns.set_theme within main_cli has wonky results, so we need to
-    # parse args here so we can call sns.set_theme outside of the main_cli
-    # function.
-    args = parse_cli_args()
-
-    sns.set_theme(
-        context = args.context,
-        style = args.style,
-        palette = args.palette,
-        font = args.font,
-        font_scale = args.font_scale,
-    )
-    main_cli(args)
+    main_cli()
