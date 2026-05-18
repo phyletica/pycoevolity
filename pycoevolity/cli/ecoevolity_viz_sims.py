@@ -90,6 +90,30 @@ def parse_cli_args():
         ),
     )
     parser.add_argument(
+        '--use-median',
+        action = 'store_true',
+        help = (
+            'Use the posterior median when plotting. Default: Use posterior '
+            'mean.'
+        ),
+    )
+    parser.add_argument(
+        '--use-eti',
+        action = 'store_true',
+        help = (
+            'Use the equal-tailed credible intervals. Default: Use highest '
+            'posterior density intervals.'
+        ),
+    )
+    parser.add_argument(
+        '--nevents-cred-level',
+        type = pycoevolity.argparse_utils.arg_is_proportion,
+        default = 0.95,
+        help = (
+            'Credibility level to use when plotting then number of events.'
+        ),
+    )
+    parser.add_argument(
         '-p', '--plot-height',
         type = pycoevolity.argparse_utils.arg_is_positive_float,
         default = 4.5,
@@ -97,14 +121,6 @@ def parse_cli_args():
             'The height of each plot. Adjusting this is useful for changing '
             'the relative size of text on the plots (e.g., increase the plot '
             'height to decrease the size of the text.'
-        ),
-    )
-    parser.add_argument(
-        '--use-median-model-distance',
-        action = 'store_true',
-        help = (
-            'Use the posterior median model distance. Default: Use posterior '
-            'mean model distance.'
         ),
     )
     parser.add_argument(
@@ -260,6 +276,15 @@ def main_cli():
         sep = "\t",
     )
 
+    cred_interval_percent = pycoevolity.plotting.get_cred_interval_percent(
+        df.columns,
+    )
+    ci_str = str(cred_interval_percent)
+    ci_prefix = f"hpdi_{ci_str}"
+    if args.use_eti:
+        ci_prefix = f"eti_{ci_str}"
+    cred_level = cred_interval_percent / 100.0
+
     ordered_labels = None
     if args.config_label_order:
         ordered_labels = parse_config_label_order_arg(
@@ -296,12 +321,12 @@ def main_cli():
             include_cbar = True,
             outline_identity = True,
             annotate_stats = True,
-            cred_level = 0.95,
+            cred_level = args.nevents_cred_level,
         )
         grid.savefig(plot_path)
 
     ##################################################################
-    # Plot anumber of events error scatter
+    # Plot number of events error scatter
     ##################################################################
     plot_path = f"{plot_prefix}nevents-error-scatter-grid.pdf"
 
@@ -314,14 +339,16 @@ def main_cli():
             est_col = "map_num_events",
             row_col = "simulation_config",
             column_col = "inference_config",
-            est_lower_col = "hpdi_95_lower_num_events",
-            est_upper_col = "hpdi_95_upper_num_events",
             id_col = "simulation_id",
+            est_lower_col = f"hpdi_{ci_str}_lower_num_events",
+            est_upper_col = f"hpdi_{ci_str}_upper_num_events",
             ess_col = None,
             psrf_max = None,
+            bad_sampling_color = "C1",
             ordered_labels = ordered_labels,
             annotate_true_values = True,
             annotate_stats = False,
+            cred_level = cred_level,
             height = args.plot_height,
             scatter_kwargs = {},
             annot_true_vals_kwargs = {},
@@ -342,7 +369,7 @@ def main_cli():
     else:
         model_dist = "mean_model_distance"
         model_dist_label = "Mean model distance"
-        if args.use_median_model_distance:
+        if args.use_median:
             model_dist = "median_model_distance"
             model_dist_label = "Median model distance"
         grid = pycoevolity.plotting.plot_violin_grid(
@@ -427,8 +454,8 @@ def main_cli():
                 row_col = "simulation_config",
                 column_col = "inference_config",
                 parameter_root = parameter_root,
-                use_mean = True,
-                use_hpdi = True,
+                use_mean = (not args.use_median),
+                use_hpdi = (not args.use_eti),
                 xlabel = xlabel,
                 ylabel = ylabel,
                 ess_min = 200,
@@ -439,7 +466,7 @@ def main_cli():
                 annotate_stats = True,
                 stat_label = stat_label,
                 annot_position = (0.02, 0.98),
-                cred_level = 0.95,
+                cred_percent = cred_interval_percent,
                 scatter_kwargs = {},
                 annotate_kwargs = {},
             )
@@ -457,8 +484,8 @@ def main_cli():
                 column_col = "inference_config",
                 id_col = "simulation_id",
                 parameter_root = parameter_root,
-                use_mean = True,
-                use_hpdi = True,
+                use_mean = (not args.use_median),
+                use_hpdi = (not args.use_eti),
                 ess_min = 200,
                 psrf_max = 1.2,
                 bad_sampling_color = "C1",
@@ -467,7 +494,7 @@ def main_cli():
                 annotate_stats = True,
                 stat_label = stat_label,
                 annot_stats_position = (0.02, 0.98),
-                cred_level = 0.95,
+                cred_percent = cred_interval_percent,
                 height = 4.5,
                 scatter_kwargs = {},
                 annot_true_vals_kwargs = {},

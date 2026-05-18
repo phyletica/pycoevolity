@@ -32,6 +32,16 @@ def parse_cli_args():
         ),
     )
     parser.add_argument(
+        '-c', '--cred-interval-percent',
+        action = 'store',
+        type = pycoevolity.argparse_utils.arg_is_percent_int,
+        default = 95,
+        help = (
+            'The percent (as an integer) credible intervals to use '
+            'for parameters.'
+        ),
+    )
+    parser.add_argument(
         '-l', '--config-label-file',
         action = 'store',
         type = pycoevolity.argparse_utils.arg_is_file,
@@ -62,6 +72,7 @@ def main_cli():
         config_labels = config_labels,
         include_time_in_coal_units = args.include_time_in_coal_units,
         number_of_procs = args.number_of_procs,
+        interval_percent = args.cred_interval_percent,
     )
     summary_path = os.path.join(
         os.path.dirname(args.json_path),
@@ -72,6 +83,9 @@ def main_cli():
         sep = "\t",
         compression = "gzip",
         index = False,
+    )
+    sys.stdout.write(
+        f"Summary table of results written to '{summary_path}'\n"
     )
 
 if __name__ == "__main__":

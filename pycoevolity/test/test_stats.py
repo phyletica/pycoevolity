@@ -339,7 +339,7 @@ class IntervalTestCase(unittest.TestCase):
                 module_name = '.'.join([self.__class__.__name__,
                         sys._getframe().f_code.co_name])):
             return
-        quants = stats.quantile_95(self.samples)
+        quants = stats.get_et_interval_95(self.samples)
         q025 = stats.quantile(self.samples, p=0.025)
         q975 = stats.quantile(self.samples, p=0.975)
         self.assertAlmostEqual(q025, quants[0])
@@ -365,7 +365,7 @@ class IntervalTestCase(unittest.TestCase):
                 module_name = '.'.join([self.__class__.__name__,
                         sys._getframe().f_code.co_name])):
             return
-        quants = stats.quantile_95(self.exp_samples)
+        quants = stats.get_et_interval_95(self.exp_samples)
         q025 = stats.quantile(self.exp_samples, p=0.025)
         q975 = stats.quantile(self.exp_samples, p=0.975)
         self.assertAlmostEqual(q025, quants[0])

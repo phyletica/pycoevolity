@@ -29,6 +29,22 @@ def get_errors(values, lowers = None, uppers = None):
     return [[values[i] - lowers[i] for i in range(n)],
             [uppers[i] - values[i] for i in range(n)]]
 
+def get_nonneg_errors(values, lowers = None, uppers = None):
+    values = tuple(values)
+    if lowers is None:
+        lowers = tuple(values)
+    else:
+        lowers = tuple(lowers)
+    if uppers is None:
+        uppers = tuple(values)
+    else:
+        uppers = tuple(uppers)
+    n = len(values)
+    assert(n == len(lowers))
+    assert(n == len(uppers))
+    return [[max(0.0, values[i] - lowers[i]) for i in range(n)],
+            [max(0.0, uppers[i] - values[i]) for i in range(n)]]
+
 def get_true_v_map_nevents_data_frame(
     data_frame,
     row_col,
@@ -62,6 +78,12 @@ def get_true_v_map_nevents_data_frame(
                         'count' : count,
                     })
     return pd.DataFrame(rows)
+
+def get_cred_interval_percent(column_headers):
+    perc = None
+    for col in column_headers:
+        if (col.startswith("hpdi_")) or (col.startswith("eti_")):
+            return int(col.split("_")[1])
 
 def get_all_population_labels(column_headers):
     pop_labels = set()
@@ -99,6 +121,7 @@ def get_stacked_parameter_data_frame(
     parameter_root,
     extra_cols_to_keep = [],
 ):
+    ci = get_cred_interval_percent(data_frame.columns)
     param_root = parameter_root.rstrip("_")
     param_keys = [
         f"psrf_{param_root}",
@@ -107,10 +130,10 @@ def get_stacked_parameter_data_frame(
         f"mean_{param_root}",
         f"median_{param_root}",
         f"stddev_{param_root}",
-        f"hpdi_95_lower_{param_root}",
-        f"hpdi_95_upper_{param_root}",
-        f"eti_95_lower_{param_root}",
-        f"eti_95_upper_{param_root}",
+        f"hpdi_{ci}_lower_{param_root}",
+        f"hpdi_{ci}_upper_{param_root}",
+        f"eti_{ci}_lower_{param_root}",
+        f"eti_{ci}_upper_{param_root}",
         f"ess_{param_root}",
         f"ess_sum_{param_root}",
     ]
@@ -147,7 +170,7 @@ def process_scatter_grid(
     annotate_stats = True,
     stat_label = None,
     annot_position = (0.02, 0.98),
-    cred_level = 0.95,
+    cred_percent = 95,
     scatter_kwargs = {},
     annotate_kwargs = {},
 ):
@@ -170,6 +193,13 @@ def process_scatter_grid(
     else:
         df = data_frame
         parameter = parameters[0]
+
+    cred_percent = int(cred_percent)
+    cred_level = cred_percent / 100.0
+    ci_prefix = f"eti_{cred_percent}"
+    if use_hpdi:
+        ci_prefix = f"hpdi_{cred_percent}"
+
     # Remove rows for which the parameter was not estimated (standard deviation
     # is zero)
     std_dev_col = f"stddev_{parameter}"
@@ -182,16 +212,10 @@ def process_scatter_grid(
         est_col = f"mean_{parameter}"
     est_lower_col = None
     est_upper_col = None
-    if use_hpdi:
-        if f"hpdi_95_lower_{parameter}" in df.columns:
-            est_lower_col = f"hpdi_95_lower_{parameter}"
-        if f"hpdi_95_upper_{parameter}" in df.columns:
-            est_upper_col = f"hpdi_95_upper_{parameter}"
-    else:
-        if f"eti_95_lower_{parameter}" in df.columns:
-            est_lower_col = f"eti_95_lower_{parameter}"
-        if f"eti_95_upper_{parameter}" in df.columns:
-            est_upper_col = f"eti_95_upper_{parameter}"
+    if f"{ci_prefix}_lower_{parameter}" in df.columns:
+        est_lower_col = f"{ci_prefix}_lower_{parameter}"
+    if f"{ci_prefix}_upper_{parameter}" in df.columns:
+        est_upper_col = f"{ci_prefix}_upper_{parameter}"
     ess_col = f"ess_{parameter}"
     psrf_col = f"psrf_{parameter}"
     grid = None
@@ -432,7 +456,13 @@ def plot_scatter(
     shared_args.update(kwargs)
     yerr = get_errors(d[y])
     if y_error_lower and y_error_upper:
-        yerr = get_errors(d[y], d[y_error_lower], d[y_error_upper])
+        yerr = get_nonneg_errors(d[y], d[y_error_lower], d[y_error_upper])
+    # TODO: ax.errorbar does not allow negative error values (i.e., the value
+    # falling outside the error bar). However, with Bayesian cred intervals,
+    # this can happen. E.g., the mean/mode can be outside the equal-tailed
+    # credible interval. For now, we will set any negative values to zero for
+    # plotting purposes. This does not effect coverage stats that are annotated
+    # on plots (i.e., they use the un-fudged credible interval).
     line = ax.errorbar(
         x = d[x],
         y = d[y],
@@ -447,7 +477,7 @@ def plot_scatter(
         d = df[df["Poor MCMC sampling"]].copy()
         bad_yerr = get_errors(d[y])
         if y_error_lower and y_error_upper:
-            bad_yerr = get_errors(d[y], d[y_error_lower], d[y_error_upper])
+            bad_yerr = get_nonneg_errors(d[y], d[y_error_lower], d[y_error_upper])
         if len(d) > 0:
             bad_line = ax.errorbar(
                 x = d[x],
@@ -818,7 +848,7 @@ def plot_error_scatter(
     yerr = get_errors(d[est_col])
 
     if est_lower_col and est_upper_col:
-        yerr = get_errors(d[est_col], d[est_lower_col], d[est_upper_col])
+        yerr = get_nonneg_errors(d[est_col], d[est_lower_col], d[est_upper_col])
 
     ax = plt.gca()
     shared_args = {
@@ -833,6 +863,12 @@ def plot_error_scatter(
         'alpha' : 0.5,
     }
     shared_args.update(kwargs)
+    # TODO: ax.errorbar does not allow negative error values (i.e., the value
+    # falling outside the error bar). However, with Bayesian cred intervals,
+    # this can happen. E.g., the mean/mode can be outside the equal-tailed
+    # credible interval. For now, we will set any negative values to zero for
+    # plotting purposes. This does not effect coverage stats that are annotated
+    # on plots (i.e., they use the un-fudged credible interval).
     line = ax.errorbar(
         x = d["x"],
         y = d[error_col],
@@ -856,7 +892,7 @@ def plot_error_scatter(
         d = df[df["Poor MCMC sampling"]].copy()
         bad_yerr = get_errors(d[est_col])
         if est_lower_col and est_upper_col:
-            bad_yerr = get_errors(d[est_col], d[est_lower_col], d[est_upper_col])
+            bad_yerr = get_nonneg_errors(d[est_col], d[est_lower_col], d[est_upper_col])
         if len(d) > 0:
             bad_line = ax.errorbar(
                 x = d["x"],
@@ -1050,7 +1086,7 @@ def process_error_scatter_grid(
     annotate_stats = True,
     stat_label = None,
     annot_stats_position = (0.02, 0.98),
-    cred_level = 0.95,
+    cred_percent = 95,
     height = 4.5,
     scatter_kwargs = {},
     annot_true_vals_kwargs = {},
@@ -1075,6 +1111,13 @@ def process_error_scatter_grid(
     else:
         df = data_frame
         parameter = parameters[0]
+
+    cred_percent = int(cred_percent)
+    cred_level = cred_percent / 100.0
+    ci_prefix = f"eti_{cred_percent}"
+    if use_hpdi:
+        ci_prefix = f"hpdi_{cred_percent}"
+
     # Remove rows for which the parameter was not estimated (standard deviation
     # is zero)
     std_dev_col = f"stddev_{parameter}"
@@ -1087,16 +1130,10 @@ def process_error_scatter_grid(
         est_col = f"mean_{parameter}"
     est_lower_col = None
     est_upper_col = None
-    if use_hpdi:
-        if f"hpdi_95_lower_{parameter}" in df.columns:
-            est_lower_col = f"hpdi_95_lower_{parameter}"
-        if f"hpdi_95_upper_{parameter}" in df.columns:
-            est_upper_col = f"hpdi_95_upper_{parameter}"
-    else:
-        if f"eti_95_lower_{parameter}" in df.columns:
-            est_lower_col = f"eti_95_lower_{parameter}"
-        if f"eti_95_upper_{parameter}" in df.columns:
-            est_upper_col = f"eti_95_upper_{parameter}"
+    if f"{ci_prefix}_lower_{parameter}" in df.columns:
+        est_lower_col = f"{ci_prefix}_lower_{parameter}"
+    if f"{ci_prefix}_upper_{parameter}" in df.columns:
+        est_upper_col = f"{ci_prefix}_upper_{parameter}"
     ess_col = f"ess_{parameter}"
     psrf_col = f"psrf_{parameter}"
     grid = None

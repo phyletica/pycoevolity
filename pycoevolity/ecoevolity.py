@@ -835,6 +835,7 @@ def parse_sim_rep_results(
     include_time_in_coal_units = True,
     burnin = 0,
     config_labels = None,
+    interval_percent = 95,
 ):
     assert len(run_times) == len(state_log_paths)
     if not config_labels:
@@ -859,6 +860,9 @@ def parse_sim_rep_results(
         'min_run_time' : min(run_times),
         'sample_size' : post_sample.number_of_samples,
     }
+
+    interval_percent = int(interval_percent)
+    p_str = str(interval_percent)
 
     assert post_sample.number_of_samples % nchains == 0
     nsamples_per_chain = post_sample.number_of_samples // nchains
@@ -895,18 +899,22 @@ def parse_sim_rep_results(
     results["map_model_p"] = map_model_p
     results["true_model_p"] = true_model_p
     model_dist_summary = pycoevolity.stats.get_summary(
-        post_sample.distances_from(true_model))
+        post_sample.distances_from(true_model),
+        interval_percent = interval_percent,
+    )
     results["mean_model_distance"] = model_dist_summary["mean"]
     results["median_model_distance"] = model_dist_summary["median"]
     results["std_dev_model_distance"] = math.sqrt(model_dist_summary["variance"])
-    results["hpdi_95_lower_model_distance"] = model_dist_summary["hpdi_95"][0]
-    results["hpdi_95_upper_model_distance"] = model_dist_summary["hpdi_95"][1]
-    results["eti_95_lower_model_distance"] = model_dist_summary["qi_95"][0]
-    results["eti_95_upper_model_distance"] = model_dist_summary["qi_95"][1]
+    results[f"hpdi_{p_str}_lower_model_distance"] = model_dist_summary[f"hpdi_{p_str}"][0]
+    results[f"hpdi_{p_str}_upper_model_distance"] = model_dist_summary[f"hpdi_{p_str}"][1]
+    results[f"eti_{p_str}_lower_model_distance"] = model_dist_summary[f"qi_{p_str}"][0]
+    results[f"eti_{p_str}_upper_model_distance"] = model_dist_summary[f"qi_{p_str}"][1]
     map_model_distances = post_sample.get_map_model_distances_from(true_model)
     if len(map_model_distances) > 1:
         map_model_dist_summary = pycoevolity.stats.get_summary(
-                map_model_distances)
+            map_model_distances,
+            interval_percent = interval_percent,
+        )
         results["mean_map_model_distance"] = map_model_dist_summary["mean"]
         results["median_map_model_distance"] = map_model_dist_summary["median"]
     else:
@@ -936,8 +944,8 @@ def parse_sim_rep_results(
             break
     hpdi_lower_nevents = min(nevents_cred_set)
     hpdi_upper_nevents = max(nevents_cred_set)
-    results["hpdi_95_lower_num_events"] = hpdi_lower_nevents
-    results["hpdi_95_upper_num_events"] = hpdi_upper_nevents
+    results[f"hpdi_{p_str}_lower_num_events"] = hpdi_lower_nevents
+    results[f"hpdi_{p_str}_upper_num_events"] = hpdi_upper_nevents
     
     sum_of_abs_mean_error_root_height = 0.0
     sum_of_abs_mean_error_pop_size_root = 0.0
@@ -962,7 +970,9 @@ def parse_sim_rep_results(
             if have_true_val:
                 true_val_rank = post_sample.get_rank(parameter, true_val)
             ss = pycoevolity.stats.get_summary(
-                    post_sample.parameter_samples[parameter])
+                post_sample.parameter_samples[parameter],
+                interval_percent = interval_percent,
+            )
             if parameter in post_sample.get_height_keys():
                 sum_of_abs_mean_error_root_height += math.fabs(
                     true_val - ss["mean"])
@@ -985,10 +995,10 @@ def parse_sim_rep_results(
             post_mean = ss["mean"]
             post_median = ss["median"]
             post_stdev = math.sqrt(ss["variance"])
-            hpdi_lower = ss["hpdi_95"][0]
-            hpdi_upper = ss["hpdi_95"][1]
-            eti_lower = ss["qi_95"][0]
-            eti_upper = ss["qi_95"][1]
+            hpdi_lower = ss[f"hpdi_{p_str}"][0]
+            hpdi_upper = ss[f"hpdi_{p_str}"][1]
+            eti_lower = ss[f"qi_{p_str}"][0]
+            eti_upper = ss[f"qi_{p_str}"][1]
         if nchains > 1:
             results["psrf_{0}".format(parameter)] = psrf
         results["true_{0}".format(parameter)] = true_val
@@ -996,10 +1006,10 @@ def parse_sim_rep_results(
         results["mean_{0}".format(parameter)] = post_mean
         results["median_{0}".format(parameter)] = post_median
         results["stddev_{0}".format(parameter)] = post_stdev
-        results["hpdi_95_lower_{0}".format(parameter)] = hpdi_lower
-        results["hpdi_95_upper_{0}".format(parameter)] = hpdi_upper
-        results["eti_95_lower_{0}".format(parameter)] = eti_lower
-        results["eti_95_upper_{0}".format(parameter)] = eti_upper
+        results[f"hpdi_{p_str}_lower_{parameter}"] = hpdi_lower
+        results[f"hpdi_{p_str}_upper_{parameter}"] = hpdi_upper
+        results[f"eti_{p_str}_lower_{parameter}"] = eti_lower
+        results[f"eti_{p_str}_upper_{parameter}"] = eti_upper
         results["ess_{0}".format(parameter)] = ess
         results["ess_sum_{0}".format(parameter)] = ess_sum
     results["sum_of_abs_mean_error_root_height"] = sum_of_abs_mean_error_root_height
@@ -1093,6 +1103,7 @@ def parse_sim_results(
     config_labels = None,
     include_time_in_coal_units = True,
     number_of_procs = 1,
+    interval_percent = 95,
 ):
     results_dir = os.path.dirname(results_path)
     results = pycoevolity.fileio.load_json(results_path)
@@ -1148,6 +1159,7 @@ def parse_sim_results(
                                 include_time_in_coal_units,
                                 burnin,
                                 config_labels,
+                                interval_percent,
                             )
                         )
                     )

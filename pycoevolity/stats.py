@@ -470,13 +470,21 @@ def rank(samples, v):
             return i / float(n)
     return 1.0
 
-def quantile_95(samples):
+def get_et_interval(samples, interval_prob):
     """
-    Return tuple of interval of 2.5% and 97.5% quantiles.
+    Return tuple of the (1-interval_prob)/2 and 1-((1-interval_prob)/2)
+    quantiles.
     """
-    return (quantile(samples, 0.025), quantile(samples, 0.975))
+    tail_prob = (1.0 - interval_prob) / 2.0
+    return (quantile(samples, tail_prob), quantile(samples, 1.0-tail_prob))
 
-def get_summary(samples, bin_width = 'auto'):
+def get_et_interval_95(samples):
+    """
+    Return tuple of the 2.5% and 97.5% quantiles.
+    """
+    return get_et_interval(samples, 0.95)
+
+def get_summary(samples, bin_width = 'auto', interval_percent = 95):
     """
     Return a dict of summaries calculated from the samples.
 
@@ -487,20 +495,29 @@ def get_summary(samples, bin_width = 'auto'):
         'modes': mode (tuple if binning)
         'variance': variance
         'range': range
-        'hpdi_95': tuple of 95% highest posterior density interval
-        'qi_95': tuple of 2.5% to 97.5% quantile interval
+        f'hpdi_{int(interval_percent)}': tuple of int(interval_percent)%
+                                         highest density interval
+        f'qi_{int(interval_percent)}': tuple of int(interval_percent)%
+                                       equal-tailed interval
     """
     samples = list(samples)
     ss = SampleSummarizer()
     ss.update_samples(samples)
+    interval_percent = int(interval_percent)
+    if (interval_percent < 0) or (interval_percent > 100):
+        raise ValueError(
+            f"int(interval_percent) must be a valid percentage: "
+            f"{interval_percent}"
+        )
+    interval_prob = interval_percent / 100.0
     return {'n': ss.n,
             'mean': ss.mean,
             'median': median(samples),
             'modes': mode_list(samples, bin_width),
             'variance': ss.variance,
             'range': (min(samples), max(samples)),
-            'hpdi_95': get_hpd_interval(samples, 0.95),
-            'qi_95': quantile_95(samples)}
+            f'hpdi_{interval_percent}': get_hpd_interval(samples, interval_prob),
+            f'qi_{interval_percent}': get_et_interval(samples, interval_prob)}
 
 def mean_squared_error(x, y):
     if not len(x) == len(y):
