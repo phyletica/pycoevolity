@@ -49,8 +49,8 @@ def parse_cli_args():
         default = 86400,
         help = (
             'The timeout (in seconds) for each ecoevolity MCMC chain. '
-            'If a chain runs longer than this the subprocess will raise an '
-            'error.'
+            'If a chain runs longer than this the subprocess will stop the '
+            'chain and raise an error.'
         ),
     )
     parser.add_argument(
@@ -97,7 +97,7 @@ def main_cli():
         num_analyses = pycoevolity.ecoevolity.run_analyses_on_sims(
             sim_data = results["simulations"],
             working_dir = json_dir,
-            eco_exe_dir = args.ecoevolity_dir,
+            eco_exe_dir = eco_exe_dir,
             number_of_procs = args.number_of_procs,
             relax_constant_sites = False,
             relax_missing_sites = False,
@@ -128,7 +128,7 @@ def main_cli():
         num_analyses = pycoevolity.ecoevolity.add_sumcoevolity_to_results(
             sim_data = results["simulations"],
             working_dir = json_dir,
-            eco_exe_dir = args.ecoevolity_dir,
+            eco_exe_dir = eco_exe_dir,
             output_dir = rel_sim_files_dir,
             num_prior_draws = results["number_of_prior_draws"],
             burnin = results["burnin"],

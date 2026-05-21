@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import scipy.stats as st
 
@@ -16,7 +17,11 @@ def get_population_labels(yaml_config_path):
     config = get_yaml_config(yaml_config_path)
     labels = []
     for comp in config["comparisons"]:
-        data_path = comp["comparison"]["path"]
+        rel_data_path = comp["comparison"]["path"]
+        data_path = os.path.abspath(os.path.join(
+            os.path.dirname(yaml_config_path),
+            rel_data_path,
+        ))
         try:
             data = pycoevolity.fileio.load_yaml(data_path)
         except Exception as e:

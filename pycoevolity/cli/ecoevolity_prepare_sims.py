@@ -23,8 +23,9 @@ def parse_cli_args():
         ),
     )
     parser.add_argument(
-        '-c', '--sim-configs',
+        '-c', '--sim-config',
         metavar = 'ECOEVOLITY-CONFIG-PATH',
+        dest = 'sim_configs',
         action = 'append',
         required = False,
         type = pycoevolity.argparse_utils.arg_is_file,
@@ -200,11 +201,10 @@ def main_cli():
             )
     else:
         if (not args.sim_configs) or (not args.config_paths):
-            msg = (
+            raise Exception(
                 "Simulation and inference configs are required when not "
                 "appending to previous results."
             )
-            raise Exception(msg)
         args.sim_configs = [os.path.abspath(p) for p in args.sim_configs]
         args.config_paths = [os.path.abspath(p) for p in args.config_paths]
         output_dir = os.path.abspath(
@@ -213,6 +213,15 @@ def main_cli():
             os.path.join(output_dir, "simulation-files")
         )
         json_path = os.path.join(output_dir, "simulation-data.json")
+        if os.path.exists(json_path):
+            raise Exception(
+f"""
+Simulation data file already exists: \'{json_path}\'
+If you want to append more simulations, please use the \'--append-to\' argument.
+To learn more about the \'--append-to\' argument you can use the \'-h\' or
+\'--help\' flags to see the help menu.
+"""
+            )
         json_dir = output_dir
         results = { "seeds" : [seed] }
         results["simulation_configs"] = [
@@ -254,7 +263,7 @@ def main_cli():
         infer_configs = infer_configs,
         output_dir = rel_sim_files_dir,
         working_dir = json_dir,
-        eco_exe_dir = args.ecoevolity_dir,
+        eco_exe_dir = eco_exe_dir,
         number_of_sims = args.number_of_sims,
         number_of_procs = args.number_of_procs,
         number_of_chains = args.number_of_chains,
