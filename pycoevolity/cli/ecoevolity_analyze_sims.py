@@ -70,8 +70,11 @@ def parse_cli_args():
 def main_cli():
     args = parse_cli_args()
 
-    eco_exe_dir = pycoevolity.ecoevolity.get_ecoevolity_dir(
-        dir_to_check = args.ecoevolity_dir)
+    eco_exe_dir = os.path.abspath(
+        pycoevolity.ecoevolity.get_ecoevolity_dir(
+            dir_to_check = args.ecoevolity_dir,
+        )
+    )
 
     sys.stdout.write(
         f"Using ecoevolity programs found in '{eco_exe_dir}'\n"
