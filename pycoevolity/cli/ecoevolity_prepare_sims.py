@@ -71,8 +71,13 @@ def parse_cli_args():
         type = pycoevolity.argparse_utils.arg_is_nonnegative_int,
         default = 4,
         help = (
-            'The number of processors to use to simulate data sets '
+            'The number of parallel processes to use to simulate data sets '
             'with simcoevolity.'
+            'NOTE: changing the number of processes will change the results '
+            'for a given random seed. '
+            'Thus to reproduce identical results you need to specify the '
+            'same seed AND the same number of processes using the '
+            '\'-p\'/\'--number-of-procs\' argument.'
         ),
     )
     parser.add_argument(
@@ -107,7 +112,10 @@ def parse_cli_args():
         action = 'store',
         type = pycoevolity.argparse_utils.arg_is_positive_int,
         help = (
-            'Seed for random number generator.'
+            'Seed for random number generator. '
+            'NOTE: To reproduce identical results, you need to specify the '
+            'same seed AND the same number of processes using the '
+            '\'-p\'/\'--number-of-procs\' argument.'
         ),
     )
     parser.add_argument(

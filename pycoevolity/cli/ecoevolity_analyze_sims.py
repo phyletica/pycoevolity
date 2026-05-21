@@ -38,7 +38,7 @@ def parse_cli_args():
         type = pycoevolity.argparse_utils.arg_is_nonnegative_int,
         default = 4,
         help = (
-            'The number of processors to use to analyze '
+            'The number of parallel processes to use to analyze '
             'simulations with ecoevolity.'
         ),
     )

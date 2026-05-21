@@ -223,7 +223,7 @@ def parse_cli_args():
         type = pycoevolity.argparse_utils.arg_is_nonnegative_int,
         default = 4,
         help = (
-            'The number of processors to use to run the '
+            'The number of parallel processes to use to run the '
             '\'-r/--number-of-runs\' ecoevolity runs that sample from '
             'the prior. The default is the smaller of 4 or the number '
             'of runs.'
