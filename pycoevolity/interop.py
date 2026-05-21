@@ -15,7 +15,11 @@ def get_exe_dir(exe_name, dir_to_check = None):
     else:
         exe_path = os.path.join(dir_to_check, exe_name)
 
-    if not os.access(exe_path, os.X_OK):
+    if not os.path.exists(exe_path):
+        raise Exception(
+            f"File does not exist: \'{exe_path}\'"
+        )
+    elif not os.access(exe_path, os.X_OK):
         raise Exception(
             f"{exe_name} found at '{exe_path}', but does have execute "
             f"permissions"
