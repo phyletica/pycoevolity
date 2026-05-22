@@ -47,7 +47,7 @@ def parse_cli_args():
             'If you are not sure, you can check the values in the '
             '\'simulation_config\' and \'inference_config\' columns of the '
             'results-summary.tsv.gz file; your labels should match the labels '
-            'in these columns.'
+            'in these columns. '
             'If your labels, or separations between them, include spaces, you '
             'will need to quote the argument; e.g., '
             '-o \'Independent model; Shared model; Uniform model; DPP model\'.'
@@ -111,6 +111,28 @@ def parse_cli_args():
         default = 0.95,
         help = (
             'Credibility level to use when plotting then number of events.'
+        ),
+    )
+    parser.add_argument(
+        '--psrf-max',
+        type = pycoevolity.argparse_utils.arg_is_positive_float,
+        default = 1.2,
+        help = (
+            'The maximum value for the potential scale reduction factor. '
+            'Any parameters with a value greater than this for a simulation '
+            'replicate will be highlighted to indicate poor MCMC mixing.'
+            'Note, this argument is only used if multiple MCMC chains were '
+            'run on each simulated data set.'
+        ),
+    )
+    parser.add_argument(
+        '--ess-min',
+        type = pycoevolity.argparse_utils.arg_is_positive_float,
+        default = 200,
+        help = (
+            'The minimum value for the effective sample size. '
+            'Any parameters with a value less than this for a simulation '
+            'replicate will be highlighted to indicate poor MCMC mixing.'
         ),
     )
     parser.add_argument(
@@ -458,8 +480,8 @@ def main_cli():
                 use_hpdi = (not args.use_eti),
                 xlabel = xlabel,
                 ylabel = ylabel,
-                ess_min = 200,
-                psrf_max = 1.2,
+                ess_min = args.ess_min,
+                psrf_max = args.psrf_max,
                 bad_sampling_color = "C1",
                 ordered_labels = ordered_labels,
                 height = args.plot_height,
@@ -486,8 +508,8 @@ def main_cli():
                 parameter_root = parameter_root,
                 use_mean = (not args.use_median),
                 use_hpdi = (not args.use_eti),
-                ess_min = 200,
-                psrf_max = 1.2,
+                ess_min = args.ess_min,
+                psrf_max = args.psrf_max,
                 bad_sampling_color = "C1",
                 ordered_labels = ordered_labels,
                 annotate_true_values = False,
