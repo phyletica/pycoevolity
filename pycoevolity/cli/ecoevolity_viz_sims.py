@@ -233,6 +233,20 @@ def parse_cli_args():
         ),
     )
     parser.add_argument(
+        '--plot-ext',
+        type = str,
+        default = 'svg',
+        help = (
+            'The file extension (and format) to use for output plotting files. '
+            'Examples: '
+            '\'--plot-ext svg\' (default), '
+            '\'--plot-ext pdf\', '
+            '\'--plot-ext png\', '
+            '\'--plot-ext jpg\', etc. '
+            'Any file formats supported by matplotlib should work.'
+        ),
+    )
+    parser.add_argument(
         '--force',
         action = 'store_true',
         help = (
@@ -328,7 +342,7 @@ def main_cli():
     ##################################################################
     # Plot number of events heat maps
     ##################################################################
-    plot_path = f"{plot_prefix}nevents-heatmap-grid.pdf"
+    plot_path = f"{plot_prefix}nevents-heatmap-grid.{args.plot_ext}"
 
     if (not args.force) and os.path.exists(plot_path):
         write_existing_path_warning(plot_path, sys.stderr)
@@ -350,7 +364,7 @@ def main_cli():
     ##################################################################
     # Plot number of events error scatter
     ##################################################################
-    plot_path = f"{plot_prefix}nevents-error-scatter-grid.pdf"
+    plot_path = f"{plot_prefix}nevents-error-scatter-grid.{args.plot_ext}"
 
     if (not args.force) and os.path.exists(plot_path):
         write_existing_path_warning(plot_path, sys.stderr)
@@ -384,7 +398,7 @@ def main_cli():
     ##################################################################
     # Plot event model error
     ##################################################################
-    plot_path = f"{plot_prefix}model-error-grid.pdf"
+    plot_path = f"{plot_prefix}model-error-grid.{args.plot_ext}"
 
     if (not args.force) and os.path.exists(plot_path):
         write_existing_path_warning(plot_path, sys.stderr)
@@ -466,7 +480,7 @@ def main_cli():
             ylabel = f"Mean {param_info['label']}"
         if param_info['symbol']:
             stat_label = param_info['symbol']
-        plot_path = f"{plot_prefix}{param_key}-scatter-grid.pdf"
+        plot_path = f"{plot_prefix}{param_key}-scatter-grid.{args.plot_ext}"
         if (not args.force) and os.path.exists(plot_path):
             write_existing_path_warning(plot_path, sys.stderr)
         else:
@@ -495,7 +509,7 @@ def main_cli():
             if grid:
                 grid.savefig(plot_path)
 
-        plot_path = f"{plot_prefix}{param_key}-error-scatter-grid.pdf"
+        plot_path = f"{plot_prefix}{param_key}-error-scatter-grid.{args.plot_ext}"
         if (not args.force) and os.path.exists(plot_path):
             write_existing_path_warning(plot_path, sys.stderr)
         else:

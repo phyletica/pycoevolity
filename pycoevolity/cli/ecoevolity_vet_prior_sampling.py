@@ -78,6 +78,7 @@ def process_parameter(
     numpy_rng,
     label = None,
     force = False,
+    plot_ext = "svg",
 ):
     if not eco_config.parameter_is_estimated(parameter_settings):
         is_valid, expected_val, val = eco_config.fixed_param_values_are_valid(
@@ -93,7 +94,7 @@ Skipping plotting of '{parameter_name}'.
 """
             )
     else:
-        plot_path = f"{output_prefix}prior-cdf-comparison-{parameter_name}.svg"
+        plot_path = f"{output_prefix}prior-cdf-comparison-{parameter_name}.{plot_ext}"
         if (not force) and os.path.exists(plot_path):
             write_existing_path_warning(plot_path, sys.stderr)
             return
@@ -108,7 +109,7 @@ Skipping plotting of '{parameter_name}'.
         fig.savefig(plot_path, bbox_inches = "tight")
         plt.close(fig)
     
-        plot_path = f"{output_prefix}prior-qq-plot-{parameter_name}.svg"
+        plot_path = f"{output_prefix}prior-qq-plot-{parameter_name}.{plot_ext}"
         fig, ax, qline = plot_qq(
             prior_settings = parameter_settings["prior"],
             posterior_samples = posterior_samples,
@@ -125,12 +126,13 @@ def process_event_model_prior(
     output_prefix,
     numpy_rng,
     force = False
+    plot_ext = "svg",
 ):
     assert len(settings) == 1
     model_prior_name = list(settings.keys())[0]
     if model_prior_name == "fixed":
         return
-    plot_path = f"{output_prefix}prior-cmf-comparison-nevents.svg"
+    plot_path = f"{output_prefix}prior-cmf-comparison-nevents.{plot_ext}"
     if (not force) and os.path.exists(plot_path):
         write_existing_path_warning(plot_path, sys.stderr)
         return
@@ -270,6 +272,20 @@ def parse_cli_args():
         ),
     )
     parser.add_argument(
+        '--plot-ext',
+        type = str,
+        default = 'svg',
+        help = (
+            'The file extension (and format) to use for output plotting files. '
+            'Examples: '
+            '\'--plot-ext svg\' (default), '
+            '\'--plot-ext pdf\', '
+            '\'--plot-ext png\', '
+            '\'--plot-ext jpg\', etc. '
+            'Any file formats supported by matplotlib should work.'
+        ),
+    )
+    parser.add_argument(
         '--force',
         action = 'store_true',
         help = (
@@ -339,8 +355,8 @@ def parse_cli_args():
     )
     return parser.parse_args()
 
-def check_for_existing_outputs(output_prefix):
-    output_pattern = f"{output_prefix}prior-*.svg"
+def check_for_existing_outputs(output_prefix, file_ext):
+    output_pattern = f"{output_prefix}prior-*.{file_ext}"
     output_files = glob.glob(output_pattern)
     if output_files:
         msg = (
@@ -394,7 +410,7 @@ def main_cli():
     output_prefix = f"{output_prefix}{config_name}-"
 
     if not args.force:
-        check_for_existing_outputs(output_prefix)
+        check_for_existing_outputs(output_prefix, args.plot_ext)
 
     seeds = pycoevolity.rng_utils.get_safe_seeds(rng, n = args.number_of_runs)
 
@@ -443,6 +459,7 @@ def main_cli():
         output_prefix = output_prefix,
         numpy_rng = np_rng,
         force = args.force,
+        plot_ext = args.plot_ext,
     )
 
     model_prior_name = list(model_prior_settings.keys())[0]
@@ -464,6 +481,7 @@ def main_cli():
                 numpy_rng = np_rng,
                 label = label,
                 force = args.force,
+                plot_ext = args.plot_ext,
             )
 
     event_time_prior = config["event_time_prior"]
@@ -499,6 +517,7 @@ def main_cli():
                 numpy_rng = np_rng,
                 label = label,
                 force = args.force,
+                plot_ext = args.plot_ext,
             )
 
     event_time_settings = {
@@ -521,6 +540,7 @@ def main_cli():
             output_prefix = output_prefix,
             numpy_rng = np_rng,
             force = args.force,
+            plot_ext = args.plot_ext,
         )
 
     ##########################################################################
@@ -559,6 +579,7 @@ def main_cli():
                 output_prefix = output_prefix,
                 numpy_rng = np_rng,
                 force = args.force,
+                plot_ext = args.plot_ext,
             )
     # Handle root population size parameters
     for comp_idx, comp in enumerate(comps_to_plot):
@@ -613,7 +634,8 @@ from Sample {sample_idx + 1} are not equal:
                     posterior_samples = values,
                     output_prefix = output_prefix,
                     numpy_rng = np_rng,
-                    force = args.force
+                    force = args.force,
+                    plot_ext = args.plot_ext,
                 )
 
 if __name__ == "__main__":
