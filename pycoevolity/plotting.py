@@ -216,8 +216,12 @@ def process_scatter_grid(
         est_lower_col = f"{ci_prefix}_lower_{parameter}"
     if f"{ci_prefix}_upper_{parameter}" in df.columns:
         est_upper_col = f"{ci_prefix}_upper_{parameter}"
-    ess_col = f"ess_{parameter}"
-    psrf_col = f"psrf_{parameter}"
+    ess_col = None
+    if f"ess_{parameter}" in df.columns:
+        ess_col = f"ess_{parameter}"
+    psrf_col = None
+    if f"psrf_{parameter}" in df.columns:
+        psrf_col = f"psrf_{parameter}"
     grid = None
     if len(df) > 0:
         grid = plot_scatter_grid(
@@ -431,7 +435,7 @@ def plot_scatter(
     if ess_col and psrf_col:
         df["Poor MCMC sampling"] = (
             (df[ess_col] < ess_min)
-            & (df[psrf_col] > psrf_max)
+            | (df[psrf_col] > psrf_max)
         )
     elif ess_col:
         df["Poor MCMC sampling"] = df[ess_col] < ess_min
@@ -834,7 +838,7 @@ def plot_error_scatter(
     if ess_col and psrf_col:
         df["Poor MCMC sampling"] = (
             (df[ess_col] < ess_min)
-            & (df[psrf_col] > psrf_max)
+            | (df[psrf_col] > psrf_max)
         )
     elif ess_col:
         df["Poor MCMC sampling"] = df[ess_col] < ess_min
@@ -930,7 +934,8 @@ def annotate_true_values_on_error_scatter(
         }
         annot_args.update(kwargs)
         annot_args["color"] = "black"
-        prev_x_sep = 1.0
+        first_last_buffer = len(df) * 0.05
+        prev_x_sep = 1.0 - first_last_buffer
         prev_true_val = uniq_true_values[0]
         for i, true_val in enumerate(uniq_true_values[1:]):
             first_row = df.loc[df[true_val_col] == true_val].iloc[0]
@@ -951,7 +956,7 @@ def annotate_true_values_on_error_scatter(
             )
             prev_x_sep = x_sep
             prev_true_val = true_val
-        x_sep = len(df) + 0.0
+        x_sep = len(df) + first_last_buffer
         annot_str = f"{prev_true_val}"
         x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
         ax.text(
@@ -1134,8 +1139,12 @@ def process_error_scatter_grid(
         est_lower_col = f"{ci_prefix}_lower_{parameter}"
     if f"{ci_prefix}_upper_{parameter}" in df.columns:
         est_upper_col = f"{ci_prefix}_upper_{parameter}"
-    ess_col = f"ess_{parameter}"
-    psrf_col = f"psrf_{parameter}"
+    ess_col = None
+    if f"ess_{parameter}" in df.columns:
+        ess_col = f"ess_{parameter}"
+    psrf_col = None
+    if f"psrf_{parameter}" in df.columns:
+        psrf_col = f"psrf_{parameter}"
     grid = None
     if len(df) > 0:
         grid = plot_error_scatter_grid(
