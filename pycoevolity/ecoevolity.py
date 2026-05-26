@@ -558,14 +558,12 @@ def prepare_simulations(
     num_sims_args[-1] += remainder_sims
 
     workers = []
-    seeds = []
     results = {}
     with multiprocessing.Pool(number_of_procs) as pool:
         for sim_config in sim_configs:
             results[sim_config] = {}
             for num_reps in num_sims_args:
                 seed = pycoevolity.rng_utils.get_safe_seed(rng)
-                seeds.append(seed)
                 results[sim_config][seed] = []
                 workers.append(
                     pool.apply_async(
@@ -610,7 +608,7 @@ def prepare_simulations(
     ret = {}
     for sim_config in sim_configs:
         ret[sim_config] = {}
-        for seed in seeds:
+        for seed in results[sim_config]:
             true_val_config_paths = results[sim_config][seed]
             for true_val_path, inf_config_paths in true_val_config_paths:
                 ret[sim_config][true_val_path] = {}
