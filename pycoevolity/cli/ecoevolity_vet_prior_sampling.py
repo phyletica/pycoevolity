@@ -125,7 +125,7 @@ def process_event_model_prior(
     number_of_comparisons,
     output_prefix,
     numpy_rng,
-    force = False
+    force = False,
     plot_ext = "svg",
 ):
     assert len(settings) == 1
