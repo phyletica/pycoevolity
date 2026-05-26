@@ -84,6 +84,7 @@ def main_cli():
     json_dir = os.path.dirname(json_path)
     results = pycoevolity.fileio.load_json(json_path)
     rel_sim_files_dir = results["simulation_files_dir"]
+    abs_sim_files_dir = os.path.abspath(rel_sim_files_dir)
 
     # If the process is killed externally, let's make sure the analyses that
     # have finished get recorded in the json file
@@ -123,6 +124,11 @@ def main_cli():
         # Write results now, so we don't have to repeat ecoevolity analyses if
         # something goes wrong with sumcoevolity below
         pycoevolity.fileio.write_json(results, json_path, indent = 4)
+        sys.stdout.write(
+            "All ecoevolity analyses are complete.\n"
+            f"Analysis data written to '{json_path}'\n"
+            f"Analysis files output in '{abs_sim_files_dir}'\n"
+        )
     sys.stdout.write(
         f"Running sumcoevolity on ecoevolity results...\n"
     )
@@ -148,6 +154,11 @@ def main_cli():
         )
     else:
         pycoevolity.fileio.write_json(results, json_path, indent = 4)
+        sys.stdout.write(
+            "All sumcoevolity analyses are complete.\n"
+            f"Analysis data written to '{json_path}'\n"
+            f"Analysis files output in '{abs_sim_files_dir}'\n"
+        )
 
 if __name__ == "__main__":
     main_cli()
