@@ -281,6 +281,10 @@ To learn more about the \'--append-to\' argument you can use the \'-h\' or
     else:
         results["simulations"] = sim_results
     pycoevolity.fileio.write_json(results, json_path, indent = 4)
+    sys.stdout.write(
+        f"Simulation data written to '{json_path}'\n"
+        f"Simulation files output in '{sim_files_dir}'\n"
+    )
 
 if __name__ == "__main__":
     main_cli()
