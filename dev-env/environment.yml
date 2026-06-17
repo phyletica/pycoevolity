@@ -19,3 +19,4 @@ dependencies:
   - scipy>=1.16
   - numpy>=2.0
   - seaborn>=0.13
+  - scikit-learn

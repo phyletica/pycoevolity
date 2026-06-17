@@ -5,6 +5,8 @@ import os
 import logging
 
 from munkres import Munkres
+import numpy as np
+import sklearn.metrics
 
 from pycoevolity import errors 
 
@@ -287,3 +289,46 @@ class SetPartitionCollection(object):
     def distances_from(self, set_partition):
         for p in self.set_partitions:
             yield set_partition.distance(p)
+
+
+def calculate_entropy(partition_indices):
+    """
+    Calculates the Shannon entropy of a clustering assignment.
+    """
+    _, counts = np.unique(partition_indices, return_counts = True)
+    probs = counts / len(partition_indices)
+    return -np.sum(probs * np.log(probs))
+
+def variation_of_info_distance(partition_indices_1, partition_indices_2):
+    """
+    Calculates the Variation of Information distance between two clusterings.
+
+    Meilă, M. (2003). Comparing Clusterings by the Variation of Information.
+    In: Schölkopf, B., Warmuth, M.K. (eds) Learning Theory and Kernel Machines.
+    Lecture Notes in Computer Science(), vol 2777. Springer, Berlin,
+    Heidelberg. https://doi.org/10.1007/978-3-540-45167-9_14
+
+    PDF posted at: https://sites.stat.washington.edu/mmp/Papers/compare-colt.pdf
+    """
+    entropy_1 = calculate_entropy(partition_indices_1)
+    entropy_2 = calculate_entropy(partition_indices_2)
+    mutual_info = sklearn.metrics.mutual_info_score(
+        partition_indices_1,
+        partition_indices_2,
+    )
+
+    # VI = H(A) + H(B) - 2 * mi
+    vi_distance = entropy_1 + entropy_2 - (2 * mutual_info)
+    return max(0.0, vi_distance)
+
+def adjusted_rand_index_distance(partition_indices_1, partition_indices_2):
+    """
+    Calculated the adjusted Rand index distance between two clusterings.
+
+    Lawrence Hubert and Phipps Arabie (1985). "Comparing partitions". Journal
+    of Classification. 2 (1): 193–218. doi:10.1007/BF01908075
+    """
+    return sklearn.metrics.adjusted_rand_score(
+        partition_indices_1,
+        partition_indices_2,
+    )

@@ -207,3 +207,106 @@ class TestSetPartition(unittest.TestCase):
         self.assertEqual(p2.distance(p1), 2)
         self.assertEqual(p1.as_indices(), (0, 0, 0, 0, 1, 0))
         self.assertEqual(p2.as_indices(), (0, 0, 0, 0, 0, 1))
+
+
+class TestVariationOfInfoDistance(unittest.TestCase):
+    def test_identity(self):
+        p1 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
+        p2 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
+        d = partition.variation_of_info_distance(p1, p2)
+        self.assertTrue(d == 0.0)
+
+    def test_identity_label_switch(self):
+        p1 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
+        p2 = [1, 0, 0, 1, 2, 3, 1, 1, 0]
+        d = partition.variation_of_info_distance(p1, p2)
+        self.assertTrue(d == 0.0)
+        d2 = partition.variation_of_info_distance(p2, p1)
+        self.assertEqual(d, d2)
+
+    def test_nesting_extremes(self):
+        # Test is from: https://stats.stackexchange.com/a/25001
+        p1 = [0] * 100
+        p2 = list(range(100))
+        d = partition.variation_of_info_distance(p1, p2)
+        ds = f"{d:.3f}"
+        expected_d = "4.605"
+        self.assertEqual(ds, expected_d)
+        d2 = partition.variation_of_info_distance(p2, p1)
+        self.assertEqual(d, d2)
+
+    def test_micans_c1_c2(self):
+        # Test is from: https://stats.stackexchange.com/a/25001
+        c1 = [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1]
+        c2 = [0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1]
+        d = partition.variation_of_info_distance(c1, c2)
+        ds = f"{d:.3f}"
+        expected_d = "0.594"
+        self.assertEqual(ds, expected_d)
+        d2 = partition.variation_of_info_distance(c2, c1)
+        self.assertEqual(d, d2)
+
+    def test_micans_c3_c4(self):
+        # Test is from: https://stats.stackexchange.com/a/25001
+        c3 = [0,0,0,0,1,1,1,1,1,1,2,2,2,2,2,2]
+        c4 = [0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2]
+        d = partition.variation_of_info_distance(c3, c4)
+        ds = f"{d:.3f}"
+        expected_d = "0.520"
+        self.assertEqual(ds, expected_d)
+        d2 = partition.variation_of_info_distance(c4, c3)
+        self.assertEqual(d, d2)
+
+    def test_micans_c3_c4_labels(self):
+        # Test is from: https://stats.stackexchange.com/a/25001
+        c3 = [2,2,2,2,1,1,1,1,1,1,0,0,0,0,0,0]
+        c4 = [0,0,0,0,3,3,3,3,3,3,3,3,2,2,2,2]
+        d = partition.variation_of_info_distance(c3, c4)
+        ds = f"{d:.3f}"
+        expected_d = "0.520"
+        self.assertEqual(ds, expected_d)
+        d2 = partition.variation_of_info_distance(c4, c3)
+        self.assertEqual(d, d2)
+
+class TestAdjustedRandIndexDistance(unittest.TestCase):
+    def test_identity(self):
+        p1 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
+        p2 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
+        d = partition.adjusted_rand_index_distance(p1, p2)
+        self.assertTrue(d == 1.0)
+
+    def test_identity_label_switch(self):
+        p1 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
+        p2 = [1, 0, 0, 1, 2, 3, 1, 1, 0]
+        d = partition.adjusted_rand_index_distance(p1, p2)
+        self.assertTrue(d == 1.0)
+        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        self.assertEqual(d, d2)
+
+    def test_neg(self):
+        # test from https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
+        p1 = [0, 0, 1, 1]
+        p2 = [0, 1, 0, 1]
+        d = partition.adjusted_rand_index_distance(p1, p2)
+        self.assertAlmostEqual(d, -0.5)
+        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        self.assertEqual(d, d2)
+
+    def test_pos(self):
+        # test from https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
+        p1 = [0, 0, 1, 1]
+        p2 = [0, 0, 1, 2]
+        d = partition.adjusted_rand_index_distance(p1, p2)
+        ds = f"{d:.2f}"
+        self.assertEqual(ds, "0.57")
+        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        self.assertEqual(d, d2)
+
+    def test_zero(self):
+        # test from https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
+        p1 = [0, 0, 0, 0]
+        p2 = [0, 1, 2, 3]
+        d = partition.adjusted_rand_index_distance(p1, p2)
+        self.assertAlmostEqual(d, 0.0)
+        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        self.assertEqual(d, d2)
