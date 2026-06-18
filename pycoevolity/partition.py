@@ -213,6 +213,18 @@ class SetPartition(object):
             total += value
         return self.number_of_elements - total
 
+    def vi_distance(self, other):
+        return variation_of_info_distance(
+            self.as_indices(),
+            other.as_indices(),
+        )
+
+    def ari_measure(self, other):
+        return adjusted_rand_index(
+            self.as_indices(),
+            other.as_indices(),
+        )
+
     def check_validity(self):
         all_indices = []
         for subset in self.subsets:
@@ -290,6 +302,14 @@ class SetPartitionCollection(object):
         for p in self.set_partitions:
             yield set_partition.distance(p)
 
+    def vi_distances_from(self, set_partition):
+        for p in self.set_partitions:
+            yield set_partition.vi_distance(p)
+
+    def ari_measures_from(self, set_partition):
+        for p in self.set_partitions:
+            yield set_partition.ari_measure(p)
+
 
 def calculate_entropy(partition_indices):
     """
@@ -321,7 +341,7 @@ def variation_of_info_distance(partition_indices_1, partition_indices_2):
     vi_distance = entropy_1 + entropy_2 - (2 * mutual_info)
     return max(0.0, vi_distance)
 
-def adjusted_rand_index_distance(partition_indices_1, partition_indices_2):
+def adjusted_rand_index(partition_indices_1, partition_indices_2):
     """
     Calculated the adjusted Rand index distance between two clusterings.
 

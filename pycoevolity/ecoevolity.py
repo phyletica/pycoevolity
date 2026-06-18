@@ -834,6 +834,7 @@ def parse_sim_rep_results(
     burnin = 0,
     config_labels = None,
     interval_percent = 95,
+    model_distance_stat = 'edit',
 ):
     assert len(run_times) == len(state_log_paths)
     if not config_labels:
@@ -896,10 +897,28 @@ def parse_sim_rep_results(
     results["true_model_cred_level"] = true_model_cred
     results["map_model_p"] = map_model_p
     results["true_model_p"] = true_model_p
-    model_dist_summary = pycoevolity.stats.get_summary(
-        post_sample.distances_from(true_model),
-        interval_percent = interval_percent,
-    )
+    if model_distance_stat == 'edit':
+        model_dist_summary = pycoevolity.stats.get_summary(
+            post_sample.distances_from(true_model),
+            interval_percent = interval_percent,
+        )
+        map_model_distances = post_sample.get_map_model_distances_from(true_model)
+    elif model_distance_stat == 'vi':
+        model_dist_summary = pycoevolity.stats.get_summary(
+            post_sample.vi_distances_from(true_model),
+            interval_percent = interval_percent,
+        )
+        map_model_distances = post_sample.get_map_model_vi_distances_from(true_model)
+    elif model_distance_stat == 'ari':
+        model_dist_summary = pycoevolity.stats.get_summary(
+            post_sample.ari_measures_from(true_model),
+            interval_percent = interval_percent,
+        )
+        map_model_distances = post_sample.get_map_model_ari_measures_from(true_model)
+    else:
+        raise Exception(
+            "Invalid model_distance_stat arg: {model_distance_stat}"
+        )
     results["mean_model_distance"] = model_dist_summary["mean"]
     results["median_model_distance"] = model_dist_summary["median"]
     results["std_dev_model_distance"] = math.sqrt(model_dist_summary["variance"])
@@ -907,7 +926,6 @@ def parse_sim_rep_results(
     results[f"hpdi_{p_str}_upper_model_distance"] = model_dist_summary[f"hpdi_{p_str}"][1]
     results[f"eti_{p_str}_lower_model_distance"] = model_dist_summary[f"qi_{p_str}"][0]
     results[f"eti_{p_str}_upper_model_distance"] = model_dist_summary[f"qi_{p_str}"][1]
-    map_model_distances = post_sample.get_map_model_distances_from(true_model)
     if len(map_model_distances) > 1:
         map_model_dist_summary = pycoevolity.stats.get_summary(
             map_model_distances,
@@ -1102,6 +1120,7 @@ def parse_sim_results(
     include_time_in_coal_units = True,
     number_of_procs = 1,
     interval_percent = 95,
+    model_distance_stat = 'edit',
 ):
     results_dir = os.path.dirname(results_path)
     results = pycoevolity.fileio.load_json(results_path)
@@ -1158,6 +1177,7 @@ def parse_sim_results(
                                 burnin,
                                 config_labels,
                                 interval_percent,
+                                model_distance_stat,
                             )
                         )
                     )

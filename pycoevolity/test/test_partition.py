@@ -272,41 +272,41 @@ class TestAdjustedRandIndexDistance(unittest.TestCase):
     def test_identity(self):
         p1 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
         p2 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
-        d = partition.adjusted_rand_index_distance(p1, p2)
+        d = partition.adjusted_rand_index(p1, p2)
         self.assertTrue(d == 1.0)
 
     def test_identity_label_switch(self):
         p1 = [0, 1, 1, 0, 2, 3, 0, 0, 1]
         p2 = [1, 0, 0, 1, 2, 3, 1, 1, 0]
-        d = partition.adjusted_rand_index_distance(p1, p2)
+        d = partition.adjusted_rand_index(p1, p2)
         self.assertTrue(d == 1.0)
-        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        d2 = partition.adjusted_rand_index(p2, p1)
         self.assertEqual(d, d2)
 
     def test_neg(self):
         # test from https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
         p1 = [0, 0, 1, 1]
         p2 = [0, 1, 0, 1]
-        d = partition.adjusted_rand_index_distance(p1, p2)
+        d = partition.adjusted_rand_index(p1, p2)
         self.assertAlmostEqual(d, -0.5)
-        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        d2 = partition.adjusted_rand_index(p2, p1)
         self.assertEqual(d, d2)
 
     def test_pos(self):
         # test from https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
         p1 = [0, 0, 1, 1]
         p2 = [0, 0, 1, 2]
-        d = partition.adjusted_rand_index_distance(p1, p2)
+        d = partition.adjusted_rand_index(p1, p2)
         ds = f"{d:.2f}"
         self.assertEqual(ds, "0.57")
-        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        d2 = partition.adjusted_rand_index(p2, p1)
         self.assertEqual(d, d2)
 
     def test_zero(self):
         # test from https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_rand_score.html
         p1 = [0, 0, 0, 0]
         p2 = [0, 1, 2, 3]
-        d = partition.adjusted_rand_index_distance(p1, p2)
+        d = partition.adjusted_rand_index(p1, p2)
         self.assertAlmostEqual(d, 0.0)
-        d2 = partition.adjusted_rand_index_distance(p2, p1)
+        d2 = partition.adjusted_rand_index(p2, p1)
         self.assertEqual(d, d2)

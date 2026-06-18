@@ -11,7 +11,8 @@ import pycoevolity
 
 def parse_cli_args():
     parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class = pycoevolity.argparse_utils.SmartDefaultsHelpFormatter,
+    )
 
     parser.add_argument(
         'json_path',
@@ -57,6 +58,27 @@ def parse_cli_args():
             'Include results of event times converted to coalescent units.'
         ),
     )
+    parser.add_argument(
+        '-d', '--model-distance',
+        type = str,
+        choices = ['edit', 'vi', 'ari'],
+        default = 'edit',
+        help = (
+            'RAW|'
+            'Choose one of three measures for calculating distances between\n'
+            'the true event model and posterior samples of event models:\n'
+            '  edit --- Edit distance; the minimal single-comparison transitions\n'
+            '    to change one event model into another. Smaller values mean\n'
+            '    samples are closer to the true model.\n'
+            '  vi   --- Variation of Information distance. Smaller values mean\n'
+            '    samples are closer to the true model. See\n'
+            '    https://doi.org/10.1007/978-3-540-45167-9_14\n'
+            '  ari  --- Adjusted Rand Index. Larger values mean samples are\n'
+            '    closer to the true value. 1 is a perfect match, 0 is no better\n'
+            '    than random, and negative values are worse than random. See\n'
+            '    https://doi.org/10.1007/BF01908075\n'
+        ),
+    )
 
     args = parser.parse_args()
     return args
@@ -73,6 +95,7 @@ def main_cli():
         include_time_in_coal_units = args.include_time_in_coal_units,
         number_of_procs = args.number_of_procs,
         interval_percent = args.cred_interval_percent,
+        model_distance_stat = args.model_distance,
     )
     summary_path = os.path.join(
         os.path.dirname(args.json_path),

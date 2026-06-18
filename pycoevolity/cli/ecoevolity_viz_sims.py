@@ -312,6 +312,11 @@ def main_cli():
         sep = "\t",
     )
 
+    # This copy is needed to avoid Panda's "PerformanceWarning: DataFrame is
+    # highly fragmented"
+    df = df.copy()
+    df['abs_num_events_error'] = (df['true_num_events'] - df['map_num_events']).abs()
+
     cred_interval_percent = pycoevolity.plotting.get_cred_interval_percent(
         df.columns,
     )
@@ -396,36 +401,71 @@ def main_cli():
         grid.savefig(plot_path)
 
     ##################################################################
-    # Plot event model error
+    # Violin plots of model performance
     ##################################################################
-    plot_path = f"{plot_prefix}model-error-grid.{args.plot_ext}"
-
-    if (not args.force) and os.path.exists(plot_path):
-        write_existing_path_warning(plot_path, sys.stderr)
+    violin_plot_stats = {
+        "true_model_p" :
+        {
+            "label" : "True model posterior probability",
+            "plot_path" : f"{plot_prefix}true-model-prob-violin-grid.{args.plot_ext}",
+        },
+        "true_model_cred_level" :
+        {
+            "label" : "True model posterior rank sum",
+            "plot_path" : f"{plot_prefix}true-model-rank-sum-violin-grid.{args.plot_ext}",
+        },
+        "abs_num_events_error" :
+        {
+            "label" : "MAP $k$ absolute error",
+            "plot_path" : f"{plot_prefix}map-nevents-abs-error-violin-grid.{args.plot_ext}",
+        },
+        "true_num_events_p" :
+        {
+            "label" : "True $k$ posterior probability",
+            "plot_path" : f"{plot_prefix}true-nevents-prob-violin-grid.{args.plot_ext}",
+        },
+        "true_num_events_cred_level" :
+        {
+            "label" : "True $k$ posterior rank sum",
+            "plot_path" : f"{plot_prefix}true-nevents-rank-sum-violin-grid.{args.plot_ext}",
+        },
+    }
+    if args.use_median:
+        violin_plot_stats["median_map_model_distance"] = {
+            "label" : "MAP model distance",
+            "plot_path" : f"{plot_prefix}map-model-distance-violin-grid.{args.plot_ext}",
+        }
     else:
-        model_dist = "mean_model_distance"
-        model_dist_label = "Mean model distance"
-        if args.use_median:
-            model_dist = "median_model_distance"
-            model_dist_label = "Median model distance"
-        grid = pycoevolity.plotting.plot_violin_grid(
-            data = df,
-            value_col = model_dist,
-            plot_col = "simulation_config",
-            categorical_col = "inference_config",
-            spaghettify_col = "simulation_id",
-            spaghettify = True,
-            value_label = model_dist_label,
-            categorical_label = "Inference model",
-            plot_label_template = "True model = {col_name}",
-            ordered_labels = ordered_labels,
-            comparisons = args.comparison,
-            height = args.violin_plot_height,
-            categorical_label_size = args.violin_label_size,
-            violin_kwargs = {},
-            spaghetti_kwargs = {},
-        )
-        grid.savefig(plot_path)
+        violin_plot_stats["mean_map_model_distance"] = {
+            "label" : "MAP model distance",
+            "plot_path" : f"{plot_prefix}map-model-distance-violin-grid.{args.plot_ext}",
+        }
+
+    for stat_key, plotting_args in violin_plot_stats.items():
+        plot_path = plotting_args['plot_path']
+        stat_label = plotting_args['label']
+
+        if (not args.force) and os.path.exists(plot_path):
+            write_existing_path_warning(plot_path, sys.stderr)
+        else:
+            grid = pycoevolity.plotting.plot_violin_grid(
+                data = df,
+                value_col = stat_key,
+                plot_col = "simulation_config",
+                categorical_col = "inference_config",
+                spaghettify_col = "simulation_id",
+                spaghettify = True,
+                value_label = stat_label,
+                categorical_label = "Inference model",
+                plot_label_template = "True model = {col_name}",
+                ordered_labels = ordered_labels,
+                comparisons = args.comparison,
+                height = args.violin_plot_height,
+                categorical_label_size = args.violin_label_size,
+                violin_kwargs = {},
+                spaghetti_kwargs = {},
+            )
+            grid.savefig(plot_path)
 
     ##################################################################
     # Parameter scatter plots

@@ -104,12 +104,34 @@ class PosteriorModelSummary(object):
         p = partition.SetPartition.get_from_indices(model_tuple)
         return self.set_partitions.distances_from(p)
 
+    def vi_distances_from(self, model_tuple):
+        p = partition.SetPartition.get_from_indices(model_tuple)
+        return self.set_partitions.vi_distances_from(p)
+
+    def ari_measures_from(self, model_tuple):
+        p = partition.SetPartition.get_from_indices(model_tuple)
+        return self.set_partitions.ari_measures_from(p)
+
     def get_map_model_distances_from(self, model_tuple):
         distances = []
         p = partition.SetPartition.get_from_indices(model_tuple)
         for map_model in self.get_map_models():
             m = partition.SetPartition.get_from_indices(map_model)
             distances.append(p.distance(m))
+        return distances
+
+    def get_map_model_vi_distances_from(self, model_tuple):
+        distances = []
+        for map_model in self.get_map_models():
+            d = partition.variation_of_info_distance(model_tuple, map_model)
+            distances.append(d)
+        return distances
+
+    def get_map_model_ari_measures_from(self, model_tuple):
+        distances = []
+        for map_model in self.get_map_models():
+            d = partition.adjusted_rand_index(model_tuple, map_model)
+            distances.append(d)
         return distances
 
     def get_median_model_distances_from(self, model_tuple):
@@ -236,8 +258,20 @@ class PosteriorSummary(object):
     def distances_from(self, model_tuple):
         return self.model_summary.distances_from(model_tuple)
 
+    def vi_distances_from(self, model_tuple):
+        return self.model_summary.vi_distances_from(model_tuple)
+
+    def ari_measures_from(self, model_tuple):
+        return self.model_summary.ari_measures_from(model_tuple)
+
     def get_map_model_distances_from(self, model_tuple):
         return self.model_summary.get_map_model_distances_from(model_tuple)
+
+    def get_map_model_vi_distances_from(self, model_tuple):
+        return self.model_summary.get_map_model_vi_distances_from(model_tuple)
+
+    def get_map_model_ari_measures_from(self, model_tuple):
+        return self.model_summary.get_map_model_ari_measures_from(model_tuple)
 
     def get_median_model_distances_from(self, model_tuple):
         return self.model_summary.get_median_model_distances_from(model_tuple)
@@ -883,8 +917,20 @@ class PosteriorSample(object):
     def distances_from(self, model_tuple):
         return self.model_summary.distances_from(model_tuple)
 
+    def vi_distances_from(self, model_tuple):
+        return self.model_summary.vi_distances_from(model_tuple)
+
+    def ari_measures_from(self, model_tuple):
+        return self.model_summary.ari_measures_from(model_tuple)
+
     def get_map_model_distances_from(self, model_tuple):
         return self.model_summary.get_map_model_distances_from(model_tuple)
+
+    def get_map_model_vi_distances_from(self, model_tuple):
+        return self.model_summary.get_map_model_vi_distances_from(model_tuple)
+
+    def get_map_model_ari_measures_from(self, model_tuple):
+        return self.model_summary.get_map_model_ari_measures_from(model_tuple)
 
     def get_median_model_distances_from(self, model_tuple):
         return self.model_summary.get_median_model_distances_from(model_tuple)
