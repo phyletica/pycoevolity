@@ -1328,9 +1328,31 @@ def plot_violin(
                 df2 = df[df[categorical_col] == cat2].sort_values(by = spaghettify_col)
                 assert tuple(df1[spaghettify_col]) == tuple(df2[spaghettify_col])
                 val_diff = df1[value_col].values - df2[value_col].values
+                prop_pos = sum(1 for vd in val_diff if vd > 0) / len(val_diff)
+                prop_neg = sum(1 for vd in val_diff if vd < 0) / len(val_diff)
+                cat1_greater = True
+                if prop_neg > prop_pos:
+                    cat1_greater = False
+                cats_equal = False
+                if prop_neg == prop_pos:
+                    cats_equal = True
                 wtest = st.wilcoxon(val_diff)
                 x1 = cat_order.index(cat1)
                 x2 = cat_order.index(cat2)
+                greater_symbol = ""
+                if cats_equal:
+                    greater_symbol = "="
+                else:
+                    if cat1_greater:
+                        if x1 < x2:
+                            greater_symbol = ">"
+                        else:
+                            greater_symbol = "<"
+                    else:
+                        if x1 < x2:
+                            greater_symbol = "<"
+                        else:
+                            greater_symbol = ">"
                 level = get_bracket_level((x1, x2), existing_end_points)
                 existing_end_points.append((x1, x2))
                 level_bump = level * (2.5 * dodge)
@@ -1351,7 +1373,7 @@ def plot_violin(
                 )
                 bracket_label_y = bracket_top + level_bump + bracket_depth
                 bracket_label_x = sum((x1, x2)) / 2.0
-                bracket_label = f"$p = {wtest.pvalue:.2g}$"
+                bracket_label = f"{greater_symbol}\n$p = {wtest.pvalue:.2g}$"
                 ax.text(
                     bracket_label_x, bracket_label_y,
                     bracket_label,
