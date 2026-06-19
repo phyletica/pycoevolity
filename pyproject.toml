@@ -24,7 +24,7 @@ dependencies = [
     "scipy >=1.16",
     "numpy >=2.0",
     "seaborn >=0.13",
-    "sklearn >=1.3",
+    "scikit-learn >=1.3",
     ]
 # Using setuptools_scm to determine version based on git tags and commits
 dynamic = ["version"]
