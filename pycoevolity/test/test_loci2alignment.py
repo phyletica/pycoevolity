@@ -109,6 +109,152 @@ END;
         #     self.assertEqual(lines[i], elines[i])
         self.assertEqual(out_str, expected_out_str)
 
+    def test_remove_missing_individuals_2(self):
+        loci_path = self.get_test_path(prefix = "temp-loci")
+        loci_str = """CDS_4485_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+CDS_4658_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+CDS_4659_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTT?????????ACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+CDS_4660_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGANNNNNNNNCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8043_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTMTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8201_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8220_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8232_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTMTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+//                                                                                                        *                                 |0|
+CDS_4485_Cyrtodactylus_annulatus_Bohol           GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+CDS_4659_Cyrtodactylus_annulatus_Bohol           --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAANTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+CDS_4660_Cyrtodactylus_annulatus_Bohol           --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTNTTTCTGCAAAACNATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8043_Cyrtodactylus_annulatus_CamiguinSur     GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8201_Cyrtodactylus_annulatus_CamiguinSur     GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8220_Cyrtodactylus_annulatus_CamiguinSur     GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8232_Cyrtodactylus_annulatus_CamiguinSur     --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+//                                                                                                                                                      |1|
+"""
+        with open(loci_path, "w") as out:
+            out.write(loci_str)
+        args = [
+            "--prefix", "foo-",
+            "--suffix=-bar",
+            "--charsets",
+            "--removal-missing-proportion=0.001",
+            loci_path,
+        ]
+        out_stream = io.StringIO()
+        with redirect_stdout(out_stream):
+            loci2alignment.main_nexus(argv = args)
+        out_str = out_stream.getvalue()
+
+        expected_out_str = """#NEXUS
+
+BEGIN TAXA;
+    DIMENSIONS NTAX=6;
+    TAXLABELS
+        foo-CDS_4485_Cyrtodactylus_annulatus_Bohol-bar
+        foo-CDS_4658_Cyrtodactylus_annulatus_Bohol-bar
+        foo-RMB_8043_Cyrtodactylus_annulatus_CamiguinSur-bar
+        foo-RMB_8201_Cyrtodactylus_annulatus_CamiguinSur-bar
+        foo-RMB_8220_Cyrtodactylus_annulatus_CamiguinSur-bar
+        foo-RMB_8232_Cyrtodactylus_annulatus_CamiguinSur-bar
+    ;
+END;
+
+BEGIN CHARACTERS;
+    DIMENSIONS NCHAR=194;
+    FORMAT DATATYPE=DNA MISSING=? GAP=- INTERLEAVE=YES;
+    MATRIX
+        foo-CDS_4485_Cyrtodactylus_annulatus_Bohol-bar          TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-CDS_4658_Cyrtodactylus_annulatus_Bohol-bar          TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8043_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTMTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8201_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8220_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8232_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTMTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+
+        foo-CDS_4485_Cyrtodactylus_annulatus_Bohol-bar          GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+        foo-CDS_4658_Cyrtodactylus_annulatus_Bohol-bar          ???????????????????????????????????????????????????????????????????????????????????????????????????????
+        foo-RMB_8043_Cyrtodactylus_annulatus_CamiguinSur-bar    GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+        foo-RMB_8201_Cyrtodactylus_annulatus_CamiguinSur-bar    GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+        foo-RMB_8220_Cyrtodactylus_annulatus_CamiguinSur-bar    GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+        foo-RMB_8232_Cyrtodactylus_annulatus_CamiguinSur-bar    --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+    ;
+END;
+
+BEGIN SETS;
+    CHARSET locus1=1-91;
+    CHARSET locus2=92-194;
+END;
+"""
+        print(out_str)
+        self.assertEqual(out_str, expected_out_str)
+
+    def test_remove_missing_individuals_4(self):
+        loci_path = self.get_test_path(prefix = "temp-loci")
+        loci_str = """CDS_4485_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTA-------------ATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+CDS_4658_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+CDS_4659_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTT?????????ACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+CDS_4660_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGANNNNNNNNCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8043_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTMTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8201_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8220_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+RMB_8232_Cyrtodactylus_annulatus_CamiguinSur     TCTTTTGACAAA-CTGCAAAGCACAATCTT-CGTATAAGACTCA?ATGATGCCCATTMTTTCAGTAA?ATTTGTGCCAGAAAAGT-TT?AT
+//                                                                                                        *                                 |0|
+CDS_4485_Cyrtodactylus_annulatus_Bohol           GTATTGCATATGCACTANAATCTAGTAAATTTCAGAGTGNAATTATCAGGACCTTCTNTCTGCAAAACTATTTTNAGCATGCTNTCTACCANCAACCNTCNCA
+CDS_4659_Cyrtodactylus_annulatus_Bohol           --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAANTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+CDS_4660_Cyrtodactylus_annulatus_Bohol           --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTNTTTCTGCAAAACNATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8043_Cyrtodactylus_annulatus_CamiguinSur     GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8201_Cyrtodactylus_annulatus_CamiguinSur     GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8220_Cyrtodactylus_annulatus_CamiguinSur     GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+RMB_8232_Cyrtodactylus_annulatus_CamiguinSur     --------TATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+//                                                                                                                                                      |1|
+"""
+        with open(loci_path, "w") as out:
+            out.write(loci_str)
+        args = [
+            "--prefix", "foo-",
+            "--suffix=-bar",
+            "--charsets",
+            "--removal-missing-proportion=0.001",
+            loci_path,
+        ]
+        out_stream = io.StringIO()
+        with redirect_stdout(out_stream):
+            loci2alignment.main_nexus(argv = args)
+        out_str = out_stream.getvalue()
+
+        expected_out_str = """#NEXUS
+
+BEGIN TAXA;
+    DIMENSIONS NTAX=4;
+    TAXLABELS
+        foo-CDS_4658_Cyrtodactylus_annulatus_Bohol-bar
+        foo-RMB_8043_Cyrtodactylus_annulatus_CamiguinSur-bar
+        foo-RMB_8201_Cyrtodactylus_annulatus_CamiguinSur-bar
+        foo-RMB_8220_Cyrtodactylus_annulatus_CamiguinSur-bar
+    ;
+END;
+
+BEGIN CHARACTERS;
+    DIMENSIONS NCHAR=194;
+    FORMAT DATATYPE=DNA MISSING=? GAP=- INTERLEAVE=YES;
+    MATRIX
+        foo-CDS_4658_Cyrtodactylus_annulatus_Bohol-bar          TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8043_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTMTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8201_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+        foo-RMB_8220_Cyrtodactylus_annulatus_CamiguinSur-bar    TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT
+
+        foo-CDS_4658_Cyrtodactylus_annulatus_Bohol-bar          ???????????????????????????????????????????????????????????????????????????????????????????????????????
+        foo-RMB_8043_Cyrtodactylus_annulatus_CamiguinSur-bar    GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+        foo-RMB_8201_Cyrtodactylus_annulatus_CamiguinSur-bar    GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+        foo-RMB_8220_Cyrtodactylus_annulatus_CamiguinSur-bar    GTATTGCATATGCACTATAATCTAGTAAATTTCAGAGTGAAATTATCAGGACCTTCTTTCTGCAAAACTATTTTCAGCATGCTCTCTACCATCAACCTTCACA
+    ;
+END;
+
+BEGIN SETS;
+    CHARSET locus1=1-91;
+    CHARSET locus2=92-194;
+END;
+"""
+        print(out_str)
+        self.assertEqual(out_str, expected_out_str)
+
     def test_2_loci_remove_sample(self):
         loci_path = self.get_test_path(prefix = "temp-loci")
         loci_str = """CDS_4485_Cyrtodactylus_annulatus_Bohol           TCTTTTGACAAAGCTGCAAAGCACAATCTTCCGTATAAGACTCACATGATGCCCATTCTTTCAGTAAGATTTGTGCCAGAAAAGTTTTCAT

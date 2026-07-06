@@ -72,6 +72,16 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             default = 0,
             metavar = "NUMBER-OF-LOCI",
             help = ('Randomly subsample this number of loci without replacement.'))
+    parser.add_argument('--removal-missing-proportion',
+            type = float,
+            default = -1.0,
+            help = (
+                'If a positive proportion is specified, any individuals that '
+                'have this proportion of missing data or greater for all loci '
+                'will be removed. By default, no individuals are removed due '
+                'to missing data. If you specify \'1.0\', only individuals '
+                'with no data at all will be removed.'
+            ))
     parser.add_argument('--seed',
             action = 'store',
             type = pycoevolity.argparse_utils.arg_is_positive_int,
@@ -86,6 +96,15 @@ def main(argv = sys.argv, write_method = "write_nexus"):
     if args.split and (args.subsample > 0):
         msg = "ERROR: '--split' and '--subsample' cannot be used together"
         raise Exception(msg)
+
+    if args.removal_missing_proportion > 1.0:
+        raise Exception(
+            'removal-missing-proportion cannot be greater than 1'
+        )
+    removing_missing_individuals = False
+    if args.removal_missing_proportion > 0.0:
+        removing_missing_individuals = True
+
 
     rng = random.Random()
     if not args.seed:
@@ -102,6 +121,13 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             sequence_ids_to_remove = args.sample_to_delete,
             label_change_map_path = label_change_map_path,
             treat_n_as_missing = True)
+    if removing_missing_individuals:
+        data.populate_missing_data_proportions_matrix(
+            missing_symbols = ("?", "-", "N", "n"),
+        )
+        data.remove_missing_individuals(
+            min_missing_proportion = args.removal_missing_proportion,
+        )
     if args.prefix:
         data.label_prefix = args.prefix
     if args.suffix:

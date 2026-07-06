@@ -910,6 +910,23 @@ class Loci(object):
             self._missing_data_proportions.append(locus_missing_props)
         return
     
+    def remove_missing_individuals(
+        self,
+        min_missing_proportion = 1.0,
+    ):
+        to_remove = []
+        for label_idx, label in enumerate(self.labels):
+            keep = False
+            for locus_idx, locus_missing_props in enumerate(self._missing_data_proportions):
+                if locus_missing_props[label_idx] < min_missing_proportion:
+                    keep = True
+                    break
+            if keep == False:
+                to_remove.append(label)
+                self._sequences_removed[label] = len(self._missing_data_proportions)
+        labels_to_keep = set(l for l in self._labels if l not in to_remove)
+        self._labels = labels_to_keep
+
     def get_num_samples_with_data_per_locus(
         self,
         max_missing_prop = 0.9,
