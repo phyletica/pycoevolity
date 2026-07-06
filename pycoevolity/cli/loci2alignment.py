@@ -80,7 +80,8 @@ def main(argv = sys.argv, write_method = "write_nexus"):
                 'have this proportion of missing data or greater for all loci '
                 'will be removed. By default, no individuals are removed due '
                 'to missing data. If you specify \'1.0\', only individuals '
-                'with no data at all will be removed.'
+                'with no data at all will be removed. Note, removal is done '
+                'after subsampling or splitting.'
             ))
     parser.add_argument('--seed',
             action = 'store',
@@ -121,13 +122,6 @@ def main(argv = sys.argv, write_method = "write_nexus"):
             sequence_ids_to_remove = args.sample_to_delete,
             label_change_map_path = label_change_map_path,
             treat_n_as_missing = True)
-    if removing_missing_individuals:
-        data.populate_missing_data_proportions_matrix(
-            missing_symbols = ("?", "-", "N", "n"),
-        )
-        data.remove_missing_individuals(
-            min_missing_proportion = args.removal_missing_proportion,
-        )
     if args.prefix:
         data.label_prefix = args.prefix
     if args.suffix:
@@ -156,11 +150,21 @@ def main(argv = sys.argv, write_method = "write_nexus"):
                 auto_annotate_labels = True)
         sys.stderr.write("\tNumber of loci in set 1: {0}\n".format(data.number_of_loci))
         sys.stderr.write("\tNumber of loci in set 2: {0}\n".format(data2.number_of_loci))
+        if removing_missing_individuals:
+            data2.remove_missing_individuals(
+                min_missing_proportion = args.removal_missing_proportion,
+                missing_symbols = ("?", "-", "N", "n"),
+            )
         getattr(data2, write_method)(**write_kwargs)
     elif args.subsample > 0:
         data.sample_loci(rng = rng,
                 number_of_samples = args.subsample,
                 with_replacement = False)
+    if removing_missing_individuals:
+        data.remove_missing_individuals(
+            min_missing_proportion = args.removal_missing_proportion,
+            missing_symbols = ("?", "-", "N", "n"),
+        )
     getattr(data, write_method)(**write_kwargs)
 
 def main_nexus(argv = sys.argv):

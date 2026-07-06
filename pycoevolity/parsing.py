@@ -913,17 +913,24 @@ class Loci(object):
     def remove_missing_individuals(
         self,
         min_missing_proportion = 1.0,
+        missing_symbols = ("?", "-", "N", "n"),
     ):
+        if not self._missing_data_proportions:
+            self.populate_missing_data_proportions_matrix(missing_symbols)
         to_remove = []
+        if self._sample_indices:
+            locus_indices = self._sample_indices
+        else:
+            locus_indices = range(len(self._missing_data_proportions))
         for label_idx, label in enumerate(self.labels):
             keep = False
-            for locus_idx, locus_missing_props in enumerate(self._missing_data_proportions):
+            for locus_idx in locus_indices:
+                locus_missing_props = self._missing_data_proportions[locus_idx]
                 if locus_missing_props[label_idx] < min_missing_proportion:
                     keep = True
                     break
             if keep == False:
                 to_remove.append(label)
-                self._sequences_removed[label] = len(self._missing_data_proportions)
         labels_to_keep = set(l for l in self._labels if l not in to_remove)
         self._labels = labels_to_keep
 
