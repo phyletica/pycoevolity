@@ -273,6 +273,20 @@ def parse_cli_args():
             '        label: \"time prior mean\"\n'
         ),
     )
+    parser.add_argument(
+        '--exclude-column-titles',
+        action = 'store_true',
+        help = (
+            'Exclude column titles from grid plots.'
+        ),
+    )
+    parser.add_argument(
+        '--exclude-row-titles',
+        action = 'store_true',
+        help = (
+            'Exclude row titles from grid plots.'
+        ),
+    )
     args = parser.parse_args()
     return args
 
@@ -344,6 +358,14 @@ def main_cli():
         prefix,
     )
 
+    col_title_template = "{col_name}"
+    row_title_template = "{row_name}"
+
+    if args.exclude_column_titles:
+        col_title_template = ""
+    if args.exclude_row_titles:
+        row_title_template = ""
+
     ##################################################################
     # Plot number of events heat maps
     ##################################################################
@@ -363,6 +385,8 @@ def main_cli():
             outline_identity = True,
             annotate_stats = True,
             cred_level = args.nevents_cred_level,
+            col_title_template = col_title_template,
+            row_title_template = row_title_template,
         )
         grid.savefig(plot_path)
 
@@ -393,6 +417,8 @@ def main_cli():
             height = args.plot_height,
             scatter_kwargs = {},
             annot_true_vals_kwargs = {},
+            col_title_template = col_title_template,
+            row_title_template = row_title_template,
         )
         grid.set_axis_labels(
             "True number of events",
@@ -490,7 +516,7 @@ def main_cli():
         },
         "time_prior_parameter_1" : {
             "symbol" : None,
-            "label" : "time prior parameter 0",
+            "label" : "time prior parameter 1",
         },
     }
     scatter_params.update(parameters_to_plot)
@@ -545,6 +571,8 @@ def main_cli():
                 cred_percent = cred_interval_percent,
                 scatter_kwargs = {},
                 annotate_kwargs = {},
+                col_title_template = col_title_template,
+                row_title_template = row_title_template,
             )
             if grid:
                 grid.savefig(plot_path)
@@ -575,6 +603,8 @@ def main_cli():
                 scatter_kwargs = {},
                 annot_true_vals_kwargs = {},
                 annot_stats_kwargs = {},
+                col_title_template = col_title_template,
+                row_title_template = row_title_template,
             )
             if grid:
                 if param_info['label']:

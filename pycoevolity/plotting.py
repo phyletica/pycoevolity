@@ -173,6 +173,8 @@ def process_scatter_grid(
     cred_percent = 95,
     scatter_kwargs = {},
     annotate_kwargs = {},
+    col_title_template = "{col_name}",
+    row_title_template = "{row_name}",
 ):
     if not parameters:
         raise Exception(
@@ -248,99 +250,9 @@ def process_scatter_grid(
             cred_level = cred_level,
             scatter_kwargs = scatter_kwargs,
             annotate_kwargs = annotate_kwargs,
+            col_title_template = col_title_template,
+            row_title_template = row_title_template,
         )
-    return grid
-
-def plot_scatter_grid(
-    data_frame,
-    true_col,
-    est_col,
-    row_col,
-    column_col,
-    est_lower_col = None,
-    est_upper_col = None,
-    true_val_rank_col = None,
-    xlabel = None,
-    ylabel = None,
-    ess_col = None,
-    psrf_col = None,
-    ess_min = 200,
-    psrf_max = 1.2,
-    bad_sampling_color = "C1",
-    ordered_labels = None,
-    height = 4.5,
-    annotate_stats = True,
-    stat_label = None,
-    annot_position = (0.02, 0.98),
-    cred_level = 0.95,
-    scatter_kwargs = {},
-    annotate_kwargs = {},
-):
-    col_order = None
-    row_order = None
-    if ordered_labels:
-        row_labels = data_frame[row_col].unique()
-        col_labels = data_frame[column_col].unique()
-        row_order = [l for l in ordered_labels if l in row_labels]
-        col_order = [l for l in ordered_labels if l in col_labels]
-    grid = sns.FacetGrid(
-        data_frame,
-        row = row_col,
-        col = column_col,
-        margin_titles = True,
-        height = height,
-        row_order = row_order,
-        col_order = col_order,
-        sharey = True,
-        sharex = True,
-    )
-    grid.map_dataframe(
-        plot_scatter,
-        x = true_col,
-        y = est_col,
-        y_error_lower = est_lower_col,
-        y_error_upper = est_upper_col,
-        ess_col = ess_col,
-        psrf_col = psrf_col,
-        ess_min = ess_min,
-        psrf_max = psrf_max,
-        **scatter_kwargs,
-    )
-    y_limits = grid.axes.flat[0].get_ylim()
-    x_limits = grid.axes.flat[0].get_xlim()
-    mn = min(min(y_limits), min(x_limits))
-    mx = max(max(y_limits), max(x_limits))
-    # mn = min(min(data_frame[true_col]), min(data_frame[est_col]))
-    # mx = max(max(data_frame[true_col]), max(data_frame[est_col]))
-    for ax in grid.axes_dict.values():
-        ax_id_line(
-            ax = ax,
-            mn = mn, 
-            mx = mx,
-            color = "0.7",
-            linestyle = "-",
-            linewidth = 1.0,
-        )
-    if annotate_stats:
-        grid.map_dataframe(
-            annotate_scatter,
-            x = true_col,
-            y = est_col,
-            y_error_lower = est_lower_col,
-            y_error_upper = est_upper_col,
-            position = annot_position,
-            cred_level = cred_level,
-            stat_label = stat_label,
-            **annotate_kwargs,
-        )
-    if xlabel:
-        grid.set_xlabels(xlabel)
-    if ylabel:
-        grid.set_ylabels(ylabel)
-    grid.set_titles(
-        col_template = "{col_name}",
-        row_template = "{row_name}",
-    )
     return grid
 
 def annotate_scatter(
@@ -417,6 +329,103 @@ def annotate_scatter(
         annot_str,
         **default_args,
     )
+
+def plot_scatter_grid(
+    data_frame,
+    true_col,
+    est_col,
+    row_col,
+    column_col,
+    est_lower_col = None,
+    est_upper_col = None,
+    true_val_rank_col = None,
+    xlabel = None,
+    ylabel = None,
+    ess_col = None,
+    psrf_col = None,
+    ess_min = 200,
+    psrf_max = 1.2,
+    bad_sampling_color = "C1",
+    ordered_labels = None,
+    height = 4.5,
+    annotate_stats = True,
+    annotate_func = annotate_scatter,
+    stat_label = None,
+    annot_position = (0.02, 0.98),
+    cred_level = 0.95,
+    scatter_kwargs = {},
+    annotate_kwargs = {},
+    col_title_template = "{col_name}",
+    row_title_template = "{row_name}",
+    sharey = True,
+    sharex = True,
+):
+    col_order = None
+    row_order = None
+    if ordered_labels:
+        row_labels = data_frame[row_col].unique()
+        col_labels = data_frame[column_col].unique()
+        row_order = [l for l in ordered_labels if l in row_labels]
+        col_order = [l for l in ordered_labels if l in col_labels]
+    grid = sns.FacetGrid(
+        data_frame,
+        row = row_col,
+        col = column_col,
+        margin_titles = True,
+        height = height,
+        row_order = row_order,
+        col_order = col_order,
+        sharey = sharey,
+        sharex = sharex,
+    )
+    grid.map_dataframe(
+        plot_scatter,
+        x = true_col,
+        y = est_col,
+        y_error_lower = est_lower_col,
+        y_error_upper = est_upper_col,
+        ess_col = ess_col,
+        psrf_col = psrf_col,
+        ess_min = ess_min,
+        psrf_max = psrf_max,
+        **scatter_kwargs,
+    )
+    # mn = min(min(data_frame[true_col]), min(data_frame[est_col]))
+    # mx = max(max(data_frame[true_col]), max(data_frame[est_col]))
+    for ax in grid.axes_dict.values():
+        y_limits = ax.get_ylim()
+        x_limits = ax.get_xlim()
+        mn = min(min(y_limits), min(x_limits))
+        mx = max(max(y_limits), max(x_limits))
+        ax_id_line(
+            ax = ax,
+            mn = mn, 
+            mx = mx,
+            color = "0.7",
+            linestyle = "-",
+            linewidth = 1.0,
+        )
+    if annotate_stats:
+        grid.map_dataframe(
+            annotate_func,
+            x = true_col,
+            y = est_col,
+            y_error_lower = est_lower_col,
+            y_error_upper = est_upper_col,
+            position = annot_position,
+            cred_level = cred_level,
+            stat_label = stat_label,
+            **annotate_kwargs,
+        )
+    if xlabel:
+        grid.set_xlabels(xlabel)
+    if ylabel:
+        grid.set_ylabels(ylabel)
+    grid.set_titles(
+        col_template = col_title_template,
+        row_template = row_title_template,
+    )
+    return grid
 
 def plot_scatter(
     data,
@@ -505,6 +514,8 @@ def plot_nevents_heatmap_grid(
     outline_identity = True,
     annotate_stats = True,
     cred_level = 0.95,
+    col_title_template = "{col_name}",
+    row_title_template = "{row_name}",
 ):
     data = get_true_v_map_nevents_data_frame(data_frame, row_col, column_col)
     vmin = min(data["count"])
@@ -562,8 +573,8 @@ def plot_nevents_heatmap_grid(
         "True number of events",
         "MAP number of events")
     grid.set_titles(
-        col_template = "{col_name}",
-        row_template = "{row_name}",
+        col_template = col_title_template,
+        row_template = row_title_template,
     )
     if include_cbar:
         grid.fig.tight_layout(rect = [0, 0, 0.92, 1])
@@ -989,6 +1000,8 @@ def plot_error_scatter_grid(
     scatter_kwargs = {},
     annot_true_vals_kwargs = {},
     annot_stats_kwargs = {},
+    col_title_template = "{col_name}",
+    row_title_template = "{row_name}",
 ):
     col_order = None
     row_order = None
@@ -1068,8 +1081,8 @@ def plot_error_scatter_grid(
         )
         grid.set_xlabels("True value")
     grid.set_titles(
-        col_template = "{col_name}",
-        row_template = "{row_name}",
+        col_template = col_title_template,
+        row_template = row_title_template,
     )
     # grid.figure.subplots_adjust(wspace = 0.05, hspace = 0.05)
     return grid
@@ -1096,6 +1109,8 @@ def process_error_scatter_grid(
     scatter_kwargs = {},
     annot_true_vals_kwargs = {},
     annot_stats_kwargs = {},
+    col_title_template = "{col_name}",
+    row_title_template = "{row_name}",
 ):
     if not parameters:
         raise Exception(
@@ -1171,6 +1186,8 @@ def process_error_scatter_grid(
             scatter_kwargs = scatter_kwargs,
             annot_true_vals_kwargs = annot_true_vals_kwargs,
             annot_stats_kwargs = annot_stats_kwargs,
+            col_title_template = col_title_template,
+            row_title_template = row_title_template,
         )
     return grid
 
