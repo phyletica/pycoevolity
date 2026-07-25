@@ -14,7 +14,10 @@ def parse_config_label_order_arg(arg, sep):
     labels = [x.strip() for x in arg.split(sep)]
     return tuple(labels)
 
-def parse_cli_args():
+def parse_cli_args(
+    col_title_template_default = "{col_name}",
+    row_title_template_default = "{row_name}",
+):
     parser = argparse.ArgumentParser(
         formatter_class = pycoevolity.argparse_utils.SmartDefaultsHelpFormatter,
     )
@@ -287,6 +290,26 @@ def parse_cli_args():
             'Exclude row titles from grid plots.'
         ),
     )
+    parser.add_argument(
+        '--column-title-template',
+        type = str,
+        default = col_title_template_default,
+        help = (
+            'Template string used to format column titles. '
+            'This string is passed to '
+            'seaborn.FacetGrid.set_titles method.'
+        ),
+    )
+    parser.add_argument(
+        '--row-title-template',
+        type = str,
+        default = row_title_template_default,
+        help = (
+            'Template string used to format row titles. '
+            'This string is passed to '
+            'seaborn.FacetGrid.set_titles method.'
+        ),
+    )
     args = parser.parse_args()
     return args
 
@@ -307,7 +330,12 @@ def parse_parameter_yaml(path):
     return ret
 
 def main_cli():
-    args = parse_cli_args()
+    col_title_template_default = "{col_name}"
+    row_title_template_default = "{row_name}"
+    args = parse_cli_args(
+        col_title_template_default = col_title_template_default,
+        row_title_template_default = row_title_template_default,
+    )
 
     sns.set_theme(
         context = args.context,
@@ -358,8 +386,8 @@ def main_cli():
         prefix,
     )
 
-    col_title_template = "{col_name}"
-    row_title_template = "{row_name}"
+    col_title_template = args.column_title_template
+    row_title_template = args.row_title_template
 
     if args.exclude_column_titles:
         col_title_template = ""
@@ -467,6 +495,9 @@ def main_cli():
             "plot_path" : f"{plot_prefix}map-model-distance-violin-grid.{args.plot_ext}",
         }
 
+    plot_label_template = row_title_template.replace("row_name", "col_name")
+    if row_title_template == row_title_template_default:
+        plot_label_template = "True model: {col_name}",
     for stat_key, plotting_args in violin_plot_stats.items():
         plot_path = plotting_args['plot_path']
         stat_label = plotting_args['label']
@@ -483,7 +514,7 @@ def main_cli():
                 spaghettify = True,
                 value_label = stat_label,
                 categorical_label = "Inference model",
-                plot_label_template = "True model = {col_name}",
+                plot_label_template = plot_label_template,
                 ordered_labels = ordered_labels,
                 comparisons = args.comparison,
                 height = args.violin_plot_height,
