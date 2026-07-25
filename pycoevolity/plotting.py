@@ -930,6 +930,7 @@ def annotate_true_values_on_error_scatter(
     df["x"] = range(1, len(df) + 1)
     ax = plt.gca()
     uniq_true_values = df[true_val_col].unique()
+    x_range = len(df)
     if len(uniq_true_values) < 30:
         annot_args = {
             "horizontalalignment" : "center",
@@ -948,9 +949,10 @@ def annotate_true_values_on_error_scatter(
         first_last_buffer = len(df) * 0.05
         prev_x_sep = 1.0 - first_last_buffer
         prev_true_val = uniq_true_values[0]
+        prev_x_pos = -1e10
         for i, true_val in enumerate(uniq_true_values[1:]):
             first_row = df.loc[df[true_val_col] == true_val].iloc[0]
-            x_sep = first_row["x"] + 0.5
+            x_sep = first_row["x"] - 0.5
             ax.axvline(
                 x = x_sep,
                 color = "0.7",
@@ -960,21 +962,26 @@ def annotate_true_values_on_error_scatter(
             )
             annot_str = f"{prev_true_val}"
             x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
-            ax.text(
-                x_pos, annot_y_position,
-                annot_str,
-                **annot_args,
-            )
+            space = (x_pos - prev_x_pos) / x_range
+            if space > 0.04:
+                ax.text(
+                    x_pos, annot_y_position,
+                    annot_str,
+                    **annot_args,
+                )
+                prev_x_pos = x_pos
             prev_x_sep = x_sep
             prev_true_val = true_val
         x_sep = len(df) + first_last_buffer
         annot_str = f"{prev_true_val}"
         x_pos = prev_x_sep + ((x_sep - prev_x_sep) / 2.0)
-        ax.text(
-            x_pos, annot_y_position,
-            annot_str,
-            **annot_args,
-        )
+        space = (x_pos - prev_x_pos) / x_range
+        if space > 0.03:
+            ax.text(
+                x_pos, annot_y_position,
+                annot_str,
+                **annot_args,
+            )
 
 def plot_error_scatter_grid(
     data_frame,
