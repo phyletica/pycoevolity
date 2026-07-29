@@ -67,6 +67,20 @@ def main(argv = sys.argv):
             action = 'store_true',
             help = ('Create and execute an R script for plotting with ggplot2. '
                     'Default is to use matplotlib for plotting.'))
+    parser.add_argument(
+        '--plot-ext',
+        type = str,
+        default = 'pdf',
+        help = (
+            'The file extension (and format) to use for output plotting files. '
+            'Examples: '
+            '\'--plot-ext pdf\' (default), '
+            '\'--plot-ext svg\', '
+            '\'--plot-ext png\', '
+            '\'--plot-ext jpg\', etc. '
+            'Any file formats supported by matplotlib should work.'
+        ),
+    )
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -77,17 +91,17 @@ def main(argv = sys.argv):
     if len(prefix.split(os.path.sep)) < 2:
         prefix = os.path.join(os.curdir, prefix)
 
-    pdf_path = prefix + "pycoevolity-nevents.pdf"
-    output_dir = os.path.dirname(pdf_path)
+    plot_path = prefix + f"pycoevolity-nevents.{args.plot_ext}"
+    output_dir = os.path.dirname(plot_path)
     if not output_dir:
         output_dir = os.curdir
     if not args.force:
-        if os.path.exists(pdf_path):
+        if os.path.exists(plot_path):
             raise Exception(
                     "\nERROR: File {0!r} already exists.\n"
                     "Use \'-p/--prefix\' option to specify a different prefix,\n"
                     "or the \'-f/--force\' option to overwrite existing "
-                    "files.".format(pdf_path))
+                    "files.".format(plot_path))
 
     sys.stderr.write("Parsing nevents file...\n")
     nevents = pycoevolity.posterior.SumcoevolityNeventsTable(args.nevents_path)
@@ -97,6 +111,10 @@ def main(argv = sys.argv):
         if nevents.no_prior:
             args.y_label = "Posterior probability"
 
+    ##########################################################################
+    # This code is redundant with pycoevolity.plotting.plot_num_events, but
+    # leaving it here for producing R script below without the requirement for
+    # matplotlib
     max_prob = max(nevents.posterior_probs)
     prior_probs = [0.0] * nevents.number_of_elements
     bfs = ["0"] * nevents.number_of_elements
@@ -112,6 +130,7 @@ def main(argv = sys.argv):
         for i, a in enumerate(nevents.bayes_factors_annotations):
             if a:
                 bfs[i] = a + bfs[i]
+    ##########################################################################
 
     plot_width = args.width
     plot_height = plot_width / 1.618034
@@ -127,7 +146,6 @@ def main(argv = sys.argv):
         args.use_r = True
 
     add_legend = (not nevents.no_prior) and (not args.no_legend)
-    bump_bfs = add_legend and (args.legend_in_plot)
 
     if not args.use_r:
         #######################################################################
@@ -143,93 +161,34 @@ def main(argv = sys.argv):
                 hspace = 0.0)
         ax = plt.subplot(gs[0, 0])
 
-        nevents_indices = [float(x) for x in range(nevents.number_of_elements)]
-        bar_width = 0.45
-        if nevents.no_prior:
-            bar_width *= 2.0
-        posterior_color = "0.3"
-        prior_color = "0.85"
+        prior_probs, bfs = pycoevolity.plotting.plot_num_events(
+            ax = ax,
+            nevents_table = nevents,
+            x_label = args.x_label,
+            y_label = args.y_label,
+            posterior_color = "0.3",
+            prior_color = "0.85",
+            bar_width = 0.45,
+            bayes_factor_font_size = args.bf_font_size,
+            full_prob_axis = args.full_prob_axis,
+            add_legend = add_legend,
+            legend_in_plot = args.legend_in_plot,
+        )
 
-        bars_posterior = ax.bar(
-                nevents_indices,
-                nevents.posterior_probs,
-                bar_width,
-                color = posterior_color,
-                label = "Posterior")
-        if not nevents.no_prior:
-            bars_prior = ax.bar(
-                    [x + bar_width for x in nevents_indices],
-                    prior_probs,
-                    bar_width,
-                    color = prior_color,
-                    label = "Prior")
-
-        ax.set_xlabel(args.x_label)
-        ax.set_ylabel(args.y_label)
-
-        x_tick_labels = [str(i + 1) for i in range(nevents.number_of_elements)]
-        if nevents.no_prior:
-            ax.set_ylabel("Posterior probability")
-            plt.xticks(
-                    nevents_indices,
-                    x_tick_labels
-                    )
-            if args.full_prob_axis:
-                ax.set_ylim(0.0, 1.0)
-        else:
-            y_min, y_max = ax.get_ylim()
-            y_max *= 1.08
-            if args.legend_in_plot:
-                y_max *= 1.1
-            if args.full_prob_axis:
-                y_min = 0.0
-                if y_max < 1.0:
-                    y_max = 1.0
-            ax.set_ylim(y_min, y_max)
-            bar_midpoints = [x + (bar_width / 2.0) for x in nevents_indices]
-            plt.xticks(
-                    bar_midpoints,
-                    x_tick_labels
-                    )
-            for i, x in enumerate(bar_midpoints):
-                upper_loc = 0.99
-                lower_loc = 0.94
-                if bump_bfs:
-                    upper_loc = 0.89
-                    lower_loc = 0.84
-                bf = bfs[i]
-                y = y_max * upper_loc
-                if ((i + 1) % 2) == 0:
-                    y = y_max * lower_loc
-                ax.text(x, y, bf,
-                        horizontalalignment = "center",
-                        verticalalignment = "top",
-                        size = args.bf_font_size,
-                        zorder = 300)
-
-        if add_legend:
-            loc = 'lower center'
-            if args.legend_in_plot:
-                loc = 'upper center'
-            ax.legend(loc=loc, bbox_to_anchor=(0.5, 1.0), ncol=2)
-        else:
-            l = ax.legend()
-            if l:
-                l.remove()
         fig.tight_layout()
-        plt.savefig(pdf_path)
+        plt.savefig(plot_path)
 
         sys.exit()
-
 
     ###########################################################################
     # Creating and executing R script for plotting
     ###########################################################################
     r_path = prefix + "pycoevolity-plot-nevents.R"
+    pdf_path = prefix + "pycoevolity-nevents.pdf"
     png_path = prefix + "pycoevolity-nevents.png"
     svg_path = prefix + "pycoevolity-nevents.svg"
     if not args.force:
-        for p in [r_path, png_path, svg_path]:
+        for p in [r_path, png_path, pdf_path, svg_path]:
             if os.path.exists(p):
                 raise Exception(
                         "\nERROR: File {0!r} already exists.\n"

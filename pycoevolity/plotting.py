@@ -1429,3 +1429,329 @@ def plot_violin(
                 line,
                 **spag_kwargs,
             )
+
+def plot_num_events(
+    ax,
+    nevents_table,
+    x_label = "Number of events",
+    y_label = None,
+    posterior_color = "0.3",
+    prior_color = "0.85",
+    bar_width = 0.45,
+    bayes_factor_font_size = 8.0,
+    full_prob_axis = False,
+    add_legend = False,
+    legend_in_plot = False,
+):
+    nevents = nevents_table
+
+    if nevents.no_prior:
+        add_legend = False
+    bump_bfs = add_legend and legend_in_plot
+
+    if y_label is None:
+        y_label = "Probability"
+        if nevents.no_prior:
+            y_label = "Posterior probability"
+
+    max_prob = max(nevents.posterior_probs)
+    prior_probs = [0.0] * nevents.number_of_elements
+    bfs = ["0"] * nevents.number_of_elements
+    if not nevents.no_prior:
+        max_prob = max(nevents.posterior_probs + nevents.prior_probs)
+        prior_probs = nevents.prior_probs
+        bfs = []
+        for bayes_factor in nevents.bayes_factors:
+            if bayes_factor is None:
+                bfs.append("")
+                continue
+            bfs.append("{:.3g}".format(bayes_factor))
+        for i, a in enumerate(nevents.bayes_factors_annotations):
+            if a:
+                bfs[i] = a + bfs[i]
+
+    nevents_indices = [float(x) for x in range(nevents.number_of_elements)]
+    if nevents.no_prior:
+        bar_width *= 2.0
+
+    bars_posterior = ax.bar(
+            nevents_indices,
+            nevents.posterior_probs,
+            bar_width,
+            color = posterior_color,
+            label = "Posterior")
+    if not nevents.no_prior:
+        bars_prior = ax.bar(
+                [x + bar_width for x in nevents_indices],
+                prior_probs,
+                bar_width,
+                color = prior_color,
+                label = "Prior")
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+
+    x_tick_labels = [str(i + 1) for i in range(nevents.number_of_elements)]
+    if nevents.no_prior:
+        ax.set_ylabel("Posterior probability")
+        ax.set_xticks(
+                nevents_indices,
+                x_tick_labels
+                )
+        if full_prob_axis:
+            ax.set_ylim(0.0, 1.0)
+    else:
+        y_min, y_max = ax.get_ylim()
+        y_max *= 1.08
+        if legend_in_plot:
+            y_max *= 1.1
+        if full_prob_axis:
+            y_min = 0.0
+            if y_max < 1.0:
+                y_max = 1.0
+        ax.set_ylim(y_min, y_max)
+        bar_midpoints = [x + (bar_width / 2.0) for x in nevents_indices]
+        ax.set_xticks(
+                bar_midpoints,
+                x_tick_labels
+                )
+        for i, x in enumerate(bar_midpoints):
+            upper_loc = 0.99
+            lower_loc = 0.94
+            if bump_bfs:
+                upper_loc = 0.89
+                lower_loc = 0.84
+            bf = bfs[i]
+            y = y_max * upper_loc
+            if ((i + 1) % 2) == 0:
+                y = y_max * lower_loc
+            ax.text(x, y, bf,
+                    horizontalalignment = "center",
+                    verticalalignment = "top",
+                    size = bayes_factor_font_size,
+                    zorder = 300)
+
+    if add_legend:
+        loc = 'lower center'
+        if legend_in_plot:
+            loc = 'upper center'
+        ax.legend(loc=loc, bbox_to_anchor=(0.5, 1.0), ncol=2)
+    else:
+        l = ax.legend()
+        if l:
+            l.remove()
+    return prior_probs, bfs
+
+def plot_num_events_with_bf(
+    ax,
+    nevents_table,
+    x_label = "Number of events",
+    left_y_label = None,
+    right_y_label = None,
+    posterior_color = "0.3",
+    prior_color = "0.85",
+    bf_marker = "o",
+    bf_markersize = 4,
+    bf_markerfacecolor = "none",
+    bf_markeredgecolor = "black",
+    bf_markeredgewidth = 1.0,
+    bf_label = "Bayes factor",
+    bar_width = 0.45,
+    full_prob_axis = False,
+    add_legend = False,
+    legend_in_plot = False,
+):
+    nevents = nevents_table
+    if nevents.no_prior:
+        add_legend = False
+
+    if left_y_label is None:
+        left_y_label = "Probability"
+        if nevents.no_prior:
+            left_y_label = "Posterior probability"
+
+    if right_y_label is None:
+        if not nevents.no_prior:
+            right_y_label = "Bayes factor"
+
+    nevents_indices = [float(x) for x in range(nevents.number_of_elements)]
+    max_prob = max(nevents.posterior_probs)
+    prior_probs = [0.0] * nevents.number_of_elements
+    bfs = []
+    bf_nevent_indices= []
+    if not nevents.no_prior:
+        max_prob = max(nevents.posterior_probs + nevents.prior_probs)
+        prior_probs = nevents.prior_probs
+        for i, bayes_factor in enumerate(nevents.bayes_factors):
+            if bayes_factor is None:
+                continue
+            bf_annot = nevents.bayes_factors_annotations[i]
+            if bf_annot:
+                continue
+            bfs.append(bayes_factor)
+            bf_nevent_indices.append(nevents_indices[i])
+
+    if nevents.no_prior:
+        bar_width *= 2.0
+
+    bars_posterior = ax.bar(
+            nevents_indices,
+            nevents.posterior_probs,
+            bar_width,
+            color = posterior_color,
+            label = "Posterior")
+    if not nevents.no_prior:
+        bars_prior = ax.bar(
+                [x + bar_width for x in nevents_indices],
+                prior_probs,
+                bar_width,
+                color = prior_color,
+                label = "Prior")
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(left_y_label)
+
+    x_tick_labels = [str(i + 1) for i in range(nevents.number_of_elements)]
+    if nevents.no_prior:
+        ax.set_xticks(
+                nevents_indices,
+                x_tick_labels
+                )
+        if full_prob_axis:
+            ax.set_ylim(0.0, 1.0)
+    else:
+        y_min, y_max = ax.get_ylim()
+        if legend_in_plot:
+            y_max *= 1.1
+        if full_prob_axis:
+            y_min = 0.0
+            if y_max < 1.0:
+                y_max = 1.0
+        ax.set_ylim(y_min, y_max)
+        bar_midpoints = [x + (bar_width / 2.0) for x in nevents_indices]
+        ax.set_xticks(
+                bar_midpoints,
+                x_tick_labels
+                )
+        twin_ax = ax.twinx()
+        twin_ax.set_ylabel(right_y_label)
+        line, = twin_ax.plot(
+            bf_nevent_indices,
+            bfs,
+            linestyle = '',
+            marker = bf_marker,
+            markersize = bf_markersize,
+            markerfacecolor = bf_markerfacecolor,
+            markeredgecolor = bf_markeredgecolor,
+            markeredgewidth = bf_markeredgewidth,
+        )
+        if bf_label:
+            line.set_label(bf_label)
+
+    if add_legend:
+        loc = 'lower center'
+        if legend_in_plot:
+            loc = 'upper center'
+        ax.legend(loc=loc, bbox_to_anchor=(0.5, 1.0), ncol=2)
+    else:
+        l = ax.legend()
+        if l:
+            l.remove()
+    return twin_ax
+
+def plot_comparison_times(
+    ax,
+    posterior_sample,
+    label_map = {},
+    x_label = None,
+    y_label = None,
+    comparisons_to_ignore = [],
+    include_map_model = False,
+    colors = None,
+    x_limits = None,
+    include_zero = False,
+):
+    posterior = posterior_sample
+    labels, heights = posterior.get_labels_and_heights(
+        label_map = label_map,
+        comparisons_to_ignore = comparisons_to_ignore,
+        include_model_indices = include_map_model,
+    )
+
+    if colors and (len(colors) != len(labels)):
+        raise Exception(
+                "\nError: The number of colors ({0}) does not match the\n"
+                "number of comparisons ({1})".format(
+                        len(colors),
+                        len(labels)))
+
+    positions = range(1, len(heights) + 1)
+    v = ax.violinplot(heights,
+            positions = positions,
+            vert = False,
+            widths = 0.9,
+            showmeans = False,
+            showextrema = False,
+            showmedians = False,
+            points = 100,
+            bw_method = None,
+            )
+
+    if not colors:
+        colors = ["gray"] * len(labels)
+    for i in range(len(v["bodies"])):
+        v["bodies"][i].set_alpha(1)
+        v["bodies"][i].set_facecolor(colors[i])
+        v["bodies"][i].set_edgecolor(colors[i])
+
+    means = []
+    ci_lower = []
+    ci_upper = []
+    for sample in heights:
+        summary = pycoevolity.stats.get_summary(sample)
+        means.append(summary["mean"])
+        ci_lower.append(summary["qi_95"][0])
+        ci_upper.append(summary["qi_95"][1])
+    ax.hlines(positions, ci_lower, ci_upper,
+            colors = "black",
+            linestyle = "solid",
+            zorder = 100)
+    ax.scatter(ci_lower, positions,
+            marker = "|",
+            color = "black",
+            s = 120,
+            zorder = 200,
+            )
+    ax.scatter(ci_upper, positions,
+            marker = "|",
+            color = "black",
+            s = 120,
+            zorder = 200,
+            )
+    ax.scatter(means, positions,
+            marker = ".",
+            color = "white",
+            s = 50,
+            zorder = 300,
+            )
+
+    if x_limits:
+        xlims = sorted(x_limits)
+        ax.set_xlim(xlims[0], xlims[1])
+    elif include_zero:
+        xlims = list(ax.get_xlim())
+        xlims[0] = 0.0
+        ax.set_xlim(xlims[0], xlims[1])
+
+    ax.yaxis.set_ticks(range(1, len(labels) + 1))
+    ytick_labels = [item for item in ax.get_yticklabels()]
+    assert(len(ytick_labels) == len(labels))
+    for i in range(len(ytick_labels)):
+        ytick_labels[i].set_text(labels[i])
+    ax.set_yticklabels(ytick_labels)
+
+    if not x_label is None:
+        ax.set_xlabel(x_label)
+    if not y_label is None:
+        ax.set_ylabel(y_label)
+

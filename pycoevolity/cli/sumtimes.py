@@ -112,6 +112,20 @@ def main(argv = sys.argv):
     parser.add_argument('--no-plot',
             action = 'store_true',
             help = ('Skip plotting; only report summary table.'))
+    parser.add_argument(
+        '--plot-ext',
+        type = str,
+        default = 'pdf',
+        help = (
+            'The file extension (and format) to use for output plotting files. '
+            'Examples: '
+            '\'--plot-ext pdf\' (default), '
+            '\'--plot-ext svg\', '
+            '\'--plot-ext png\', '
+            '\'--plot-ext jpg\', etc. '
+            'Any file formats supported by matplotlib should work.'
+        ),
+    )
 
     if argv == sys.argv:
         args = parser.parse_args()
@@ -122,21 +136,17 @@ def main(argv = sys.argv):
     if len(prefix.split(os.path.sep)) < 2:
         prefix = os.path.join(os.curdir, prefix)
 
-    r_path = prefix + "pycoevolity-plot-times.R"
-    pdf_path = prefix + "pycoevolity-times.pdf"
-    png_path = prefix + "pycoevolity-times.png"
-    svg_path = prefix + "pycoevolity-times.svg"
-    output_dir = os.path.dirname(r_path)
+    plot_path = prefix + f"pycoevolity-times.{args.plot_ext}"
+    output_dir = os.path.dirname(plot_path)
     if not output_dir:
         output_dir = os.curdir
     if not args.force:
-        for p in [r_path, pdf_path, png_path, svg_path]:
-            if os.path.exists(p):
-                raise Exception(
-                        "\nERROR: File {0!r} already exists.\n"
-                        "Use \'-p/--prefix\' option to specify a different prefix,\n"
-                        "or the \'-f/--force\' option to overwrite existing "
-                        "files.".format(p))
+        if os.path.exists(plot_path):
+            raise Exception(
+                    "\nERROR: File {0!r} already exists.\n"
+                    "Use \'-p/--prefix\' option to specify a different prefix,\n"
+                    "or the \'-f/--force\' option to overwrite existing "
+                    "files.".format(plot_path))
     label_map = {}
     if args.label:
         for label, replacement in args.label:
@@ -185,98 +195,46 @@ def main(argv = sys.argv):
         # }
         # mpl.rcParams.update(tex_font_settings)
 
-        labels, heights = posterior.get_labels_and_heights(
-                label_map = label_map,
-                comparisons_to_ignore = comparisons_to_ignore,
-                include_model_indices = args.include_map_model)
-
-        if args.colors and (len(args.colors) != len(labels)):
-            raise Exception(
-                    "\nError: The number of colors ({0}) does not match the\n"
-                    "number of comparisons ({1})".format(
-                            len(args.colors),
-                            len(labels)))
-
         fig = plt.figure(figsize = (plot_width, plot_height))
         gs = gridspec.GridSpec(1, 1,
                 wspace = 0.0,
                 hspace = 0.0)
         ax = plt.subplot(gs[0, 0])
-        positions = range(1, len(heights) + 1)
-        v = ax.violinplot(heights,
-                positions = positions,
-                vert = False,
-                widths = 0.9,
-                showmeans = False,
-                showextrema = False,
-                showmedians = False,
-                points = 100,
-                bw_method = None,
-                )
 
-        if not args.colors:
-            args.colors = ["gray"] * len(labels)
-        for i in range(len(v["bodies"])):
-            v["bodies"][i].set_alpha(1)
-            v["bodies"][i].set_facecolor(args.colors[i])
-            v["bodies"][i].set_edgecolor(args.colors[i])
-
-        means = []
-        ci_lower = []
-        ci_upper = []
-        for sample in heights:
-            summary = pycoevolity.stats.get_summary(sample)
-            means.append(summary["mean"])
-            ci_lower.append(summary["qi_95"][0])
-            ci_upper.append(summary["qi_95"][1])
-        ax.hlines(positions, ci_lower, ci_upper,
-                colors = "black",
-                linestyle = "solid",
-                zorder = 100)
-        ax.scatter(ci_lower, positions,
-                marker = "|",
-                color = "black",
-                s = 120,
-                zorder = 200,
-                )
-        ax.scatter(ci_upper, positions,
-                marker = "|",
-                color = "black",
-                s = 120,
-                zorder = 200,
-                )
-        ax.scatter(means, positions,
-                marker = ".",
-                color = "white",
-                s = 50,
-                zorder = 300,
-                )
-
-        if args.x_limits:
-            xlims = sorted(args.x_limits)
-            ax.set_xlim(xlims[0], xlims[1])
-        elif args.include_zero:
-            xlims = list(ax.get_xlim())
-            xlims[0] = 0.0
-            ax.set_xlim(xlims[0], xlims[1])
-
-        ax.yaxis.set_ticks(range(1, len(labels) + 1))
-        ytick_labels = [item for item in ax.get_yticklabels()]
-        assert(len(ytick_labels) == len(labels))
-        for i in range(len(ytick_labels)):
-            ytick_labels[i].set_text(labels[i])
-        ax.set_yticklabels(ytick_labels)
-
-        ax.set_xlabel(
-                args.x_label)
-        ax.set_ylabel(
-                args.y_label)
+        pycoevolity.plotting.plot_comparison_times(
+            ax = ax,
+            posterior_sample = posterior,
+            label_map = label_map,
+            x_label = args.x_label,
+            y_label = args.y_label,
+            comparisons_to_ignore = comparisons_to_ignore,
+            include_map_model = args.include_map_model,
+            colors = args.colors,
+            x_limits = args.x_limits,
+            include_zero = args.include_zero,
+        )
 
         fig.tight_layout()
-        plt.savefig(pdf_path)
+        plt.savefig(plot_path)
         sys.stderr.write("Here are the outputs:\n")
-        sys.stderr.write("    PDF plot: {0!r}\n".format(pdf_path))
+        sys.stderr.write("    Plot: {0!r}\n".format(plot_path))
         sys.exit(0)
+
+    ###########################################################################
+    # Creating and executing R script for plotting
+    ###########################################################################
+    r_path = prefix + "pycoevolity-plot-times.R"
+    pdf_path = prefix + "pycoevolity-times.pdf"
+    png_path = prefix + "pycoevolity-times.png"
+    svg_path = prefix + "pycoevolity-times.svg"
+    if not args.force:
+        for p in [r_path, png_path, pdf_path, svg_path]:
+            if os.path.exists(p):
+                raise Exception(
+                        "\nERROR: File {0!r} already exists.\n"
+                        "Use \'-p/--prefix\' option to specify a different prefix,\n"
+                        "or the \'-f/--force\' option to overwrite existing "
+                        "files.".format(p))
 
     labels, heights = posterior.get_heights_2d(
             label_map = label_map,
