@@ -1589,7 +1589,7 @@ def plot_num_events_with_bf(
             if bf_annot:
                 continue
             bfs.append(bayes_factor)
-            bf_nevent_indices.append(nevents_indices[i])
+            bf_nevent_indices.append(i)
 
     if nevents.no_prior:
         bar_width *= 2.0
@@ -1635,8 +1635,9 @@ def plot_num_events_with_bf(
                 )
         twin_ax = ax.twinx()
         twin_ax.set_ylabel(right_y_label)
+        bf_x = [bar_midpoints[i] for i in bf_nevent_indices]
         line, = twin_ax.plot(
-            bf_nevent_indices,
+            bf_x,
             bfs,
             linestyle = '',
             marker = bf_marker,
