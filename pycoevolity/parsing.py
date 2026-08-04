@@ -1148,7 +1148,8 @@ class Loci(object):
                         path = path_for_table))
 
     def write_nexus(self, stream = None,
-            include_charset_block = False):
+            include_charset_block = False,
+            include_charpartition = False):
         if stream is None:
             stream = sys.stdout
         stream.write("#NEXUS\n\n")
