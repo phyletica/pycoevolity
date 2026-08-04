@@ -63,8 +63,8 @@ def main(argv = sys.argv, write_method = "write_nexus"):
                     'is ignored if output format is not nexus.'))
     parser.add_argument('--charpartition',
             action = 'store_true',
-            help = ('Include charpartition definition in output nexus file.
-                    This option is ignored if output format is not nexus.'))
+            help = ('Include charpartition definition in output nexus file. '
+                    'This option is ignored if output format is not nexus.'))
     parser.add_argument('--split',
             action = 'store_true',
             help = ('Randomly split loci into two output alignments. This '
