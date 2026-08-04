@@ -828,6 +828,26 @@ class Loci(object):
             total_n_sites += n
         stream.write("END;\n")
 
+    def write_nexus_charpartition(self, stream):
+        nsites = self._numbers_of_sites
+        if self._sample_indices:
+            nsites = [n for i, n in enumerate(self._numbers_of_sites) if i in self._sample_indices]
+        stream.write("BEGIN SETS;\n")
+        stream.write("    CHARPARTITION loci =\n")
+        total_n_sites = 0
+        for i, n in enumerate(nsites):
+            if i > 0:
+                stream.write(",\n")
+            stream.write(
+                "        {locus_id}: {start}-{end}".format(
+                    locus_id = i + 1,
+                    start = total_n_sites + 1,
+                    end = total_n_sites + n,
+                )
+            )
+            total_n_sites += n
+        stream.write(";\nEND;\n")
+
     @staticmethod
     def _parse_tmp_locus_file(path):
         seqs = {}
@@ -1140,6 +1160,9 @@ class Loci(object):
         if include_charset_block:
             stream.write("\n")
             self.write_nexus_charset_block(stream)
+        if include_charpartition:
+            stream.write("\n")
+            self.write_nexus_charpartition(stream)
 
     def write_phylip(self, stream = None):
         if stream is None:
