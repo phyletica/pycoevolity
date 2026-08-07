@@ -59,6 +59,36 @@ class GetPropSharedAndDiffTestCase(unittest.TestCase):
         p_shared, p_diff = seq.get_overlap_and_diff(seq_a, seq_b)
         self.assertTrue(p_shared == (5.0/6.0))
         self.assertTrue(p_diff == (1.0/5.0))
+
+class RemoveAllMissingSitesTestCase(unittest.TestCase):
+    def test_unaligned(self):
+        seqs = (
+            ('seq_a', "AAGTC-?N-?"),
+            ('seq_b', "AGTC-?N-?"),
+        )
+        self.assertRaises(ValueError, seq.remove_missing_columns, seqs)
+
+    def test_no_all_missing(self):
+        seqs = (
+            ('seq_a', "????-ACGT"),
+            ('seq_b', "AGTCG-???"),
+        )
+        new_seqs = seq.remove_missing_columns(seqs)
+        list_seqs = [[lab, list(seq)] for lab, seq in seqs]
+        self.assertTrue(new_seqs == list_seqs)
+
+    def test_all_missing(self):
+        seqs = (
+            ('seq_a', "--A?C??G-T???"),
+            ('seq_b', "??A?C--G-T???"),
+        )
+        new_seqs = seq.remove_missing_columns(seqs)
+        expected_seqs = [
+            ['seq_a', list("ACGT")],
+            ['seq_b', list("ACGT")],
+        ]
+
+        self.assertTrue(new_seqs == expected_seqs)
         
 if __name__ == '__main__':
     unittest.main()

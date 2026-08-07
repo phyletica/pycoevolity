@@ -11,6 +11,7 @@ import json
 
 from pycoevolity.fileio import ReadFile
 from pycoevolity import tempfs
+from pycoevolity import seq as seq_utils
 import pycoevolity
 
 _LOG = logging.getLogger(__name__)
@@ -538,7 +539,7 @@ class Loci(object):
                 self._population_to_labels[pop] = set([label])
         self._populations = sorted(self._population_to_labels.keys())
 
-    def _process_locus(self, sequences):
+    def _process_locus(self, sequences, remove_missing_columns = False):
         if self._treat_n_as_missing:
             seqs = []
             for seq_label, seq_chars in sequences:
@@ -553,6 +554,11 @@ class Loci(object):
                 else:
                     seqs.append((seq_label, seq_chars))
             sequences = seqs
+        if remove_missing_columns:
+            sequences = seq_utils.remove_missing_columns(
+                labeled_seqs = sequences,
+                missing_symbols = {'?', '-'},
+            )
         if self.convert_to_binary or self._remove_triallelic_sites:
             sequences = [[label, list(s)] for label, s in sequences]
         sequences = list(sequences)
@@ -681,7 +687,7 @@ class Loci(object):
             seqs = []
             for i, line in enumerate(stream):
                 if line.startswith("//"):
-                    self._process_locus(seqs)
+                    self._process_locus(seqs, remove_missing_columns = True)
                     seqs = []
                     continue
                 try:
@@ -698,7 +704,7 @@ class Loci(object):
                 # seq = seq.replace("N", "?")
                 seqs.append([label, [c for c in seq]])
         if seqs:
-            self._process_locus(seqs)
+            self._process_locus(seqs, remove_missing_columns = True)
         assert len(self._numbers_of_sites) == len(self._tmp_locus_paths)
 
     def _get_label_suffix(self):

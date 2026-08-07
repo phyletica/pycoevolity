@@ -25,3 +25,23 @@ def get_overlap_and_diff(seq1, seq2, missing_symbols = ("?", "-", "N", "n")):
     if num_shared_sites > 0:
         prop_shared_diffs = num_shared_site_diffs / float(num_shared_sites)
     return prop_shared, prop_shared_diffs
+
+def get_shared_indices(seqs, symbol_set):
+    gap_chars = {'?', '-'}
+    try:
+        indices = [i for i, col in enumerate(zip(*seqs, strict = True)) if all(c in symbol_set for c in col)]
+    except ValueError as e:
+        sys.stderr.write("get_shared_indices requires aligned sequences")
+        raise e
+    return indices
+
+def get_missing_column_indices(seqs, missing_symbols = {'?', '-'}):
+    return get_shared_indices(seqs, missing_symbols)
+
+def remove_missing_columns(labeled_seqs, missing_symbols = {'?', '-'}):
+    seq_len = len(labeled_seqs[0][1])
+    seqs = (seq for lab, seq in labeled_seqs)
+    remove_set = set(get_missing_column_indices(seqs, missing_symbols))
+    indices_to_keep = [i for i in range(seq_len) if i not in remove_set]
+    new_seqs = [[lab, [seq[i] for i in indices_to_keep]] for lab, seq in labeled_seqs]
+    return new_seqs

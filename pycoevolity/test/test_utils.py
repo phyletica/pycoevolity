@@ -13,6 +13,7 @@ def parse_ipyrad_loci_file(path, treat_n_as_missing = True):
             l = line.strip()
             if l.startswith("//") and l.endswith("|"):
                 assert len(locus) > 0
+                locus = remove_missing_cols(locus)
                 loci.append(locus)
                 locus = {}
                 continue
@@ -25,6 +26,27 @@ def parse_ipyrad_loci_file(path, treat_n_as_missing = True):
             labels.add(label.strip())
         assert l.startswith("//")
     return loci, sorted(labels)
+
+def get_missing_col_indices(seqs, missing_symbols = {'?', '-'}):
+    indices = []
+    for i in range(len(seqs[0])):
+        all_missing = True
+        for seq in seqs:
+            if not seq[i] in missing_symbols:
+                all_missing = False
+                break
+        if all_missing:
+            indices.append(i)
+    return indices
+
+def remove_missing_cols(seq_dict, missing_symbols = {'?', '-'}):
+    seqs = list(seq_dict.values())
+    indices_to_remove = get_missing_col_indices(seqs, missing_symbols)
+    new_seqs = {}
+    for label, seq in seq_dict.items():
+        new_seq = [c for i, c in enumerate(seq) if i not in indices_to_remove]
+        new_seqs[label] = new_seq
+    return new_seqs
 
 def parse_ipyrad_json_file(path):
     with open(path, "r") as in_stream:
